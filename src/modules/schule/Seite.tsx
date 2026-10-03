@@ -14,6 +14,8 @@ import { Haken, Leer, LoeschKnopf, PlusKnopf } from '../../core/ui/Formular'
 import { FachFormular, NoteFormular, TerminFormular } from './Formulare'
 import { NOTEN_ARTEN, berechneHalbjahr, formatGenau, formatNote, notenText, punkteFarbe, punkteZuNote } from './noten'
 import { importiereNotenCsv } from './csv'
+import { abiPrognose } from './abi'
+import AbiPrognose from './AbiPrognose'
 
 const FARBE = '#ff9f0a'
 const HALBJAHRE = [1, 2, 3, 4]
@@ -111,8 +113,9 @@ export default function SchuleSeite() {
   const dateiFeld = useRef<HTMLInputElement>(null)
 
   const { ergebnisse, gesamt } = berechneHalbjahr(faecher, noten, hj, aktuellesHJ)
-  // Für die Übersicht: alle vier Halbjahre
+  // Für die Übersicht: alle vier Halbjahre, fehlende hochgerechnet ("wie bisher")
   const alleHJ = HALBJAHRE.map((h) => berechneHalbjahr(faecher, noten, h, aktuellesHJ))
+  const { werte: hjWerte } = abiPrognose(faecher, noten, aktuellesHJ, [])
   const fachName = (id?: string) => faecher.find((f) => f.id === id)?.name
 
   // Anstehende Klausuren: eigene Einträge + Kalendertermine, die nach Klausur aussehen
@@ -299,14 +302,16 @@ export default function SchuleSeite() {
                     {f.name}
                     {f.doppelt && <span className="ml-1 text-[11px] text-grau">2x</span>}
                   </td>
-                  {alleHJ.map((h, i) => {
-                    const g = h.ergebnisse.find((e) => e.fach.id === f.id)?.gerundet ?? null
-                    return (
-                      <td key={i} className="text-center font-semibold" style={{ color: g === null ? '#8e8e93' : punkteFarbe(g) }}>
-                        {g ?? '–'}
-                      </td>
-                    )
-                  })}
+                  {(hjWerte.get(f.id) ?? []).map((w, i) => (
+                    // Hochgerechnete Werte (Prognose) kursiv und blasser
+                    <td
+                      key={i}
+                      className={`text-center ${w?.art === 'prognose' ? 'font-normal italic opacity-60' : 'font-semibold'}`}
+                      style={{ color: w ? punkteFarbe(w.wert) : '#8e8e93' }}
+                    >
+                      {w?.wert ?? '–'}
+                    </td>
+                  ))}
                 </tr>
               ))}
               <tr className="border-t border-linie text-[13px]">
@@ -319,8 +324,13 @@ export default function SchuleSeite() {
               </tr>
             </tbody>
           </table>
+          <p className="mt-2 text-[12px] text-grau">
+            <i>Kursiv</i> = hochgerechnet (Schnitt der bisherigen Halbjahre).
+          </p>
         </Karte>
       )}
+
+      {faecher.length > 0 && <AbiPrognose faecher={faecher} noten={noten} aktuellesHJ={aktuellesHJ} />}
 
       {/* Anstehende Klausuren */}
       <Karte titel="Anstehende Klausuren" akzent="#ff453a" rechts={<PlusKnopf farbe="#ff453a" onClick={() => setFormular('klausur')} />}>
