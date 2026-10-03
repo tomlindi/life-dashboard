@@ -6,8 +6,7 @@ import { heute, kurzerWochentag, letzteTage, tagVon } from '../../core/datum'
 import { kurzDatum, zahl } from '../../core/format'
 import Karte from '../../core/ui/Karte'
 import { SchnellEingabe } from '../../core/ui/Formular'
-
-const SCHRITTE_ZIEL = 10000
+import { useSchrittziel } from '../../core/einstellungen'
 
 /** Gemeinsames Aussehen der Diagramme: dezente Achse, dunkler Tooltip. */
 const achse = { tick: { fill: '#8e8e93', fontSize: 12 }, axisLine: false, tickLine: false } as const
@@ -78,13 +77,36 @@ export function GewichtKarte() {
 export function SchritteDiagramm() {
   const tage = letzteTage(7)
   const schritte = useLiveQuery(() => db.schritte.toArray(), [])
+  const [SCHRITTE_ZIEL, setZiel] = useSchrittziel()
   const daten = tage.map((tag) => ({
     tag,
     name: kurzerWochentag(tag),
     schritte: schritte?.find((s) => s.datum === tag)?.anzahl ?? 0,
   }))
+  const schnitt = Math.round(daten.reduce((s, d) => s + d.schritte, 0) / 7)
+  // Ziel in 500er-Schritten ändern
+  const zielKnopf = (delta: number, symbol: string) => (
+    <button
+      onClick={() => setZiel(Math.min(30000, Math.max(1000, SCHRITTE_ZIEL + delta)))}
+      className="tippbar flex h-8 w-8 items-center justify-center rounded-full bg-karte2 text-[16px]"
+      aria-label={delta > 0 ? 'Schrittziel erhöhen' : 'Schrittziel verringern'}
+    >
+      {symbol}
+    </button>
+  )
   return (
-    <Karte titel="Schritte" akzent="#30d158" rechts={<span className="text-[12px] text-grau">Ziel {SCHRITTE_ZIEL.toLocaleString('de-DE')}</span>}>
+    <Karte
+      titel="Schritte"
+      akzent="#30d158"
+      rechts={
+        <span className="flex items-center gap-2 text-[12px] text-grau">
+          {zielKnopf(-500, '−')}
+          Ziel {SCHRITTE_ZIEL.toLocaleString('de-DE')}
+          {zielKnopf(500, '+')}
+        </span>
+      }
+    >
+      <p className="-mt-1 mb-1 text-[13px] text-grau">Ø {schnitt.toLocaleString('de-DE')} pro Tag (7 Tage)</p>
       <div className="h-40">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={daten} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>

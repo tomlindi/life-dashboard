@@ -13,5 +13,8 @@ export function useEinstellung<T>(key: string, standard: T): [T, (neu: T) => voi
 /** IDs der Bereiche, die du in der App ausgeblendet hast (Mehr → Bereiche anzeigen). */
 export const useAusgeblendet = () => useEinstellung<string[]>('ausgeblendeteBereiche', [])
 
+/** Tägliches Schrittziel, gemeinsam genutzt von Heute und Fitness. */
+export const useSchrittziel = () => useEinstellung<number>('schrittziel', 10000)
+
 /** Wochenziel Fitness (Anzahl Workouts pro Woche), gemeinsam genutzt von Heute und Fitness. */
 export const useWochenziel = () => useEinstellung<number>('wochenzielWorkouts', 4)

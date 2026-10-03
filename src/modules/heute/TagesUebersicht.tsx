@@ -2,12 +2,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check } from 'lucide-react'
 import { db } from '../../core/db'
-import { useWochenziel } from '../../core/einstellungen'
+import { useSchrittziel, useWochenziel } from '../../core/einstellungen'
 import { heute, tagVon, uhrzeit, wochenStart, tagPlus } from '../../core/datum'
 import Karte from '../../core/ui/Karte'
 import Ring from '../../core/ui/Ring'
 
-const SCHRITTE_ZIEL = 10000
 
 export function Termine() {
   const tag = heute()
@@ -93,11 +92,12 @@ export function Aktivitaet() {
   const dieseWoche = (workouts ?? []).filter((w) => tagVon(w.start) >= wochenStart()).length
   const anzahl = schritte?.anzahl ?? 0
   const [wochenziel] = useWochenziel() // einstellbar im Bereich Fitness
+  const [schrittziel] = useSchrittziel()
 
   return (
     <Karte titel="Aktivität" akzent="#ff375f">
       <div className="flex items-center gap-5">
-        <Ring fortschritt={anzahl / SCHRITTE_ZIEL} farbe="#ff375f" groesse={104} dicke={13}>
+        <Ring fortschritt={anzahl / schrittziel} farbe="#ff375f" groesse={104} dicke={13}>
           <div>
             <p className="text-[19px] font-bold leading-none">{anzahl.toLocaleString('de-DE')}</p>
             <p className="mt-0.5 text-[11px] text-grau">Schritte</p>
