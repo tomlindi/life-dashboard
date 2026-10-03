@@ -57,17 +57,17 @@ export async function ladeBeispieldaten() {
 
   // Termine: heute und die nächsten Tage
   await db.termine.bulkPut([
-    { id: `${DEMO}t1`, quelle: 'kalender', titel: 'Mathe', start: zeit(h, 8, 0), ende: zeit(h, 9, 30), ort: 'Raum 204' },
-    { id: `${DEMO}t2`, quelle: 'kalender', titel: 'Gym', start: zeit(h, 17, 30), ende: zeit(h, 18, 45), ort: 'FitX' },
-    { id: `${DEMO}t3`, quelle: 'kalender', titel: 'Englisch-Klausur', start: zeit(tagPlus(h, 3), 9, 0), ende: zeit(tagPlus(h, 3), 10, 30) },
-    { id: `${DEMO}t4`, quelle: 'kalender', titel: 'Lena Geburtstag', start: zeit(tagPlus(h, 5), 18, 0) },
+    { id: `${DEMO}t1`, quelle: 'kalender', titel: 'Mathe', start: zeit(h, 8, 0), ende: zeit(h, 9, 30), ort: 'Raum 204', kalender: 'Schule' },
+    { id: `${DEMO}t2`, quelle: 'kalender', titel: 'Gym', start: zeit(h, 17, 30), ende: zeit(h, 18, 45), ort: 'FitX', kalender: 'Sport' },
+    { id: `${DEMO}t3`, quelle: 'kalender', titel: 'Englisch-Klausur', start: zeit(tagPlus(h, 3), 9, 0), ende: zeit(tagPlus(h, 3), 10, 30), kalender: 'Schule' },
+    { id: `${DEMO}t4`, quelle: 'kalender', titel: 'Lena Geburtstag', start: zeit(tagPlus(h, 5), 18, 0), kalender: 'Privat' },
   ])
 
   // Aufgaben
   await db.aufgaben.bulkPut([
-    { id: `${DEMO}a1`, quelle: 'erinnerungen', titel: 'Referat Geschichte vorbereiten', faellig: tagPlus(h, 2), erledigt: false },
-    { id: `${DEMO}a2`, quelle: 'erinnerungen', titel: 'Vokabeln Kapitel 5', faellig: h, erledigt: false },
-    { id: `${DEMO}a3`, quelle: 'manuell', titel: 'Sporttasche packen', faellig: h, erledigt: true },
+    { id: `${DEMO}a1`, quelle: 'erinnerungen', titel: 'Referat Geschichte vorbereiten', faellig: tagPlus(h, 2), erledigt: false, liste: 'Schule' },
+    { id: `${DEMO}a2`, quelle: 'erinnerungen', titel: 'Vokabeln Kapitel 5', faellig: h, erledigt: false, liste: 'Schule' },
+    { id: `${DEMO}a3`, quelle: 'manuell', titel: 'Sporttasche packen', faellig: h, erledigt: true, liste: 'Privat' },
   ])
 
   // Habits + Haken der letzten Tage

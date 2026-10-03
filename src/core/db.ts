@@ -37,8 +37,12 @@ export interface Termin {
   start: string
   ende?: string
   ort?: string
+  kalender?: string // Name des Apple-Kalenders, z. B. "Schule"
+  ganztaegig?: boolean
+  notiz?: string
   zielId?: string // optional: gehört zu einem Ziel (kommt im Bereich "Ziele")
   projektId?: string
+  sync?: 'ausstehend' // in Life geändert, aber noch nicht an Apple gesendet/bestätigt
 }
 
 export interface Aufgabe {
@@ -47,6 +51,10 @@ export interface Aufgabe {
   titel: string
   faellig?: string // "JJJJ-MM-TT"
   erledigt: boolean
+  liste?: string // Name der Erinnerungen-Liste
+  notiz?: string
+  prioritaet?: number // 0 = keine, 1 = niedrig, 2 = mittel, 3 = hoch
+  sync?: 'ausstehend'
 }
 
 export interface Habit {

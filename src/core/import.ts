@@ -19,7 +19,8 @@
 //
 // STRAVA SPÄTER: Eine direkte Strava-Anbindung müsste nur Workouts mit quelle "strava" liefern
 // (siehe src/core/strava.ts). Der Rest der App funktioniert dann unverändert.
-import { db, setzeEinstellung, type Quelle } from './db'
+import { db, holeEinstellung, setzeEinstellung, type Quelle } from './db'
+import { aufgabeId, terminId, type AppleAktion } from './apple'
 import { tagString, tagPlus, heute } from './datum'
 
 // ---------- Hilfsfunktionen zum "Aufräumen" der Eingabedaten ----------
@@ -220,14 +221,20 @@ export async function importiere(o: Record<string, unknown>): Promise<ImportErge
           start: start.toISOString(),
           ende: ende?.toISOString(),
           ort: feld(e, 'ort', 'location') ? String(feld(e, 'ort', 'location')) : undefined,
+          kalender: feld(e, 'kalender', 'calendar') ? String(feld(e, 'kalender', 'calendar')) : undefined,
+          ganztaegig: /^(true|ja|1|yes)$/i.test(String(feld(e, 'ganztaegig', 'ganztägig', 'allday') ?? '')) || undefined,
+          notiz: feld(e, 'notiz', 'notizen', 'notes') ? String(feld(e, 'notiz', 'notizen', 'notes')) : undefined,
           zielId: alt?.zielId, // Zuordnung zu Ziel/Projekt bleibt erhalten
           projektId: alt?.projektId,
+          // "sync" fehlt absichtlich: Apple hat den Termin bestätigt, er ist nicht mehr "ausstehend"
         })
         erg.termine[alt ? 'aktualisiert' : 'neu']++
       }
-      // Termine der nächsten 14 Tage, die nicht mehr im Kalender stehen (gelöscht/verschoben), entfernen
+      // Termine im abgefragten Zeitraum (Standard 14 Tage, einstellbar über "termineTage"),
+      // die nicht mehr im Kalender stehen (gelöscht/verschoben), entfernen
+      const tage = Math.min(366, Math.max(1, zahl(o.termineTage) || 14))
       const von = new Date().toISOString()
-      const bis = new Date(`${tagPlus(heute(), 14)}T00:00:00`).toISOString()
+      const bis = new Date(`${tagPlus(heute(), tage)}T00:00:00`).toISOString()
       const veraltet = await db.termine.where('start').between(von, bis).filter((t) => t.quelle === 'kalender' && !importierteIds.has(t.id)).primaryKeys()
       await db.termine.bulkDelete(veraltet)
       if (veraltet.length) erg.hinweise.push(`${veraltet.length} Termine entfernt (nicht mehr im Kalender)`)
@@ -248,16 +255,38 @@ export async function importiere(o: Record<string, unknown>): Promise<ImportErge
           quelle: 'erinnerungen',
           titel,
           faellig: tag(feld(e, 'faellig', 'fällig', 'due', 'datum')) ?? undefined,
-          erledigt: alt?.erledigt ?? false, // in der App abgehakt? Dann bleibt es abgehakt.
+          liste: feld(e, 'liste', 'list') ? String(feld(e, 'liste', 'list')) : alt?.liste,
+          notiz: feld(e, 'notiz', 'notizen', 'notes') ? String(feld(e, 'notiz', 'notizen', 'notes')) : undefined,
+          prioritaet: Number.isFinite(zahl(feld(e, 'prioritaet', 'priorität', 'priority'))) ? zahl(feld(e, 'prioritaet', 'priorität', 'priority')) : undefined,
+          // In Apple offen -> auch in Life offen. Ausnahme: in Life abgehakt, aber noch nicht an Apple gesendet.
+          erledigt: alt?.sync === 'ausstehend' ? alt.erledigt : false,
+          sync: alt?.sync === 'ausstehend' && alt.erledigt ? 'ausstehend' : undefined,
         })
         erg.aufgaben[alt ? 'aktualisiert' : 'neu']++
       }
       // Aufgaben, die in Erinnerungen nicht mehr offen sind, gelten als erledigt
       const fertig = await db.aufgaben.filter((a) => a.quelle === 'erinnerungen' && !a.erledigt && !importierteIds.has(a.id)).primaryKeys()
       for (const id of fertig) await db.aufgaben.update(id, { erledigt: true })
+      // Abgehakte Einträge, die Apple nicht mehr meldet, sind bestätigt -> nicht mehr "ausstehend"
+      const bestaetigt = await db.aufgaben.filter((a) => a.erledigt && a.sync === 'ausstehend' && !importierteIds.has(a.id)).primaryKeys()
+      for (const id of bestaetigt) await db.aufgaben.update(id, { sync: undefined })
       if (fertig.length) erg.hinweise.push(`${fertig.length} Aufgaben als erledigt markiert (in Erinnerungen abgehakt)`)
     }
   })
+
+  // Warteschlange für Apple aufräumen: Was Apple schon gemeldet hat, muss nicht nochmal gesendet werden
+  // (sonst gäbe es den Termin/die Erinnerung beim nächsten Abgleich doppelt).
+  const warteschlange = await holeEinstellung<AppleAktion[]>('appleWarteschlange', [])
+  if (warteschlange.length) {
+    const termine = new Set((await db.termine.toArray()).filter((t) => t.quelle === 'kalender').map((t) => t.id))
+    const offen = new Set((await db.aufgaben.toArray()).filter((a) => a.quelle === 'erinnerungen').map((a) => a.id))
+    const rest = warteschlange.filter((a) => {
+      if (a.typ === 'termin' && a.neu && !a.loeschen) return !termine.has(terminId(a.neu.titel, new Date(a.neu.start).toISOString()))
+      if (a.typ === 'erinnerung' && a.neu && !a.loeschen) return !offen.has(aufgabeId(a.neu.titel))
+      return true
+    })
+    if (rest.length !== warteschlange.length) await setzeEinstellung('appleWarteschlange', rest)
+  }
 
   await setzeEinstellung('letzterImport', new Date().toISOString())
   return erg

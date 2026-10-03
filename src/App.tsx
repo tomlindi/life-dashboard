@@ -11,6 +11,8 @@ import Sicherheitsnetz from './core/ui/Sicherheitsnetz'
 const MehrSeite = lazy(() => import('./modules/mehr/Seite'))
 const ImportSeite = lazy(() => import('./modules/mehr/Import'))
 const BackupSeite = lazy(() => import('./modules/mehr/Backup'))
+const KalenderSeite = lazy(() => import('./modules/kalender/KalenderSeite'))
+const ErinnerungenSeite = lazy(() => import('./modules/kalender/ErinnerungenSeite'))
 
 /** Ein Eintrag in der Tab-Leiste. */
 function Tab({ to, label, children, farbe }: { to: string; label: string; children: React.ReactNode; farbe: string }) {
@@ -49,6 +51,8 @@ function Seiten() {
           <Route path="/mehr" element={<MehrSeite />} />
           <Route path="/import" element={<ImportSeite />} />
           <Route path="/backup" element={<BackupSeite />} />
+          <Route path="/kalender" element={<KalenderSeite />} />
+          <Route path="/erinnerungen" element={<ErinnerungenSeite />} />
         </Routes>
       </Suspense>
     </Sicherheitsnetz>

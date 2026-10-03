@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { ClipboardPaste } from 'lucide-react'
 import { importiere, leseImportText, zusammenfassung } from '../../core/import'
 
-export default function ImportKnopf({ klein = false }: { klein?: boolean }) {
+export default function ImportKnopf({ klein = false, onFertig }: { klein?: boolean; onFertig?: () => void }) {
   const [status, setStatus] = useState<{ ok: boolean; zeilen: string[] } | null>(null)
   const [laeuft, setLaeuft] = useState(false)
 
@@ -16,6 +16,7 @@ export default function ImportKnopf({ klein = false }: { klein?: boolean }) {
       const text = await navigator.clipboard.readText()
       const ergebnis = await importiere(leseImportText(text))
       setStatus({ ok: true, zeilen: zusammenfassung(ergebnis) })
+      onFertig?.()
     } catch (e) {
       const meldung = (e as Error).name === 'NotAllowedError' ? 'Kein Zugriff auf die Zwischenablage. Erlaube das Einfügen oder nutze „Mehr → Daten importieren“.' : (e as Error).message
       setStatus({ ok: false, zeilen: [meldung] })

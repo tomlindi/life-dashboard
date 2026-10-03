@@ -97,15 +97,15 @@ Im Textfeld innerhalb der Wiederholung tippst du auf **„Variable auswählen“
    ```
 3. **„Text kombinieren“** mit `,` → umbenennen in `Gewicht`
 
-### Block E: Termine (nächste 14 Tage, alle Kalender)
+### Block E: Termine (nächste 60 Tage, alle Kalender)
 
 1. **„Kalenderereignisse suchen“**
-   - Filter: **Startdatum** *ist in den nächsten* **14 Tagen**
+   - Filter: **Startdatum** *ist in den nächsten* **60 Tagen** (so ist die Monatsansicht in Life gefüllt)
    - Keinen Kalender-Filter setzen, dann werden **alle Kalender** genommen
    - Sortieren nach: Startdatum
 2. **„Wiederholen mit jedem“** → zuerst Aktion **„Text ersetzen“**: in **Wiederholungsobjekt › Titel** ersetze `"` durch `'`. Damit gehen Anführungszeichen im Titel nicht kaputt. Dann **„Text“**:
    ```
-   {"titel":"[Geänderter Text]","start":"[Wiederholungsobjekt › Startdatum, ISO 8601]","ende":"[… › Enddatum, ISO 8601]","ort":"[… › Ort]"}
+   {"titel":"[Geänderter Text]","start":"[… › Startdatum, ISO 8601]","ende":"[… › Enddatum, ISO 8601]","ort":"[… › Ort]","kalender":"[… › Kalender]","ganztaegig":"[… › Ist ganztägig]"}
    ```
 3. **„Text kombinieren“** mit `,` → umbenennen in `Termine`
 
@@ -114,16 +114,18 @@ Im Textfeld innerhalb der Wiederholung tippst du auf **„Variable auswählen“
 1. **„Erinnerungen suchen“**: Filter **Ist erledigt** *ist* **falsch** (also: nicht erledigt)
 2. **„Wiederholen mit jedem“** → **„Text ersetzen“** (`"` → `'` im Titel) → **„Text“**:
    ```
-   {"titel":"[Geänderter Text]","faellig":"[Wiederholungsobjekt › Fälligkeitsdatum, ISO 8601]"}
+   {"titel":"[Geänderter Text]","faellig":"[… › Fälligkeitsdatum, ISO 8601]","liste":"[… › Liste]","prioritaet":"[… › Priorität]"}
    ```
+   Falls es „Liste“ oder „Priorität“ bei dir nicht gibt, lass den Teil einfach weg.
 3. **„Text kombinieren“** mit `,` → umbenennen in `Aufgaben`
 
 ### Zum Schluss: alles zusammensetzen
 
 1. Aktion **„Text“** mit diesem Inhalt (die Namen in [ ] sind die umbenannten Variablen):
    ```
-   {"version":1,"schritte":[[Schritte]],"workouts":[[Workouts]],"schlaf":[[Schlaf]],"gewicht":[[Gewicht]],"termine":[[Termine]],"aufgaben":[[Aufgaben]]}
+   {"version":1,"termineTage":60,"schritte":[[Schritte]],"workouts":[[Workouts]],"schlaf":[[Schlaf]],"gewicht":[[Gewicht]],"termine":[[Termine]],"aufgaben":[[Aufgaben]]}
    ```
+   `"termineTage":60` sagt der App, dass du 60 Tage abfragst. Termine in diesem Zeitraum, die nicht mehr in Apple stehen, entfernt die App.
    Achtung: Jede Variable steht **innerhalb** von eckigen Klammern `[ ]`. Das sind die JSON-Listen.
 2. Aktion **„In Zwischenablage kopieren“**
 3. Optional: Aktion **„Mitteilung anzeigen“**: „Daten kopiert – jetzt Life öffnen und importieren“
@@ -131,6 +133,56 @@ Im Textfeld innerhalb der Wiederholung tippst du auf **„Variable auswählen“
 **Erster Start:** iOS fragt einmal, ob der Kurzbefehl auf Health, Kalender und Erinnerungen zugreifen darf. Erlaube alles (bei Health: die Kategorien Schritte, Workouts, Schlaf, Gewicht).
 
 **Testen:** Füge vor „In Zwischenablage kopieren“ kurz eine **„Schnellansicht“** ein. Dann siehst du den Text. Kopiere ihn notfalls und füge ihn in der App unter **Mehr → Daten importieren → Text einfügen** ein. Dort bekommst du eine verständliche Fehlermeldung, falls etwas nicht stimmt.
+
+---
+
+## 2b. Kurzbefehl „Life Sync“ (Abgleich in beide Richtungen)
+
+Damit Termine und Erinnerungen, die du **in Life** anlegst, änderst oder abhakst, auch in Apple ankommen, gibt es einen zweiten Kurzbefehl. Life startet ihn selbst, wenn du auf **„🔄 Mit Apple abgleichen“** tippst, und übergibt ihm die Änderungen, zum Beispiel:
+
+```json
+{ "aktionen": [
+  { "typ": "termin", "neu": { "titel": "Nachhilfe", "start": "2026-10-08T15:00:00.000Z", "ende": "2026-10-08T16:00:00.000Z", "ort": "Bibliothek" } },
+  { "typ": "termin", "loeschen": { "titel": "Gym", "start": "2026-10-09T15:30:00.000Z" } },
+  { "typ": "erinnerung", "erledigt": { "titel": "Vokabeln Kapitel 5" } },
+  { "typ": "erinnerung", "neu": { "titel": "Referat üben", "faellig": "2026-10-10", "liste": "Schule" } }
+] }
+```
+Ändern = altes löschen und neues anlegen. Am Ende ruft „Life Sync“ den Export-Kurzbefehl auf, damit alle aktuellen Daten zurück in die Zwischenablage kommen.
+
+> ⚠️ Der Kurzbefehl muss **genau „Life Sync“** heißen, sonst findet Life ihn nicht. Der Export-Kurzbefehl muss **„Life Dashboard Export“** heißen.
+
+### Aufbau
+**Kurzbefehle → + → Name „Life Sync“**. Unten auf **ⓘ** tippen und **„Kurzbefehl-Eingabe empfangen“** mit dem Typ **Text** einschalten.
+
+1. **„Wörterbuch abrufen“** von **Kurzbefehl-Eingabe**
+2. **„Wörterbuchwert abrufen“**: Schlüssel `aktionen` → umbenennen in `Aktionen`
+3. **„Wiederholen mit jedem“** in `Aktionen`. Darin:
+   1. **„Wörterbuchwert abrufen“** `typ` von *Wiederholungsobjekt*
+   2. **„Wenn“** *Wörterbuchwert* **ist** `termin`:
+      - **Löschen:** **„Wörterbuchwert abrufen“** `loeschen` (von *Wiederholungsobjekt*) → **„Wenn“** *hat beliebigen Wert*:
+        - `titel` und `start` daraus abrufen → **„Datum abrufen“** aus `start`
+        - **„Kalenderereignisse suchen“**: *Titel ist* [titel] und *Startdatum ist* [Datum], Limit 1
+        - **„Ereignisse entfernen“** (in den Optionen die Bestätigung ausschalten, sonst fragt iOS jedes Mal)
+      - **Neu:** **„Wörterbuchwert abrufen“** `neu` → **„Wenn“** *hat beliebigen Wert*:
+        - `titel`, `start`, `ende`, `ort` abrufen, Start und Ende jeweils mit **„Datum abrufen“** umwandeln
+        - **„Neues Ereignis hinzufügen“**: Titel, Startdatum, Enddatum, Ort einsetzen. Kalender: dein Standardkalender.
+   3. **„Sonst wenn“** *Wörterbuchwert* **ist** `erinnerung`:
+      - **Erledigt:** `erledigt` abrufen → Wenn vorhanden: `titel` abrufen → **„Erinnerungen suchen“** *Titel ist* [titel], *Ist erledigt ist falsch*, Limit 1 → **„Erinnerung bearbeiten“**: **Ist erledigt = an**
+      - **Wieder offen:** `wiederOffen` abrufen → wie oben, aber *Ist erledigt ist wahr* suchen und **Ist erledigt = aus**
+      - **Löschen:** `loeschen` abrufen → **„Erinnerungen suchen“** *Titel ist* [titel] → **„Erinnerungen entfernen“**
+      - **Neu:** `neu` abrufen → `titel`, `faellig` abrufen → **„Erinnerung hinzufügen“**: Titel, Fälligkeitsdatum (über „Datum abrufen“), Liste: deine Standardliste
+4. Nach „Ende der Wiederholung“: **„Kurzbefehl ausführen“** → **Life Dashboard Export**
+5. Optional: **„Mitteilung anzeigen“**: „Abgeglichen – zurück zu Life und Importieren tippen“
+
+Die Aktion „Erinnerung bearbeiten“ heißt je nach iOS-Version auch **„Erinnerungsdetail festlegen“**.
+
+### Ablauf im Alltag
+1. In Life auf **„🔄 Mit Apple abgleichen“** tippen. Die Kurzbefehle-App öffnet sich und erledigt alles.
+2. Oben links auf **„◀ Life“** tippen (oder zurückwischen).
+3. Life zeigt **„Jetzt die aktuellen Apple-Daten übernehmen“** → **Importieren** → **Einfügen**.
+
+Einträge mit ⏳ sind in Life geändert, aber noch nicht von Apple bestätigt. Nach dem Import verschwindet das ⏳.
 
 ---
 

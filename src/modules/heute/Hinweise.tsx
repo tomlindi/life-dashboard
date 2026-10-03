@@ -1,14 +1,12 @@
-// Hinweise oben auf der Startseite: Geburtstage, Backup-Erinnerung und der tägliche Import.
-import { useState } from 'react'
+// Hinweise oben auf der Startseite: Geburtstage und Backup-Erinnerung.
+// (Der Abgleich mit Apple steckt in modules/kalender/SyncKnopf.tsx.)
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Cake, HardDrive } from 'lucide-react'
 import { db } from '../../core/db'
-import { heute, tagVon } from '../../core/datum'
 import { relativ } from '../../core/format'
 import { BACKUP_INTERVALL_TAGE, tageSeitBackup } from '../../core/backup'
 import { baldigeGeburtstage } from '../freunde/geburtstag'
-import ImportKnopf from '../mehr/ImportKnopf'
 
 /** Geburtstage in den nächsten 7 Tagen. */
 export function GeburtstagsHinweis() {
@@ -44,19 +42,4 @@ export function BackupHinweis() {
       </p>
     </Link>
   )
-}
-
-/** Täglicher Import: großer Knopf, solange heute noch nicht importiert wurde. */
-export function ImportBereich() {
-  const letzter = useLiveQuery(() => db.einstellungen.get('letzterImport'), [])
-  const [zeigen, setZeigen] = useState(false)
-  const heuteImportiert = letzter && tagVon(String(letzter.value)) === heute()
-  if (heuteImportiert && !zeigen) {
-    return (
-      <button onClick={() => setZeigen(true)} className="tippbar px-1 text-left text-[13px] text-grau">
-        ✓ Heute importiert um {new Date(String(letzter.value)).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} · <span className="text-[#0a84ff]">erneut importieren</span>
-      </button>
-    )
-  }
-  return <ImportKnopf klein />
 }

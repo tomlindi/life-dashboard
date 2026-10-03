@@ -4,11 +4,13 @@ import { begruessung, langesDatum } from '../../core/datum'
 import { db } from '../../core/db'
 import { ladeBeispieldaten, loescheBeispieldaten, gibtBeispieldaten } from '../../core/beispieldaten'
 import Seite from '../../core/ui/Seite'
-import { Termine, Aufgaben, Aktivitaet, Habits } from './TagesUebersicht'
+import { Aktivitaet, Habits } from './TagesUebersicht'
 import SchnellEintrag from './SchnellEintrag'
 import Wochenrueckblick from './Wochenrueckblick'
 import Kacheln from './Kacheln'
-import { BackupHinweis, GeburtstagsHinweis, ImportBereich } from './Hinweise'
+import { BackupHinweis, GeburtstagsHinweis } from './Hinweise'
+import { ErinnerungenWidget, KalenderWidget } from '../kalender/Widgets'
+import SyncKnopf from '../kalender/SyncKnopf'
 
 export default function HeuteSeite() {
   // Zeigt entweder "Beispieldaten laden" oder "löschen", je nachdem was gerade da ist.
@@ -17,11 +19,14 @@ export default function HeuteSeite() {
 
   return (
     <Seite titel={begruessung()} untertitel={langesDatum()}>
-      <ImportBereich />
+      {/* Zwei Widgets nebeneinander wie auf dem iPhone-Homescreen */}
+      <div className="grid grid-cols-2 gap-3">
+        <KalenderWidget />
+        <ErinnerungenWidget />
+      </div>
+      <SyncKnopf />
       <GeburtstagsHinweis />
       <BackupHinweis />
-      <Termine />
-      <Aufgaben />
       <Aktivitaet />
       <Habits />
       <SchnellEintrag />
