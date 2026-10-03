@@ -8,6 +8,7 @@ import { heute, tagVon, wochenStart } from '../../core/datum'
 import { euro, zahl } from '../../core/format'
 import { useAusgeblendet } from '../../core/einstellungen'
 import { berechneHalbjahr } from '../schule/noten'
+import { abiPrognose, STANDARD_PRUEFUNGEN, type AbiPruefung } from '../schule/abi'
 
 /** Liest für jeden Bereich eine kurze Kennzahl aus der Datenbank. */
 function useKennzahlen(): Record<string, string> {
@@ -31,11 +32,13 @@ function useKennzahlen(): Record<string, string> {
         holeEinstellung<number>('aktuellesHalbjahr', 1),
       ])
       const { gesamt } = berechneHalbjahr(faecher, noten, hj, hj) // Schnitt des aktuellen Halbjahrs
+      const pruefungen = await holeEinstellung<AbiPruefung[]>('abiPruefungen', STANDARD_PRUEFUNGEN)
+      const abi = faecher.length ? abiPrognose(faecher, noten, hj, pruefungen) : null
       const konto = buchungen.reduce((s, b) => s + (b.art === 'einnahme' ? b.betrag : -b.betrag), 0)
       const hobbyMin = hobbyZeiten.reduce((s, z) => s + z.minuten, 0)
       return {
         fitness: `${workouts.filter((w) => tagVon(w.start) >= ws).length} Workouts diese Woche`,
-        schule: gesamt === null ? 'Noch keine Noten' : `Ø ${zahl(gesamt)} Punkte`,
+        schule: abi?.bestanden ? `Abi ≈ ${abi.note.toFixed(1).replace('.', ',')}` : gesamt === null ? 'Noch keine Noten' : `Ø ${zahl(gesamt)} Punkte`,
         ziele: `${ziele} ${ziele === 1 ? 'Ziel' : 'Ziele'}`,
         gewohnheiten: habits ? `${haken}/${habits} heute` : 'Keine Habits',
         geld: euro(konto),

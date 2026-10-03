@@ -180,6 +180,9 @@ export default function SchuleSeite() {
         </div>
       </Karte>
 
+      {/* Abi-Prognose gleich oben, damit man sie sofort sieht */}
+      {faecher.length > 0 && <AbiPrognose faecher={faecher} noten={noten} aktuellesHJ={aktuellesHJ} />}
+
       {/* Fächer */}
       <Karte titel="Fächer" rechts={<PlusKnopf farbe={FARBE} onClick={() => setFormular('fach')} label="Fach" />}>
         {faecher.length === 0 ? (
@@ -330,7 +333,6 @@ export default function SchuleSeite() {
         </Karte>
       )}
 
-      {faecher.length > 0 && <AbiPrognose faecher={faecher} noten={noten} aktuellesHJ={aktuellesHJ} />}
 
       {/* Anstehende Klausuren */}
       <Karte titel="Anstehende Klausuren" akzent="#ff453a" rechts={<PlusKnopf farbe="#ff453a" onClick={() => setFormular('klausur')} />}>

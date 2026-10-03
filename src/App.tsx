@@ -1,10 +1,11 @@
 // Das Grundgerüst der App: Seiten-Bereich oben, Tab-Leiste unten.
 import { Suspense, lazy } from 'react'
-import { HashRouter, NavLink, Route, Routes } from 'react-router-dom'
+import { HashRouter, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { House, Ellipsis } from 'lucide-react'
 import { module, TAB_IDS } from './modules'
 import HeuteSeite from './modules/heute/Seite'
 import { useAusgeblendet } from './core/einstellungen'
+import Sicherheitsnetz from './core/ui/Sicherheitsnetz'
 
 // "lazy": Die Mehr-Seite wird erst geladen, wenn man sie öffnet (hält den Start schnell)
 const MehrSeite = lazy(() => import('./modules/mehr/Seite'))
@@ -30,6 +31,26 @@ function Tab({ to, label, children, farbe }: { to: string; label: string; childr
   )
 }
 
+/** Alle Seiten. Das Sicherheitsnetz fängt Abstürze ab und wird beim Seitenwechsel zurückgesetzt. */
+function Seiten() {
+  const ort = useLocation() // aktuelle Seite, z. B. "/schule"
+  return (
+    <Sicherheitsnetz key={ort.pathname}>
+      <Suspense fallback={null}>
+        <Routes>
+          <Route path="/" element={<HeuteSeite />} />
+          {module.map((m) => (
+            <Route key={m.id} path={`/${m.id}`} element={<m.Seite />} />
+          ))}
+          <Route path="/mehr" element={<MehrSeite />} />
+          <Route path="/import" element={<ImportSeite />} />
+          <Route path="/backup" element={<BackupSeite />} />
+        </Routes>
+      </Suspense>
+    </Sicherheitsnetz>
+  )
+}
+
 export default function App() {
   const [ausgeblendet] = useAusgeblendet()
   const tabModule = TAB_IDS.map((id) => module.find((m) => m.id === id)!).filter((m) => m && !ausgeblendet.includes(m.id))
@@ -40,17 +61,7 @@ export default function App() {
       <div className="flex h-full flex-col">
         {/* Scrollbarer Inhalt. paddingTop = Platz für Notch/Statusleiste (Safe Area) */}
         <main className="flex-1 overflow-y-auto overscroll-contain" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-          <Suspense fallback={null}>
-            <Routes>
-              <Route path="/" element={<HeuteSeite />} />
-              {module.map((m) => (
-                <Route key={m.id} path={`/${m.id}`} element={<m.Seite />} />
-              ))}
-              <Route path="/mehr" element={<MehrSeite />} />
-              <Route path="/import" element={<ImportSeite />} />
-              <Route path="/backup" element={<BackupSeite />} />
-            </Routes>
-          </Suspense>
+          <Seiten />
         </main>
 
         {/* Tab-Leiste unten. paddingBottom = Platz für den Home-Balken des iPhones */}
