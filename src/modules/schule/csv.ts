@@ -49,6 +49,7 @@ const SPALTEN: Record<string, string[]> = {
   art: ['art', 'typ', 'type', 'kategorie', 'notenart'],
   gewicht: ['gewicht', 'gewichtung', 'faktor', 'weight'],
   datum: ['datum', 'date', 'tag'],
+  halbjahr: ['halbjahr', 'hj', 'semester'],
 }
 
 /** "15.09.2026", "15.09.26" oder "2026-09-15" -> "2026-09-15" */
@@ -66,8 +67,10 @@ function leseDatum(s: string | undefined): string {
 
 function leseArt(s: string | undefined): NotenArt {
   const t = normal(s ?? '')
-  if (/klausur|schulaufgabe|arbeit|exam/.test(t)) return 'Klausur'
-  if (/muend|oral|mitarbeit/.test(t)) return 'Mündlich'
+  if (/klausur|schulaufgabe|arbeit|exam|^sc$|schriftl/.test(t)) return 'Klausur'
+  if (/pruefung/.test(t)) return 'Prüfung'
+  if (/muend|oral|mitarbeit|^mue?$/.test(t)) return 'Mündlich'
+  if (/prakt|^pr$|gfs|praesent/.test(t)) return 'Praktisch'
   if (/test|ex|quiz/.test(t)) return 'Test'
   return 'Sonstiges'
 }
@@ -111,7 +114,9 @@ export async function importiereNotenCsv(text: string): Promise<CsvErgebnis> {
       continue
     }
     if (sindSchulnoten) punkte = Math.round(17 - 3 * punkte) // Note 2,0 -> 11 Punkte
-    punkte = Math.min(15, Math.max(0, Math.round(punkte)))
+    punkte = Math.min(15, Math.max(0, Math.round(punkte * 2) / 2)) // halbe Punkte (8,5) erlaubt
+    const hj = zahlAus(index.halbjahr >= 0 ? d[index.halbjahr] : undefined)
+    const halbjahr = hj >= 1 && hj <= 4 ? Math.round(hj) : undefined
 
     // Fach anlegen, falls es noch nicht existiert
     let fachId = fachIdVon.get(fachName.toLowerCase())
@@ -127,7 +132,7 @@ export async function importiereNotenCsv(text: string): Promise<CsvErgebnis> {
     const gewicht = zahlAus(index.gewicht >= 0 ? d[index.gewicht] : undefined)
 
     // Stabile ID aus den Inhalten: dieselbe Zeile erneut importiert -> gleiche ID -> kein Duplikat
-    const id = `csv:${fachName.toLowerCase()}|${datum}|${punkte}|${art}`
+    const id = `csv:${fachName.toLowerCase()}|${datum}|${punkte}|${art}|${halbjahr ?? ''}`
     if (await db.noten.get(id)) {
       ergebnis.doppelt++
       continue
@@ -139,6 +144,7 @@ export async function importiereNotenCsv(text: string): Promise<CsvErgebnis> {
       art,
       gewicht: Number.isNaN(gewicht) || gewicht <= 0 ? (art === 'Klausur' ? 2 : 1) : gewicht,
       datum,
+      halbjahr,
     })
     ergebnis.neu++
   }

@@ -5,10 +5,9 @@ import { heute, neueId, tagPlus } from '../../core/datum'
 import Sheet from '../../core/ui/Sheet'
 import { Chips, Eingabe, Knopf, Label } from '../../core/ui/Formular'
 import { FACH_FARBEN } from './farben'
-import { notenText, punkteFarbe } from './noten'
+import { NOTEN_ARTEN, notenText, punkteFarbe } from './noten'
 
 const FARBE = '#ff9f0a'
-const ARTEN: NotenArt[] = ['Klausur', 'Mündlich', 'Test', 'Sonstiges']
 
 interface FormProps {
   offen: boolean
@@ -50,12 +49,20 @@ export function FachFormular({ offen, onZu }: FormProps) {
   )
 }
 
-export function NoteFormular({ offen, onZu, faecher, startFach }: FormProps & { faecher: Fach[]; startFach?: string }) {
+export function NoteFormular({
+  offen,
+  onZu,
+  faecher,
+  startFach,
+  halbjahr,
+}: FormProps & { faecher: Fach[]; startFach?: string; halbjahr: number }) {
   const [fachId, setFachId] = useState(startFach ?? faecher[0]?.id ?? '')
   const [punkte, setPunkte] = useState(10)
+  const [halb, setHalb] = useState(false) // +0,5 Punkte (z. B. 8,5)
   const [art, setArt] = useState<NotenArt>('Klausur')
-  const [gewicht, setGewicht] = useState(2)
+  const [gewicht, setGewicht] = useState(1)
   const [datum, setDatum] = useState(heute())
+  const fach = faecher.find((f) => f.id === fachId)
 
   // Wenn das Fenster für ein bestimmtes Fach geöffnet wird, dieses Fach vorauswählen
   useEffect(() => {
@@ -63,15 +70,18 @@ export function NoteFormular({ offen, onZu, faecher, startFach }: FormProps & { 
     // eslint-disable-next-line react-hooks/exhaustive-deps -- nur beim Öffnen zurücksetzen
   }, [offen, startFach])
 
-  // Praktisch: Klausuren zählen meist doppelt, alles andere einfach
+  // Hat das Fach Anteile (wie Notan), regeln die das Gewicht der Notenart -> jede Note ×1.
+  // Ohne Anteile zählen Klausuren standardmäßig doppelt.
   function waehleArt(a: NotenArt) {
     setArt(a)
-    setGewicht(a === 'Klausur' ? 2 : 1)
+    setGewicht(a === 'Klausur' && !fach?.anteile ? 2 : 1)
   }
 
   async function speichern() {
     if (!fachId) return
-    await db.noten.add({ id: neueId(), fachId, punkte, art, gewicht, datum })
+    const wert = halb && punkte < 15 ? punkte + 0.5 : punkte
+    await db.noten.add({ id: neueId(), fachId, punkte: wert, art, gewicht, datum, halbjahr })
+    setHalb(false)
     onZu()
   }
 
@@ -92,9 +102,19 @@ export function NoteFormular({ offen, onZu, faecher, startFach }: FormProps & { 
       </div>
 
       {/* Punkte: 16 Knöpfe von 0 bis 15, ein Tap genügt */}
-      <Label>
-        Punkte: <b style={{ color: punkteFarbe(punkte) }}>{punkte}</b> (Note {notenText(punkte)})
-      </Label>
+      <div className="flex items-center justify-between">
+        <Label>
+          Punkte: <b style={{ color: punkteFarbe(punkte) }}>{String(halb && punkte < 15 ? punkte + 0.5 : punkte).replace('.', ',')}</b> (Note {notenText(punkte)}) ·{' '}
+          {halbjahr}. Halbjahr
+        </Label>
+        <button
+          onClick={() => setHalb(!halb)}
+          className="tippbar mb-1.5 min-h-8 rounded-full px-3 text-[13px] font-semibold"
+          style={{ background: halb ? FARBE : '#2c2c2e', color: halb ? '#000' : '#fff' }}
+        >
+          +0,5
+        </button>
+      </div>
       <div className="mb-4 grid grid-cols-8 gap-1.5">
         {Array.from({ length: 16 }, (_, i) => 15 - i).map((p) => (
           <button
@@ -110,7 +130,7 @@ export function NoteFormular({ offen, onZu, faecher, startFach }: FormProps & { 
 
       <Label>Art</Label>
       <div className="mb-4">
-        <Chips optionen={ARTEN} wert={art} onWahl={waehleArt} farbe={FARBE} />
+        <Chips optionen={NOTEN_ARTEN} wert={art} onWahl={waehleArt} farbe={FARBE} />
       </div>
 
       <div className="mb-5 flex gap-3">

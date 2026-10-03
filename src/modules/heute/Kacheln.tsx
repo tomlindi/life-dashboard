@@ -3,11 +3,11 @@
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { module } from '..'
-import { db } from '../../core/db'
+import { db, holeEinstellung } from '../../core/db'
 import { heute, tagVon, wochenStart } from '../../core/datum'
-import { euro, mittel, zahl } from '../../core/format'
+import { euro, zahl } from '../../core/format'
 import { useAusgeblendet } from '../../core/einstellungen'
-import { schnittPunkte } from '../schule/noten'
+import { berechneHalbjahr } from '../schule/noten'
 
 /** Liest für jeden Bereich eine kurze Kennzahl aus der Datenbank. */
 function useKennzahlen(): Record<string, string> {
@@ -15,7 +15,7 @@ function useKennzahlen(): Record<string, string> {
     useLiveQuery(async () => {
       const h = heute()
       const ws = wochenStart()
-      const [workouts, noten, faecher, ziele, habits, haken, buchungen, schlaf, mahlzeiten, freunde, hobbyZeiten, stimmung] = await Promise.all([
+      const [workouts, noten, faecher, ziele, habits, haken, buchungen, schlaf, mahlzeiten, freunde, hobbyZeiten, stimmung, hj] = await Promise.all([
         db.workouts.toArray(),
         db.noten.toArray(),
         db.faecher.toArray(),
@@ -28,9 +28,9 @@ function useKennzahlen(): Record<string, string> {
         db.freunde.count(),
         db.hobbyZeiten.where('datum').aboveOrEqual(ws).toArray(),
         db.stimmung.get(h),
+        holeEinstellung<number>('aktuellesHalbjahr', 1),
       ])
-      const schnitte = faecher.map((f) => schnittPunkte(noten.filter((n) => n.fachId === f.id))).filter((s): s is number => s !== null)
-      const gesamt = mittel(schnitte)
+      const { gesamt } = berechneHalbjahr(faecher, noten, hj, hj) // Schnitt des aktuellen Halbjahrs
       const konto = buchungen.reduce((s, b) => s + (b.art === 'einnahme' ? b.betrag : -b.betrag), 0)
       const hobbyMin = hobbyZeiten.reduce((s, z) => s + z.minuten, 0)
       return {

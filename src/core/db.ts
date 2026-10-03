@@ -86,21 +86,33 @@ export interface Einstellung {
 
 // ---------- Schule ----------
 
+export type NotenArt = 'Klausur' | 'Mündlich' | 'Praktisch' | 'Prüfung' | 'Test' | 'Sonstiges'
+
 export interface Fach {
   id: string
   name: string
   farbe: string
+  /** Leistungsfach: zählt im Gesamtschnitt doppelt (wie "(2x)" in Notan). */
+  doppelt?: boolean
+  /**
+   * Anteile der Notenarten in Prozent, z. B. { Klausur: 70, Mündlich: 30 }.
+   * Ohne Anteile zählt einfach jede Note nach ihrer Gewichtung.
+   */
+  anteile?: Partial<Record<NotenArt, number>>
+  /** Reihenfolge in der Liste (kleinere Zahl = weiter oben). */
+  sortierung?: number
+  /** Offizielle Zeugnisnote pro Halbjahr ("1" bis "4"), falls sie vom gerundeten Schnitt abweicht. */
+  zeugnis?: Record<string, number>
 }
-
-export type NotenArt = 'Klausur' | 'Mündlich' | 'Test' | 'Sonstiges'
 
 export interface Note {
   id: string
   fachId: string
-  punkte: number // 0 bis 15
+  punkte: number // 0 bis 15 (auch halbe Punkte wie 8,5 sind möglich)
   art: NotenArt
-  gewicht: number // z. B. 2 = zählt doppelt
+  gewicht: number // innerhalb der Notenart, z. B. 2 = zählt doppelt
   datum: string
+  halbjahr?: number // 1 bis 4 (Kursstufe). Ohne Angabe: das aktuelle Halbjahr.
 }
 
 export interface Klausur {

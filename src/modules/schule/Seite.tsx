@@ -1,41 +1,118 @@
-// Bereich "Schule": Gesamtschnitt, Fächer mit Noten, Klausuren, Hausaufgaben, CSV-Import.
+// Bereich "Schule": Halbjahr wählen, Gesamtschnitt, Fächer mit Noten und Gewichtung (wie Notan),
+// Halbjahres-Übersicht, Klausuren, Hausaufgaben, CSV-Import.
 import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronDown, FileUp } from 'lucide-react'
-import { db, type Note } from '../../core/db'
+import { db, type Fach, type NotenArt } from '../../core/db'
 import { heute, tagVon } from '../../core/datum'
-import { kurzDatum, mittel, relativ } from '../../core/format'
+import { kurzDatum, relativ } from '../../core/format'
+import { useEinstellung } from '../../core/einstellungen'
 import Seite from '../../core/ui/Seite'
 import Karte from '../../core/ui/Karte'
 import Ring from '../../core/ui/Ring'
 import { Haken, Leer, LoeschKnopf, PlusKnopf } from '../../core/ui/Formular'
 import { FachFormular, NoteFormular, TerminFormular } from './Formulare'
-import { formatNote, notenText, punkteFarbe, punkteZuNote, schnittPunkte } from './noten'
+import { NOTEN_ARTEN, berechneHalbjahr, formatGenau, formatNote, notenText, punkteFarbe, punkteZuNote } from './noten'
 import { importiereNotenCsv } from './csv'
 
 const FARBE = '#ff9f0a'
+const HALBJAHRE = [1, 2, 3, 4]
+const KUERZEL: Record<NotenArt, string> = { Klausur: 'SC', Mündlich: 'MÜ', Praktisch: 'PR', Prüfung: 'Prüf.', Test: 'Test', Sonstiges: 'Sonst.' }
 
 /** Erkennt Klausuren in importierten Kalenderterminen. */
 const istKlausurTermin = (titel: string) => /klausur|test|pr(ü|ue)fung|schulaufgabe|arbeit\b|abi/i.test(titel)
 
+/** Einstellungen eines Fachs: doppelt zählen und Anteile der Notenarten. */
+function FachEinstellungen({ fach, hj }: { fach: Fach; hj: number }) {
+  const summe = Object.values(fach.anteile ?? {}).reduce((s, x) => s + (x ?? 0), 0)
+  return (
+    <div className="mt-2 rounded-xl bg-black/30 p-3">
+      {/* Zeugnisnote: leer lassen = gerundeter Schnitt zählt */}
+      <label className="flex min-h-10 items-center justify-between gap-3">
+        <span className="text-[14px]">Zeugnisnote {hj}. HJ (falls abweichend)</span>
+        <input
+          key={`${fach.id}-${hj}`}
+          inputMode="numeric"
+          placeholder="–"
+          defaultValue={fach.zeugnis?.[String(hj)] ?? ''}
+          onBlur={(e) => {
+            const zeugnis = { ...fach.zeugnis }
+            const wert = parseInt(e.target.value, 10)
+            if (wert >= 0 && wert <= 15) zeugnis[String(hj)] = wert
+            else delete zeugnis[String(hj)]
+            db.faecher.update(fach.id, { zeugnis })
+          }}
+          className="h-10 w-16 rounded-lg bg-karte2 text-center outline-none placeholder:text-grau"
+        />
+      </label>
+      <button onClick={() => db.faecher.update(fach.id, { doppelt: !fach.doppelt })} className="flex min-h-10 w-full items-center justify-between">
+        <span className="text-[14px]">Zählt doppelt (wie „2x“ in Notan)</span>
+        <span className="relative h-[31px] w-[51px] rounded-full transition-colors" style={{ background: fach.doppelt ? '#30d158' : '#39393d' }}>
+          <span className="absolute top-[2px] h-[27px] w-[27px] rounded-full bg-white transition-all" style={{ left: fach.doppelt ? 22 : 2 }} />
+        </span>
+      </button>
+      {fach.anteile ? (
+        <>
+          <p className="mb-2 mt-2 text-[13px] text-grau">
+            Anteile in % {summe !== 100 && <span className="text-[#ffd60a]">(Summe {summe} %, wird automatisch umgerechnet)</span>}
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {NOTEN_ARTEN.map((art) => (
+              <label key={art} className="text-center">
+                <span className="block text-[11px] text-grau">{KUERZEL[art]}</span>
+                <input
+                  inputMode="numeric"
+                  defaultValue={fach.anteile?.[art] ?? 0}
+                  onBlur={(e) => {
+                    const wert = Math.max(0, Math.min(100, Number(e.target.value.replace(',', '.')) || 0))
+                    db.faecher.update(fach.id, { anteile: { ...fach.anteile, [art]: wert } })
+                  }}
+                  className="h-10 w-full rounded-lg bg-karte2 text-center outline-none"
+                />
+              </label>
+            ))}
+          </div>
+          <button onClick={() => db.faecher.update(fach.id, { anteile: undefined })} className="tippbar mt-2 min-h-9 text-[13px] text-grau">
+            Anteile entfernen (jede Note nach Gewicht)
+          </button>
+        </>
+      ) : (
+        <button
+          onClick={() => db.faecher.update(fach.id, { anteile: { Klausur: 50, Mündlich: 50 } })}
+          className="tippbar mt-2 min-h-10 text-[14px]"
+          style={{ color: FARBE }}
+        >
+          + Anteile schriftlich/mündlich festlegen
+        </button>
+      )}
+    </div>
+  )
+}
+
 export default function SchuleSeite() {
-  const faecher = useLiveQuery(() => db.faecher.toArray(), []) ?? []
+  // Fächer sortiert: erst nach "sortierung", dann alphabetisch
+  const faecher = (useLiveQuery(() => db.faecher.toArray(), []) ?? []).sort(
+    (a, b) => (a.sortierung ?? 999) - (b.sortierung ?? 999) || a.name.localeCompare(b.name, 'de'),
+  )
   const noten = useLiveQuery(() => db.noten.orderBy('datum').reverse().toArray(), []) ?? []
   const klausuren = useLiveQuery(() => db.klausuren.where('datum').aboveOrEqual(heute()).sortBy('datum'), []) ?? []
   const kalenderKlausuren = useLiveQuery(() => db.termine.where('start').aboveOrEqual(new Date().toISOString()).toArray(), []) ?? []
   const hausaufgaben = useLiveQuery(() => db.hausaufgaben.orderBy('faellig').toArray(), []) ?? []
 
-  // Welches Formular ist gerade offen?
+  // Aktuelles Halbjahr (gespeichert) und das gerade angezeigte Halbjahr
+  const [aktuellesHJ, setAktuellesHJ] = useEinstellung<number>('aktuellesHalbjahr', 1)
+  const [gewaehltesHJ, setGewaehltesHJ] = useState<number | null>(null)
+  const hj = gewaehltesHJ ?? aktuellesHJ
+
   const [formular, setFormular] = useState<null | 'fach' | 'note' | 'klausur' | 'hausaufgabe'>(null)
   const [noteFuerFach, setNoteFuerFach] = useState<string | undefined>()
   const [aufgeklappt, setAufgeklappt] = useState<string | null>(null)
   const [csvMeldung, setCsvMeldung] = useState('')
   const dateiFeld = useRef<HTMLInputElement>(null)
 
-  // Schnitt pro Fach, Gesamtschnitt = Mittel aller Fachschnitte (jedes Fach zählt gleich)
-  const notenVon = (fachId: string) => noten.filter((n) => n.fachId === fachId)
-  const fachSchnitte = faecher.map((f) => ({ fach: f, schnitt: schnittPunkte(notenVon(f.id)) }))
-  const gesamt = mittel(fachSchnitte.map((f) => f.schnitt).filter((s): s is number => s !== null))
+  const { ergebnisse, gesamt } = berechneHalbjahr(faecher, noten, hj, aktuellesHJ)
+  // Für die Übersicht: alle vier Halbjahre
+  const alleHJ = HALBJAHRE.map((h) => berechneHalbjahr(faecher, noten, h, aktuellesHJ))
   const fachName = (id?: string) => faecher.find((f) => f.id === id)?.name
 
   // Anstehende Klausuren: eigene Einträge + Kalendertermine, die nach Klausur aussehen
@@ -64,8 +141,27 @@ export default function SchuleSeite() {
 
   return (
     <Seite titel="Schule" farbe={FARBE}>
+      {/* Halbjahr wählen */}
+      <div className="flex gap-2">
+        {HALBJAHRE.map((h) => (
+          <button
+            key={h}
+            onClick={() => setGewaehltesHJ(h)}
+            className="tippbar min-h-11 flex-1 rounded-2xl text-[15px] font-semibold"
+            style={{ background: hj === h ? FARBE : '#1c1c1e', color: hj === h ? '#000' : '#fff' }}
+          >
+            {h}. HJ{h === aktuellesHJ ? ' •' : ''}
+          </button>
+        ))}
+      </div>
+      {hj !== aktuellesHJ && (
+        <button onClick={() => setAktuellesHJ(hj)} className="tippbar -mt-1 px-1 text-left text-[13px]" style={{ color: FARBE }}>
+          {hj}. Halbjahr als aktuelles Halbjahr festlegen
+        </button>
+      )}
+
       {/* Gesamtschnitt */}
-      <Karte titel="Gesamtschnitt" akzent={FARBE}>
+      <Karte titel={`Schnitt ${hj}. Halbjahr`} akzent={FARBE}>
         <div className="flex items-center gap-5">
           <Ring fortschritt={(gesamt ?? 0) / 15} farbe={FARBE} groesse={112} dicke={14}>
             <div>
@@ -76,9 +172,7 @@ export default function SchuleSeite() {
           <div>
             <p className="text-[13px] text-grau">entspricht Note</p>
             <p className="text-[40px] font-bold leading-tight">{gesamt === null ? '–' : formatNote(punkteZuNote(gesamt))}</p>
-            <p className="text-[13px] text-grau">
-              {noten.length} Noten in {faecher.length} Fächern
-            </p>
+            <p className="text-[12px] leading-snug text-grau">aus den gerundeten Halbjahresnoten, „2x“-Fächer doppelt</p>
           </div>
         </div>
       </Karte>
@@ -89,38 +183,53 @@ export default function SchuleSeite() {
           <Leer>Leg zuerst deine Fächer an oder importiere eine CSV-Datei.</Leer>
         ) : (
           <ul>
-            {fachSchnitte.map(({ fach, schnitt }, i) => {
+            {ergebnisse.map(({ fach, noten: liste, schnitt, gerundet, istZeugnis }, i) => {
               const offen = aufgeklappt === fach.id
-              const liste = notenVon(fach.id)
               return (
                 <li key={fach.id} className={i > 0 ? 'border-t border-linie' : ''}>
                   {/* Zeile antippen = Noten des Fachs auf-/zuklappen */}
                   <button onClick={() => setAufgeklappt(offen ? null : fach.id)} className="tippbar flex min-h-14 w-full items-center gap-3 text-left">
                     <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: fach.farbe }} />
-                    <span className="flex-1 text-[17px]">{fach.name}</span>
-                    {schnitt !== null && (
+                    <span className="flex-1 text-[17px]">
+                      {fach.name}
+                      {fach.doppelt && <span className="ml-1 text-[12px] text-grau">2x</span>}
+                    </span>
+                    {gerundet !== null ? (
                       <span className="text-right">
-                        <span className="block text-[17px] font-semibold" style={{ color: punkteFarbe(schnitt) }}>
-                          {formatNote(schnitt)} P.
+                        <span className="block text-[17px] font-semibold" style={{ color: punkteFarbe(gerundet) }}>
+                          {gerundet} P.{' '}
+                          {schnitt !== null && <span className="text-[12px] font-normal text-grau">({formatGenau(schnitt)})</span>}
                         </span>
-                        <span className="block text-[12px] text-grau">Note {formatNote(punkteZuNote(schnitt))}</span>
+                        <span className="block text-[12px] text-grau">
+                          {istZeugnis ? 'Zeugnis · ' : ''}Note {formatNote(punkteZuNote(schnitt ?? gerundet))}
+                        </span>
                       </span>
+                    ) : (
+                      <span className="text-[13px] text-grau">–</span>
                     )}
                     <ChevronDown size={18} className={`text-grau transition-transform ${offen ? 'rotate-180' : ''}`} />
                   </button>
                   {offen && (
                     <div className="pb-3 pl-6">
-                      {liste.map((n: Note) => (
-                        <div key={n.id} className="flex items-center gap-3 py-1">
-                          <span className="w-10 text-[17px] font-bold" style={{ color: punkteFarbe(n.punkte) }}>
-                            {n.punkte}
-                          </span>
-                          <span className="flex-1 text-[14px]">
-                            {n.art} <span className="text-grau">· ×{String(n.gewicht).replace('.', ',')} · {kurzDatum(n.datum)} · {notenText(n.punkte)}</span>
-                          </span>
-                          <LoeschKnopf frage="Note löschen?" onLoeschen={() => db.noten.delete(n.id)} />
-                        </div>
-                      ))}
+                      {liste.length === 0 && <p className="py-1 text-[14px] text-grau">Noch keine Noten im {hj}. Halbjahr.</p>}
+                      {liste.map((n) => {
+                        const zaehltNicht = fach.anteile && !(fach.anteile[n.art] ?? 0)
+                        return (
+                          <div key={n.id} className="flex items-center gap-3 py-1">
+                            <span className="w-11 text-[17px] font-bold" style={{ color: punkteFarbe(n.punkte) }}>
+                              {String(n.punkte).replace('.', ',')}
+                            </span>
+                            <span className="flex-1 text-[14px]">
+                              {n.art}
+                              <span className="text-grau">
+                                {n.gewicht !== 1 ? ` · ×${String(n.gewicht).replace('.', ',')}` : ''} · {kurzDatum(n.datum)} · {notenText(n.punkte)}
+                              </span>
+                              {zaehltNicht && <span className="block text-[12px] text-[#ffd60a]">zählt nicht (Anteil {n.art} = 0 %)</span>}
+                            </span>
+                            <LoeschKnopf frage="Note löschen?" onLoeschen={() => db.noten.delete(n.id)} />
+                          </div>
+                        )
+                      })}
                       <div className="mt-1 flex gap-2">
                         <button
                           onClick={() => {
@@ -134,7 +243,7 @@ export default function SchuleSeite() {
                         </button>
                         <button
                           onClick={() =>
-                            confirm(`Fach „${fach.name}“ mit allen Noten löschen?`) &&
+                            confirm(`Fach „${fach.name}“ mit allen Noten (aller Halbjahre) löschen?`) &&
                             db.transaction('rw', db.faecher, db.noten, async () => {
                               await db.noten.where('fachId').equals(fach.id).delete()
                               await db.faecher.delete(fach.id)
@@ -145,6 +254,7 @@ export default function SchuleSeite() {
                           Fach löschen
                         </button>
                       </div>
+                      <FachEinstellungen fach={fach} hj={hj} />
                     </div>
                   )}
                 </li>
@@ -163,8 +273,52 @@ export default function SchuleSeite() {
           className="tippbar h-14 rounded-2xl text-[17px] font-semibold text-black"
           style={{ background: FARBE }}
         >
-          + Note eintragen
+          + Note eintragen ({hj}. HJ)
         </button>
+      )}
+
+      {/* Übersicht aller Halbjahre (wie "Block 1" in Notan) */}
+      {faecher.length > 0 && (
+        <Karte titel="Halbjahres-Übersicht">
+          <table className="w-full text-[14px]">
+            <thead>
+              <tr className="text-[12px] text-grau">
+                <th className="pb-2 text-left font-normal">Fach</th>
+                {HALBJAHRE.map((h) => (
+                  <th key={h} className="pb-2 text-center font-normal">
+                    {h}.
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {faecher.map((f) => (
+                <tr key={f.id} className="border-t border-linie">
+                  <td className="py-1.5">
+                    {f.name}
+                    {f.doppelt && <span className="ml-1 text-[11px] text-grau">2x</span>}
+                  </td>
+                  {alleHJ.map((h, i) => {
+                    const g = h.ergebnisse.find((e) => e.fach.id === f.id)?.gerundet ?? null
+                    return (
+                      <td key={i} className="text-center font-semibold" style={{ color: g === null ? '#8e8e93' : punkteFarbe(g) }}>
+                        {g ?? '–'}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+              <tr className="border-t border-linie text-[13px]">
+                <td className="py-1.5 text-grau">Ø Punkte</td>
+                {alleHJ.map((h, i) => (
+                  <td key={i} className="text-center text-grau">
+                    {h.gesamt === null ? '–' : formatNote(h.gesamt)}
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </Karte>
       )}
 
       {/* Anstehende Klausuren */}
@@ -214,7 +368,7 @@ export default function SchuleSeite() {
       {/* CSV-Import */}
       <Karte titel="Noten importieren (CSV)">
         <p className="mb-3 text-[13px] leading-snug text-grau">
-          Spalten: Fach, Punkte (oder Note 1–6), optional Art, Gewicht, Datum. Bereits importierte Noten werden erkannt und nicht doppelt angelegt.
+          Spalten: Fach, Punkte (oder Note 1–6), optional Art, Gewicht, Datum, Halbjahr. Bereits importierte Noten werden erkannt und nicht doppelt angelegt.
         </p>
         <input ref={dateiFeld} type="file" accept=".csv,text/csv,text/plain" className="hidden" onChange={(e) => csvGewaehlt(e.target.files?.[0])} />
         <button onClick={() => dateiFeld.current?.click()} className="tippbar flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-karte2 text-[15px] font-semibold">
@@ -224,7 +378,7 @@ export default function SchuleSeite() {
       </Karte>
 
       <FachFormular offen={formular === 'fach'} onZu={() => setFormular(null)} />
-      <NoteFormular offen={formular === 'note'} onZu={() => setFormular(null)} faecher={faecher} startFach={noteFuerFach} />
+      <NoteFormular offen={formular === 'note'} onZu={() => setFormular(null)} faecher={faecher} startFach={noteFuerFach} halbjahr={hj} />
       <TerminFormular offen={formular === 'klausur'} onZu={() => setFormular(null)} faecher={faecher} typ="klausur" />
       <TerminFormular offen={formular === 'hausaufgabe'} onZu={() => setFormular(null)} faecher={faecher} typ="hausaufgabe" />
     </Seite>
