@@ -77,7 +77,7 @@ export function GewichtKarte() {
 export function SchritteDiagramm() {
   const tage = letzteTage(7)
   const schritte = useLiveQuery(() => db.schritte.toArray(), [])
-  const [SCHRITTE_ZIEL, setZiel] = useSchrittziel()
+  const [schrittziel, setZiel] = useSchrittziel()
   const daten = tage.map((tag) => ({
     tag,
     name: kurzerWochentag(tag),
@@ -87,7 +87,7 @@ export function SchritteDiagramm() {
   // Ziel in 500er-Schritten ändern
   const zielKnopf = (delta: number, symbol: string) => (
     <button
-      onClick={() => setZiel(Math.min(30000, Math.max(1000, SCHRITTE_ZIEL + delta)))}
+      onClick={() => setZiel(Math.min(30000, Math.max(1000, schrittziel + delta)))}
       className="tippbar flex h-8 w-8 items-center justify-center rounded-full bg-karte2 text-[16px]"
       aria-label={delta > 0 ? 'Schrittziel erhöhen' : 'Schrittziel verringern'}
     >
@@ -101,7 +101,7 @@ export function SchritteDiagramm() {
       rechts={
         <span className="flex items-center gap-2 text-[12px] text-grau">
           {zielKnopf(-500, '−')}
-          Ziel {SCHRITTE_ZIEL.toLocaleString('de-DE')}
+          Ziel {schrittziel.toLocaleString('de-DE')}
           {zielKnopf(500, '+')}
         </span>
       }
@@ -112,11 +112,11 @@ export function SchritteDiagramm() {
           <BarChart data={daten} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
             <XAxis dataKey="name" {...achse} />
             <Tooltip cursor={false} contentStyle={tooltipStil} formatter={(v) => [Number(v).toLocaleString('de-DE'), 'Schritte']} labelFormatter={() => ''} />
-            <ReferenceLine y={SCHRITTE_ZIEL} stroke="#8e8e93" strokeDasharray="4 4" />
+            <ReferenceLine y={schrittziel} stroke="#8e8e93" strokeDasharray="4 4" />
             <Bar dataKey="schritte" radius={[6, 6, 6, 6]} minPointSize={3}>
               {daten.map((d) => (
                 // Heute und Tage über dem Ziel kräftig, die anderen etwas dunkler
-                <Cell key={d.tag} fill={d.schritte >= SCHRITTE_ZIEL || d.tag === heute() ? '#30d158' : '#1f7a3a'} />
+                <Cell key={d.tag} fill={d.schritte >= schrittziel || d.tag === heute() ? '#30d158' : '#1f7a3a'} />
               ))}
             </Bar>
           </BarChart>
