@@ -200,8 +200,9 @@ export default function SchuleSeite() {
                           {gerundet} P.{' '}
                           {schnitt !== null && <span className="text-[12px] font-normal text-grau">({formatGenau(schnitt)})</span>}
                         </span>
-                        <span className="block text-[12px] text-grau">
-                          {istZeugnis ? 'Zeugnis · ' : ''}Note {formatNote(punkteZuNote(schnitt ?? gerundet))}
+                        <span className="block whitespace-nowrap text-[12px] text-grau">
+                          {/* Mit Zeugnisnote zählt diese, sonst der genaue Schnitt */}
+                          {istZeugnis ? 'Zeugnis · ' : ''}Note {formatNote(punkteZuNote(istZeugnis || schnitt === null ? gerundet : schnitt))}
                         </span>
                       </span>
                     ) : (
