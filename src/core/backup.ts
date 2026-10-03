@@ -68,6 +68,32 @@ export async function stelleBackupWiederHer(text: string): Promise<number> {
   return anzahl
 }
 
+/**
+ * Fügt Einträge aus einer Datei HINZU, ohne etwas zu löschen (z. B. ein Startpaket mit Fächern,
+ * Freunden, Habits). Einträge mit gleicher ID werden aktualisiert, alles andere bleibt.
+ */
+export async function fuegeDatenHinzu(text: string): Promise<number> {
+  let daten: { app?: string; tabellen?: Record<string, unknown[]> }
+  try {
+    daten = JSON.parse(text)
+  } catch {
+    throw new Error('Die Datei ist kein gültiges JSON.')
+  }
+  if (daten.app !== 'life-dashboard' || !daten.tabellen) throw new Error('Das ist keine Datei vom Life Dashboard.')
+
+  let anzahl = 0
+  await db.transaction('rw', db.tables, async () => {
+    for (const tabelle of db.tables) {
+      const zeilen = daten.tabellen![tabelle.name]
+      if (Array.isArray(zeilen) && zeilen.length) {
+        await tabelle.bulkPut(zeilen)
+        anzahl += zeilen.length
+      }
+    }
+  })
+  return anzahl
+}
+
 /** Wie viele Tage ist das letzte Backup her? (null = noch nie) */
 export async function tageSeitBackup(): Promise<number | null> {
   const letztes = await holeEinstellung<string | null>('letztesBackup', null)

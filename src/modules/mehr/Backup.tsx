@@ -3,7 +3,7 @@ import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Download, Upload } from 'lucide-react'
 import { db } from '../../core/db'
-import { exportiereBackup, loescheAlles, stelleBackupWiederHer } from '../../core/backup'
+import { exportiereBackup, fuegeDatenHinzu, loescheAlles, stelleBackupWiederHer } from '../../core/backup'
 import { gibtBeispieldaten, ladeBeispieldaten, loescheBeispieldaten } from '../../core/beispieldaten'
 import Seite from '../../core/ui/Seite'
 import Karte from '../../core/ui/Karte'
@@ -13,6 +13,18 @@ export default function BackupSeite() {
   const hatDemo = useLiveQuery(gibtBeispieldaten, [])
   const [meldung, setMeldung] = useState('')
   const dateiFeld = useRef<HTMLInputElement>(null)
+  const hinzuFeld = useRef<HTMLInputElement>(null)
+
+  async function hinzufuegen(datei: File | undefined) {
+    if (!datei) return
+    try {
+      const n = await fuegeDatenHinzu(await datei.text())
+      setMeldung(`${n} Einträge hinzugefügt ✓`)
+    } catch (e) {
+      setMeldung('Fehler: ' + (e as Error).message)
+    }
+    if (hinzuFeld.current) hinzuFeld.current.value = ''
+  }
 
   async function sichern() {
     const r = await exportiereBackup()
@@ -48,6 +60,16 @@ export default function BackupSeite() {
           <Upload size={18} /> Backup wiederherstellen
         </button>
         {meldung && <p className="mt-3 text-[14px]">{meldung}</p>}
+      </Karte>
+
+      <Karte titel="Daten hinzufügen">
+        <p className="mb-3 text-[14px] leading-snug text-grau">
+          Für ein Startpaket (z. B. Fächer, Freunde, Habits). Fügt Einträge hinzu, ohne vorhandene Daten zu löschen.
+        </p>
+        <input ref={hinzuFeld} type="file" accept=".json,application/json" className="hidden" onChange={(e) => hinzufuegen(e.target.files?.[0])} />
+        <button onClick={() => hinzuFeld.current?.click()} className="tippbar flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-karte2 text-[15px] font-semibold text-[#30d158]">
+          <Upload size={18} /> Datei hinzufügen
+        </button>
       </Karte>
 
       <Karte titel="Beispieldaten">
