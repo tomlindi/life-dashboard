@@ -38,8 +38,11 @@ export async function uebungNachName(name: string, gruppe = 'Sonstiges'): Promis
 /** Geschätztes Maximalgewicht für 1 Wiederholung (Epley-Formel): kg × (1 + Wdh / 30) */
 export const e1rm = (kg: number, wdh: number) => (wdh <= 1 ? kg : kg * (1 + wdh / 30))
 
-/** Zählt der Satz für Bestleistungen? (abgehakt, kein Aufwärmsatz, kg und Wdh eingetragen) */
-export const zaehlt = (s: Satz) => s.erledigt && s.typ !== 'aufwaermen' && (s.kg ?? 0) > 0 && (s.wdh ?? 0) > 0
+/**
+ * Zählt der Satz für Bestleistungen? (abgehakt, kein Aufwärmsatz, kg und Wdh eingetragen)
+ * 0 kg ist erlaubt: Das sind Übungen mit Körpergewicht (Klimmzüge, Dips).
+ */
+export const zaehlt = (s: Satz) => s.erledigt && s.typ !== 'aufwaermen' && s.kg !== undefined && s.kg >= 0 && (s.wdh ?? 0) > 0
 
 export interface SatzMitDatum extends Satz {
   datum: string
@@ -88,9 +91,9 @@ export function letzterSatz(einheiten: GymEinheit[], uebungId: string, vor?: str
 export const volumen = (e: GymEinheit) =>
   e.uebungen.reduce((s, u) => s + u.saetze.filter(zaehlt).reduce((t, x) => t + x.kg! * x.wdh!, 0), 0)
 
-/** "60 kg × 8" */
+/** "60 kg × 8" (bei 0 kg: "KG × 8" für Körpergewicht) */
 export const satzText = (s: Pick<Satz, 'kg' | 'wdh'> | null) =>
-  s && s.kg !== undefined && s.wdh !== undefined ? `${String(s.kg).replace('.', ',')} kg × ${s.wdh}` : '–'
+  s && s.kg !== undefined && s.wdh !== undefined ? `${s.kg === 0 ? 'KG' : `${String(s.kg).replace('.', ',')} kg`} × ${s.wdh}` : '–'
 
 // ---------- Training starten / beenden ----------
 
@@ -223,37 +226,163 @@ export const exportDateiname = (endung: string) => `gym-export-${heute()}.${endu
 // }
 // Pläne mit gleichem Namen werden ersetzt (also aktualisiert), neue Übungen automatisch angelegt.
 
-export async function importierePlaene(text: string): Promise<string[]> {
-  let daten: { typ?: string; plaene?: unknown }
+//
+// Zusätzlich wird das "Übersicht"-Format verstanden (z. B. aus Notion oder einem anderen Chat):
+// { "trainingstage": [ { "tag": "Montag", "training": "Push", "start": "14:30", "ende": "16:00", "hinweis": "…",
+//     "pausiert": false, "uebungen": [ { "uebung": "…", "saetze": 3, "wiederholungen": "4–6", "hinweis": "…",
+//     "zuletzt": { "datum": "2026-10-02", "gewicht_kg": 35, "wdh_pro_satz": [10, 10, 10] }, "naechstes_mal": "…" } ] } ] }
+// Die "zuletzt"-Werte werden als vergangene Trainings angelegt, damit "Letztes Mal" sofort funktioniert.
+
+type Roh = Record<string, unknown>
+const text = (x: unknown) => (x === undefined || x === null || x === '' ? undefined : String(x))
+
+/** Rät die Muskelgruppe aus dem Übungsnamen (für neu angelegte Übungen). */
+export function rateGruppe(name: string): string {
+  const n = name.toLowerCase()
+  if (/bank|brust|butterfly|dips|fliegende|chest/.test(n)) return 'Brust'
+  if (/klimm|rudern|row|latzug|lat|rücken|rueck|pull ?up|kreuzheben(?!.*rumän)/.test(n)) return 'Rücken'
+  if (/schulter|seitheben|face pull|military|overhead|frontheben/.test(n)) return 'Schultern'
+  if (/rumän|hip thrust|glute|po\b/.test(n)) return 'Po'
+  if (/knie|squat|bein|waden|ausfall|box jump|sprung|lunge|trap-bar/.test(n)) return 'Beine'
+  if (/bizeps|curl/.test(n)) return 'Bizeps'
+  if (/trizeps|french|skull|pushdown/.test(n)) return 'Trizeps'
+  if (/bauch|plank|crunch|core|sit-?up/.test(n)) return 'Bauch'
+  return 'Sonstiges'
+}
+
+/** Pause aus einem Hinweis lesen ("2–3 min Pause" -> 180 s) oder aus den Wiederholungen schätzen. */
+function ratePause(wdh: string, hinweis?: string): number {
+  const min = hinweis?.match(/(\d+)\s*(?:[–-]\s*(\d+))?\s*min/)
+  if (min) return Number(min[2] ?? min[1]) * 60
+  const untere = parseInt(wdh, 10)
+  return untere <= 6 ? 180 : untere <= 10 ? 120 : 90
+}
+
+interface PlanEingabe {
+  name: string
+  notiz?: string
+  uebungen: { uebung: string; gruppe?: string; saetze: number; wdh: string; kg?: number; pauseSek?: number; notiz?: string }[]
+  /** Vergangene Trainings: pro Datum die Sätze je Übung */
+  historie: { datum: string; start?: string; ende?: string; saetze: { uebung: string; kg?: number; wdh: number[] }[] }[]
+}
+
+/** Wandelt das "trainingstage"-Format in unsere Plan-Struktur um. */
+function ausTrainingstagen(tage: Roh[]): PlanEingabe[] {
+  return tage.map((t, i) => {
+    const uebungen = ((t.uebungen as Roh[]) ?? []).map((u) => {
+      const wdh = String(u.wiederholungen ?? u.wdh ?? '8-12').replace('–', '-')
+      const zuletzt = u.zuletzt as Roh | null | undefined
+      const kgZuletzt = zuletzt ? Number(zuletzt.gewicht_kg) : NaN
+      return {
+        uebung: String(u.uebung ?? u.name ?? 'Übung'),
+        saetze: Number(u.saetze) || 3,
+        wdh,
+        kg: Number.isFinite(kgZuletzt) && kgZuletzt > 0 ? kgZuletzt : undefined,
+        pauseSek: ratePause(wdh, text(u.hinweis)),
+        notiz: [text(u.hinweis), text(u.naechstes_mal) && `Nächstes Mal: ${u.naechstes_mal}`].filter(Boolean).join(' · ') || undefined,
+      }
+    })
+
+    // "zuletzt" je Übung -> nach Datum gruppiert zu vergangenen Trainings
+    const proDatum = new Map<string, PlanEingabe['historie'][number]>()
+    for (const u of (t.uebungen as Roh[]) ?? []) {
+      const z = u.zuletzt as Roh | null | undefined
+      if (!z?.datum) continue
+      const datum = String(z.datum)
+      const kg = Number.isFinite(Number(z.gewicht_kg)) ? Number(z.gewicht_kg) : /körper|koerper|bw/i.test(String(z.gewicht ?? '')) ? 0 : undefined
+      const wdh = Array.isArray(z.wdh_pro_satz) ? (z.wdh_pro_satz as unknown[]).map(Number) : z.wdh !== undefined ? [Number(z.wdh)] : []
+      if (!wdh.length) continue
+      if (!proDatum.has(datum)) proDatum.set(datum, { datum, start: text(t.start), ende: text(t.ende), saetze: [] })
+      proDatum.get(datum)!.saetze.push({ uebung: String(u.uebung ?? u.name), kg, wdh })
+    }
+
+    const zeit = t.start && t.ende ? ` ${t.start}–${t.ende}` : ''
+    const notiz = [
+      t.pausiert ? '⏸ Pausiert' : '',
+      text(t.tag) ? `${t.tag}${zeit}` : '',
+      text(t.schwerpunkt),
+      text(t.hinweis),
+    ]
+      .filter(Boolean)
+      .join(' · ')
+    return { name: String(t.training ?? t.name ?? `Plan ${i + 1}`), notiz: notiz || undefined, uebungen, historie: [...proDatum.values()] }
+  })
+}
+
+export async function importierePlaene(eingabe: string): Promise<{ plaene: string[]; trainings: number }> {
+  let daten: Roh
   try {
-    daten = JSON.parse(text.trim())
+    daten = JSON.parse(eingabe.trim())
   } catch {
     throw new Error('Das ist kein gültiges JSON.')
   }
-  if (daten.typ !== 'life-dashboard-gymplan' || !Array.isArray(daten.plaene)) throw new Error('Kein Trainingsplan (erwartet: "typ": "life-dashboard-gymplan").')
 
-  const namen: string[] = []
+  // Welches Format?
+  let plaene: PlanEingabe[]
+  if (Array.isArray(daten.trainingstage)) {
+    plaene = ausTrainingstagen(daten.trainingstage as Roh[])
+  } else if (Array.isArray(daten.plaene)) {
+    plaene = (daten.plaene as Roh[]).map((p, i) => ({
+      name: String(p.name ?? `Plan ${i + 1}`),
+      notiz: text(p.notiz),
+      historie: [],
+      uebungen: ((p.uebungen as Roh[]) ?? []).map((u) => ({
+        uebung: String(u.uebung ?? u.name ?? 'Übung'),
+        gruppe: text(u.gruppe),
+        saetze: Number(u.saetze) || 3,
+        wdh: String(u.wdh ?? u.wiederholungen ?? '8-12'),
+        kg: Number(u.kg) > 0 ? Number(u.kg) : undefined,
+        pauseSek: Number(u.pauseSek) > 0 ? Number(u.pauseSek) : undefined,
+        notiz: text(u.notiz),
+      })),
+    }))
+  } else {
+    throw new Error('Kein Trainingsplan erkannt (erwartet "plaene" oder "trainingstage").')
+  }
+
   const vorhandene = await db.gymPlaene.toArray()
-  for (const [i, p] of (daten.plaene as Record<string, unknown>[]).entries()) {
-    const name = String(p.name ?? `Plan ${i + 1}`)
+  let trainings = 0
+  for (const [i, p] of plaene.entries()) {
+    // Plan anlegen bzw. gleichnamigen Plan ersetzen
     const uebungen = []
-    for (const u of (p.uebungen as Record<string, unknown>[]) ?? []) {
-      const uebungId = await uebungNachName(String(u.uebung ?? u.name ?? 'Übung'), String(u.gruppe ?? 'Sonstiges'))
+    for (const u of p.uebungen) {
       uebungen.push({
         id: neueId(),
-        uebungId,
-        saetze: Math.max(1, Math.round(Number(u.saetze) || 3)),
-        wdh: String(u.wdh ?? '8-12'),
-        kg: Number(u.kg) > 0 ? Number(u.kg) : undefined,
-        pauseSek: Number(u.pauseSek) > 0 ? Number(u.pauseSek) : 120,
-        notiz: u.notiz ? String(u.notiz) : undefined,
+        uebungId: await uebungNachName(u.uebung, u.gruppe ?? rateGruppe(u.uebung)),
+        saetze: Math.max(1, Math.round(u.saetze)),
+        wdh: u.wdh,
+        kg: u.kg,
+        pauseSek: u.pauseSek ?? ratePause(u.wdh),
+        notiz: u.notiz,
       })
     }
-    const alt = vorhandene.find((x) => x.name.toLowerCase() === name.toLowerCase())
-    await db.gymPlaene.put({ id: alt?.id ?? neueId(), name, notiz: p.notiz ? String(p.notiz) : undefined, uebungen, sortierung: alt?.sortierung ?? vorhandene.length + i + 1 })
-    namen.push(name)
+    const alt = vorhandene.find((x) => x.name.toLowerCase() === p.name.toLowerCase())
+    const planId = alt?.id ?? neueId()
+    await db.gymPlaene.put({ id: planId, name: p.name, notiz: p.notiz, uebungen, sortierung: alt?.sortierung ?? vorhandene.length + i + 1 })
+
+    // Vergangene Trainings anlegen (feste ID -> erneuter Import erzeugt keine Duplikate)
+    for (const h of p.historie) {
+      const id = `import:${p.name.toLowerCase()}:${h.datum}`
+      const start = new Date(`${h.datum}T${h.start ?? '12:00'}:00`).toISOString()
+      const ende = new Date(`${h.datum}T${h.ende ?? '13:00'}:00`).toISOString()
+      const einheitUebungen: EinheitUebung[] = []
+      for (const s of h.saetze) {
+        const uebungId = await uebungNachName(s.uebung, rateGruppe(s.uebung))
+        const plan = uebungen.find((u) => u.uebungId === uebungId)
+        einheitUebungen.push({
+          id: neueId(),
+          uebungId,
+          pauseSek: plan?.pauseSek ?? 120,
+          ziel: plan?.wdh,
+          saetze: s.wdh.map((w) => ({ id: neueId(), kg: s.kg, wdh: w, typ: 'normal' as const, erledigt: true })),
+        })
+      }
+      await db.gymEinheiten.put({ id, name: p.name, planId, start, ende, uebungen: einheitUebungen })
+      await db.workouts.put({ id: `gym:${id}`, quelle: 'manuell', art: 'Gym', start, dauerMin: Math.round((Date.parse(ende) - Date.parse(start)) / 60000) })
+      trainings++
+    }
   }
-  return namen
+  return { plaene: plaene.map((p) => p.name), trainings }
 }
 
 export type { Uebung }

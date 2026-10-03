@@ -1,8 +1,9 @@
 // Zwei Säulendiagramme (mit Recharts): Workout-Minuten und Schritte der letzten 7 Tage.
+import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Bar, BarChart, Cell, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { db } from '../../core/db'
-import { heute, kurzerWochentag, letzteTage, tagVon } from '../../core/datum'
+import { heute, kurzerWochentag, letzteTage, tagPlus, tagVon } from '../../core/datum'
 import { kurzDatum, zahl } from '../../core/format'
 import Karte from '../../core/ui/Karte'
 import { SchnellEingabe } from '../../core/ui/Formular'
@@ -41,26 +42,88 @@ export function WorkoutDiagramm() {
 }
 
 /** Gewicht: letzter Wert, Verlauf der letzten 30 Einträge und schnelles Eintragen. */
+const ZEITRAEUME = [
+  { label: '1M', tage: 30 },
+  { label: '3M', tage: 91 },
+  { label: '6M', tage: 182 },
+  { label: '1J', tage: 365 },
+  { label: 'Alle', tage: Infinity },
+] as const
+
+/** Gewicht: Verlauf über einen wählbaren Zeitraum, Veränderung, Min/Max und schnelles Eintragen. */
 export function GewichtKarte() {
   const werte = useLiveQuery(() => db.gewicht.orderBy('datum').toArray(), []) ?? []
-  const letzte = werte.slice(-30).map((g) => ({ ...g, name: kurzDatum(g.datum) }))
+  const [zeitraum, setZeitraum] = useState<(typeof ZEITRAEUME)[number]['label']>('3M')
+  const tage = ZEITRAEUME.find((z) => z.label === zeitraum)!.tage
+  const ab = tage === Infinity ? '' : tagPlus(heute(), -tage)
+  // x = Tage seit dem ersten Wert -> echte Zeitachse (Abstände zwischen Messungen stimmen)
+  const imZeitraum = werte.filter((g) => g.datum >= ab)
+  const erster = imZeitraum[0]
+  const tagNr = (d: string) => Math.round((Date.parse(d + 'T12:00:00') - Date.parse((erster?.datum ?? d) + 'T12:00:00')) / 86400000)
+  const daten = imZeitraum.map((g) => ({ ...g, x: tagNr(g.datum) }))
   const aktuell = werte[werte.length - 1]
+  const differenz = erster && aktuell && imZeitraum.length >= 2 ? aktuell.kg - erster.kg : null
+  const kgs = imZeitraum.map((g) => g.kg)
+
   return (
-    <Karte
-      titel="Gewicht"
-      akzent="#64d2ff"
-      rechts={aktuell && <span className="text-[15px] font-semibold">{zahl(aktuell.kg)} kg</span>}
-    >
-      {letzte.length >= 2 && (
-        <div className="mb-3 h-28">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={letzte} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-              <YAxis hide domain={['dataMin - 1', 'dataMax + 1']} />
-              <Tooltip contentStyle={tooltipStil} formatter={(v) => [`${zahl(Number(v))} kg`, 'Gewicht']} labelFormatter={(_, p) => p?.[0]?.payload?.name ?? ''} />
-              <Line type="monotone" dataKey="kg" stroke="#64d2ff" strokeWidth={3} dot={{ r: 3, fill: '#64d2ff' }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+    <Karte titel="Gewicht" akzent="#64d2ff" rechts={aktuell && <span className="text-[17px] font-bold">{zahl(aktuell.kg)} kg</span>}>
+      {/* Zeitraum wählen */}
+      <div className="mb-3 flex gap-1 rounded-xl bg-karte2 p-1">
+        {ZEITRAEUME.map((z) => (
+          <button
+            key={z.label}
+            onClick={() => setZeitraum(z.label)}
+            className="tippbar min-h-8 flex-1 rounded-lg text-[13px] font-semibold"
+            style={{ background: zeitraum === z.label ? '#636366' : 'transparent' }}
+          >
+            {z.label}
+          </button>
+        ))}
+      </div>
+
+      {daten.length >= 2 ? (
+        <>
+          <div className="mb-2 flex gap-4 text-[13px]">
+            <span className="text-grau">
+              Veränderung{' '}
+              <b style={{ color: differenz === null || Math.abs(differenz) < 0.05 ? '#fff' : '#64d2ff' }}>
+                {differenz === null ? '–' : `${differenz > 0 ? '+' : ''}${zahl(differenz)} kg`}
+              </b>
+            </span>
+            <span className="text-grau">
+              Min <b className="text-white">{zahl(Math.min(...kgs))}</b>
+            </span>
+            <span className="text-grau">
+              Max <b className="text-white">{zahl(Math.max(...kgs))}</b>
+            </span>
+          </div>
+          <div className="mb-3 h-44">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={daten} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+                <XAxis
+                  dataKey="x"
+                  type="number"
+                  domain={['dataMin', 'dataMax']}
+                  tickCount={4}
+                  tickFormatter={(x) => kurzDatum(tagPlus(erster.datum, Number(x))).replace(/^\w+\.,\s*/, '')}
+                  {...achse}
+                  tick={{ fill: '#8e8e93', fontSize: 11 }}
+                />
+                <YAxis domain={[(min: number) => Math.floor(min - 1), (max: number) => Math.ceil(max + 1)]} {...achse} tick={{ fill: '#8e8e93', fontSize: 11 }} width={44} />
+                <Tooltip
+                  contentStyle={tooltipStil}
+                  formatter={(v) => [`${zahl(Number(v))} kg`, 'Gewicht']}
+                  labelFormatter={(_, p) => (p?.[0]?.payload?.datum ? kurzDatum(p[0].payload.datum) : '')}
+                />
+                <Line type="monotone" dataKey="kg" stroke="#64d2ff" strokeWidth={3} dot={daten.length <= 40 ? { r: 3, fill: '#64d2ff' } : false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      ) : (
+        <p className="mb-3 text-[14px] text-grau">
+          {werte.length === 0 ? 'Noch keine Gewichtsdaten.' : 'Zu wenige Werte in diesem Zeitraum.'} Trag dein Gewicht unten ein oder importiere es aus Apple Health.
+        </p>
       )}
       <SchnellEingabe
         platzhalter="Heutiges Gewicht in kg, z. B. 68,4"

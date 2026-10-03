@@ -270,7 +270,7 @@ export default function TrainingSeite() {
                         onClick={() => vorher && satzAendern(ui, si, { kg: vorher.kg, wdh: vorher.wdh })}
                         className="tippbar h-10 truncate rounded-lg text-[13px] text-grau"
                       >
-                        {vorher ? `${zahlText(vorher.kg)} × ${vorher.wdh}` : '–'}
+                        {vorher ? `${vorher.kg === 0 ? 'KG' : zahlText(vorher.kg)} × ${vorher.wdh}` : '–'}
                       </button>
                       <ZahlFeld wert={s.kg} platzhalter={zahlText(vorher?.kg)} onAendern={(kg) => satzAendern(ui, si, { kg })} />
                       <ZahlFeld wert={s.wdh} platzhalter={vorher?.wdh?.toString() ?? u.ziel?.split(/[-–]/)[0]} onAendern={(wdh) => satzAendern(ui, si, { wdh: wdh === undefined ? undefined : Math.round(wdh) })} />

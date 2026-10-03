@@ -54,7 +54,7 @@ function UebungDetail({ uebungId, name, einheiten, onZu }: { uebungId: string | 
         {[...proTraining].reverse().map((p) => (
           <li key={p.datum} className="rounded-2xl bg-karte2 p-3">
             <p className="mb-1 text-[13px] text-grau">{p.name}</p>
-            <p className="text-[15px]">{p.saetze.map((s) => `${String(s.kg).replace('.', ',')}×${s.wdh}`).join('  ·  ')}</p>
+            <p className="text-[15px]">{p.saetze.map((s) => `${s.kg === 0 ? 'KG' : String(s.kg).replace('.', ',')}×${s.wdh}`).join('  ·  ')}</p>
           </li>
         ))}
       </ul>
@@ -95,8 +95,8 @@ export default function GymSeite() {
 
   async function planImport(text: string) {
     try {
-      const namen = await importierePlaene(text)
-      setMeldung(`✅ Importiert: ${namen.join(', ')}`)
+      const { plaene, trainings } = await importierePlaene(text)
+      setMeldung(`✅ Pläne: ${plaene.join(', ')}${trainings ? ` · ${trainings} vergangene Trainings übernommen` : ''}`)
     } catch (e) {
       setMeldung('⚠️ ' + (e as Error).message)
     }
