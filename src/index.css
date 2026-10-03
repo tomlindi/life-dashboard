@@ -1,0 +1,48 @@
+/* Tailwind laden (Hilfsklassen wie "p-4", "rounded-2xl" ...) */
+@import 'tailwindcss';
+
+/* Eigene Farben: so kannst du sie im Code als "bg-karte" oder "text-grau" nutzen */
+@theme {
+  --color-karte: #1c1c1e; /* dunkelgraue Karten wie in Apples Apps */
+  --color-karte2: #2c2c2e; /* etwas hellere Fläche (Eingabefelder, Buttons) */
+  --color-linie: #38383a;
+  --color-grau: #8e8e93; /* Nebentext */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+}
+
+/* Immer Dark Mode: tiefes Schwarz */
+html,
+body,
+#root {
+  height: 100%;
+  background: #000;
+  color: #fff;
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* Verhindert das "Gummiband"-Wackeln und blaues Antippen-Highlight auf dem iPhone */
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Texteingaben dürfen markiert werden. 16px verhindert, dass iOS beim Tippen reinzoomt. */
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+  font-size: 16px;
+}
+
+/* Sanfte Druck-Animation für alles Antippbare */
+.tippbar {
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+.tippbar:active {
+  transform: scale(0.96);
+  opacity: 0.8;
+}
