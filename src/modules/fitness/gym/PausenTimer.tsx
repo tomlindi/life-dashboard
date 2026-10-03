@@ -56,7 +56,7 @@ export default function PausenTimer({ einheitId, pauseEnde }: { einheitId: strin
   const sekunden = String(Math.max(0, rest) % 60).padStart(2, '0')
 
   return (
-    <div className="fixed inset-x-3 z-40" style={{ bottom: 'calc(env(safe-area-inset-bottom) + 62px)' }}>
+    <div className="fixed inset-x-3 z-40" style={{ bottom: 'calc(max(env(safe-area-inset-bottom), 12px) + 96px)' }}>
       <div className={`flex items-center gap-2 rounded-2xl p-3 shadow-lg ${fertig ? 'bg-[#30d158] text-black' : 'bg-karte2'}`}>
         <div className="flex-1">
           <p className={`text-[12px] ${fertig ? '' : 'text-grau'}`}>{fertig ? 'Pause vorbei' : 'Pause'}</p>

@@ -1,7 +1,7 @@
-// Das Grundgerüst der App: Seiten-Bereich oben, Tab-Leiste unten.
+// Das Grundgerüst der App: Seiten-Bereich und unten das Dock (wie auf dem iPhone-Homescreen).
 import { Suspense, lazy } from 'react'
 import { HashRouter, NavLink, Route, Routes, useLocation } from 'react-router-dom'
-import { House, Ellipsis } from 'lucide-react'
+import { House, LayoutGrid } from 'lucide-react'
 import { module, TAB_IDS } from './modules'
 import HeuteSeite from './modules/heute/Seite'
 import { useAusgeblendet } from './core/einstellungen'
@@ -14,20 +14,27 @@ const BackupSeite = lazy(() => import('./modules/mehr/Backup'))
 const KalenderSeite = lazy(() => import('./modules/kalender/KalenderSeite'))
 const ErinnerungenSeite = lazy(() => import('./modules/kalender/ErinnerungenSeite'))
 
-/** Ein Eintrag in der Tab-Leiste. */
-function Tab({ to, label, children, farbe }: { to: string; label: string; children: React.ReactNode; farbe: string }) {
+/**
+ * Ein App-Icon im Dock: abgerundetes Quadrat ("Squircle") mit Farbverlauf und weißem Symbol,
+ * wie die App-Icons auf dem iPhone. Der aktive Bereich bekommt einen Punkt darunter.
+ */
+function DockIcon({ to, label, children, farbe }: { to: string; label: string; children: React.ReactNode; farbe: string }) {
   return (
-    <NavLink
-      to={to}
-      end={to === '/'}
-      className="tippbar flex min-h-[49px] flex-1 flex-col items-center justify-center gap-0.5"
-    >
+    <NavLink to={to} end={to === '/'} aria-label={label} className="tippbar flex flex-1 flex-col items-center gap-1">
       {({ isActive }) => (
-        // Aktiver Tab: Akzentfarbe des Bereichs, sonst grau (wie bei Apple)
-        <span className="flex flex-col items-center gap-0.5" style={{ color: isActive ? farbe : '#8e8e93' }}>
-          {children}
-          <span className="text-[10px] font-medium">{label}</span>
-        </span>
+        <>
+          <span
+            className="flex h-[54px] w-[54px] items-center justify-center rounded-[15px] text-white shadow-[0_4px_12px_rgba(0,0,0,0.35)]"
+            style={{
+              // Heller Schimmer oben + Akzentfarbe: wirkt wie ein echtes App-Icon
+              background: `linear-gradient(180deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0) 55%), ${farbe}`,
+            }}
+          >
+            {children}
+          </span>
+          {/* Punkt unter dem aktiven Icon (wie bei geöffneten Apps im Dock) */}
+          <span className="h-[5px] w-[5px] rounded-full transition-opacity" style={{ background: '#fff', opacity: isActive ? 0.9 : 0 }} />
+        </>
       )}
     </NavLink>
   )
@@ -66,28 +73,32 @@ export default function App() {
   return (
     // HashRouter: Adressen sehen aus wie "#/fitness". Das funktioniert auf GitHub Pages ohne Zusatz-Einstellungen.
     <HashRouter>
-      <div className="flex h-full flex-col">
-        {/* Scrollbarer Inhalt. paddingTop = Platz für Notch/Statusleiste (Safe Area) */}
-        <main className="flex-1 overflow-y-auto overscroll-contain" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <div className="h-full">
+        {/* Scrollbarer Inhalt. Oben Platz für Notch/Statusleiste, unten für das schwebende Dock.
+            Der Inhalt läuft UNTER dem Dock durch, deshalb sieht man den Milchglas-Effekt. */}
+        <main
+          className="h-full overflow-y-auto overscroll-contain"
+          style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 104px)' }}
+        >
           <Seiten />
         </main>
 
-        {/* Tab-Leiste unten. paddingBottom = Platz für den Home-Balken des iPhones */}
+        {/* Dock unten: schwebender, abgerundeter Kasten mit Milchglas (Blur), wie auf dem iPhone */}
         <nav
-          className="flex border-t border-linie bg-black/90 backdrop-blur"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+          className="fixed inset-x-3 z-40 flex items-start rounded-[34px] border border-white/10 bg-[#3a3a3c]/45 px-2 pt-2.5 pb-1.5 backdrop-blur-2xl backdrop-saturate-150"
+          style={{ bottom: 'max(env(safe-area-inset-bottom), 12px)' }}
         >
-          <Tab to="/" label="Heute" farbe="#0a84ff">
-            <House size={24} />
-          </Tab>
+          <DockIcon to="/" label="Heute" farbe="#0a84ff">
+            <House size={26} strokeWidth={2.2} />
+          </DockIcon>
           {tabModule.map((m) => (
-            <Tab key={m.id} to={`/${m.id}`} label={m.name} farbe={m.farbe}>
-              <m.icon size={24} />
-            </Tab>
+            <DockIcon key={m.id} to={`/${m.id}`} label={m.name} farbe={m.farbe}>
+              <m.icon size={26} strokeWidth={2.2} />
+            </DockIcon>
           ))}
-          <Tab to="/mehr" label="Mehr" farbe="#0a84ff">
-            <Ellipsis size={24} />
-          </Tab>
+          <DockIcon to="/mehr" label="Mehr" farbe="#636366">
+            <LayoutGrid size={26} strokeWidth={2.2} />
+          </DockIcon>
         </nav>
       </div>
     </HashRouter>
