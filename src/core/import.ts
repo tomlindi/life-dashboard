@@ -72,6 +72,7 @@ export function workoutArt(roh: unknown): string {
   if (/schwimm|swim/.test(s)) return 'Schwimmen'
   if (/yoga|pilates/.test(s)) return 'Yoga'
   if (/geh|walk|wander|hik/.test(s)) return 'Gehen'
+  if (/handball/.test(s)) return 'Handball'
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Sonstiges'
 }
 
@@ -155,6 +156,11 @@ export async function importiere(o: Record<string, unknown>): Promise<ImportErge
         start: start.toISOString(),
         dauerMin: Math.round(dauerMin),
         distanzKm: Number.isFinite(km) && km > 0 ? Math.round(km * 100) / 100 : undefined,
+        // Was du in der App ergänzt hast (Typ, Anstrengung, Tore, Notiz), bleibt erhalten
+        typ: alt?.typ,
+        anstrengung: alt?.anstrengung,
+        tore: alt?.tore,
+        notiz: alt?.notiz,
       })
       erg.workouts[alt ? 'aktualisiert' : 'neu']++
     }

@@ -30,17 +30,18 @@ export async function ladeBeispieldaten() {
   )
 
   // Workouts: etwa jeden zweiten Tag eins (heute Morgen ein Lauf)
-  const arten = [
-    { art: 'Gym', dauerMin: 65 },
-    { art: 'Laufen', dauerMin: 38, distanzKm: 6.2 },
-    { art: 'Rad', dauerMin: 55, distanzKm: 21 },
+  const arten: { art: string; dauerMin: number; distanzKm?: number; typ?: string; tore?: number }[] = [
+    { art: 'Handball', dauerMin: 90, typ: 'Training' },
+    { art: 'Laufen', dauerMin: 38, distanzKm: 6.2, typ: 'Locker' },
+    { art: 'Handball', dauerMin: 60, typ: 'Spiel', tore: 4 },
+    { art: 'Laufen', dauerMin: 62, distanzKm: 10.4, typ: 'Long Run' },
   ]
   await db.workouts.bulkPut(
     tage
       .map((tag, i) => ({ tag, i }))
       .filter(({ i }) => i % 2 === 1 || i === 13)
       .map(({ tag, i }) => {
-        const a = arten[i % arten.length]
+        const a = arten[Math.floor(i / 2) % arten.length]
         return {
           id: `${DEMO}workout-${tag}`,
           quelle: 'health' as const,
@@ -48,6 +49,8 @@ export async function ladeBeispieldaten() {
           start: zeit(tag, 17, 30),
           dauerMin: a.dauerMin,
           distanzKm: a.distanzKm,
+          typ: a.typ,
+          tore: a.tore,
         }
       }),
   )

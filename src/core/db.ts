@@ -18,6 +18,10 @@ export interface Workout {
   start: string // ISO-Zeitstempel
   dauerMin: number
   distanzKm?: number
+  typ?: string // Art der Einheit, z. B. "Long Run", "Intervall", "Spiel"
+  anstrengung?: number // 1 (sehr leicht) bis 10 (maximal)
+  tore?: number // Handball
+  notiz?: string
 }
 
 export interface Schritte {

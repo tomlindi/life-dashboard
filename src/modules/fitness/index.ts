@@ -14,6 +14,8 @@ const modul: Modul = {
     { pfad: 'gym', Seite: lazy(() => import('./gym/GymSeite')) },
     { pfad: 'gym/training/:id', Seite: lazy(() => import('./gym/TrainingSeite')) },
     { pfad: 'gym/plan/:id', Seite: lazy(() => import('./gym/PlanSeite')) },
+    // Eigene Seite pro Sportart, z. B. /fitness/sport/Laufen
+    { pfad: 'sport/:art', Seite: lazy(() => import('./SportSeite')) },
   ],
 }
 export default modul
