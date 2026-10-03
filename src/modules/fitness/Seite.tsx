@@ -1,9 +1,13 @@
 // Bereich "Fitness": Wochenziel-Ring, Diagramme, geplante Workouts und die Workout-Liste.
 import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Minus, Plus, Trash2 } from 'lucide-react'
-import { db } from '../../core/db'
-import { tagPlus, tagVon, heute, uhrzeit, wochenStart } from '../../core/datum'
+import { ChevronRight, Minus, Play, Plus, Trash2 } from 'lucide-react'
+import { db, type Workout } from '../../core/db'
+import { tagPlus, tagVon, heute, uhrzeit, wochenStart, wocheVon } from '../../core/datum'
+import { kurzDatum, zahl } from '../../core/format'
+import { ohneDoppelte, gymTrainingZu } from './workouts'
+import { starteTraining, volumen } from './gym/daten'
 import { useWochenziel } from '../../core/einstellungen'
 import Seite from '../../core/ui/Seite'
 import Karte from '../../core/ui/Karte'
@@ -19,7 +23,12 @@ const QUELLE: Record<string, string> = { health: 'Health', manuell: 'manuell', s
 export default function FitnessSeite() {
   const [formularOffen, setFormularOffen] = useState(false)
   const [ziel, setZiel] = useWochenziel()
-  const workouts = useLiveQuery(() => db.workouts.orderBy('start').reverse().toArray(), [])
+  const rohWorkouts = useLiveQuery(() => db.workouts.orderBy('start').reverse().toArray(), [])
+  const workouts = rohWorkouts && ohneDoppelte(rohWorkouts)
+  const einheiten = useLiveQuery(() => db.gymEinheiten.orderBy('start').reverse().toArray(), []) ?? []
+  const plaene = useLiveQuery(() => db.gymPlaene.orderBy('sortierung').toArray(), []) ?? []
+  const uebungen = useLiveQuery(() => db.uebungen.toArray(), []) ?? []
+  const navigate = useNavigate()
   const termine = useLiveQuery(
     // Termine von jetzt bis in 14 Tagen
     () => db.termine.where('start').between(new Date().toISOString(), new Date(`${tagPlus(heute(), 14)}T23:59:59`).toISOString()).toArray(),
@@ -28,6 +37,22 @@ export default function FitnessSeite() {
 
   const dieseWoche = (workouts ?? []).filter((w) => tagVon(w.start) >= wochenStart()).length
   const geplant = (termine ?? []).filter((t) => istWorkoutTermin(t.titel))
+  const laufend = einheiten.find((e) => !e.ende)
+  const uebungName = (id: string) => uebungen.find((u) => u.id === id)?.name ?? 'Übung'
+  const gymZu = (w: Workout) => gymTrainingZu(w, einheiten)
+
+  // Workouts nach Wochen gruppieren (neueste zuerst), die letzten 8 Wochen
+  const wochen = Object.entries(
+    (workouts ?? []).reduce<Record<string, Workout[]>>((acc, w) => {
+      const woche = wocheVon(tagVon(w.start))
+      ;(acc[woche] ??= []).push(w)
+      return acc
+    }, {}),
+  )
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .slice(0, 8)
+  const wochenTitel = (woche: string) =>
+    woche === wochenStart() ? 'Diese Woche' : woche === tagPlus(wochenStart(), -7) ? 'Letzte Woche' : `Woche ab ${kurzDatum(woche)}`
 
   return (
     <Seite titel="Fitness" farbe={FARBE}>
@@ -62,12 +87,42 @@ export default function FitnessSeite() {
         </div>
       </Karte>
 
+      {/* Gym: laufendes Training fortsetzen oder einen Plan starten */}
+      <Karte titel="Gym" akzent={FARBE} rechts={<Link to="/fitness/gym" className="tippbar text-[15px] font-semibold" style={{ color: FARBE }}>Alles →</Link>}>
+        {laufend ? (
+          <Link to={`/fitness/gym/training/${laufend.id}`} className="tippbar flex min-h-14 items-center gap-3 rounded-2xl px-4 text-black" style={{ background: FARBE }}>
+            <Play size={20} fill="black" />
+            <span className="flex-1 text-[16px] font-semibold">{laufend.name} läuft, weiter</span>
+            <ChevronRight size={20} />
+          </Link>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {plaene.slice(0, 4).map((p) => (
+              <button
+                key={p.id}
+                onClick={async () => navigate(`/fitness/gym/training/${await starteTraining(p)}`)}
+                disabled={p.uebungen.length === 0}
+                className="tippbar flex min-h-12 items-center gap-2 rounded-2xl bg-karte2 px-4 text-[15px] font-semibold disabled:opacity-40"
+              >
+                <Play size={16} color={FARBE} fill={FARBE} /> {p.name}
+              </button>
+            ))}
+            <button
+              onClick={async () => navigate(`/fitness/gym/training/${await starteTraining()}`)}
+              className="tippbar flex min-h-12 items-center gap-2 rounded-2xl bg-karte2 px-4 text-[15px]"
+            >
+              <Plus size={16} /> Freies Training
+            </button>
+          </div>
+        )}
+      </Karte>
+
       <button
         onClick={() => setFormularOffen(true)}
-        className="tippbar flex h-14 items-center justify-center gap-2 rounded-2xl text-[17px] font-semibold"
-        style={{ background: FARBE }}
+        className="tippbar flex h-12 items-center justify-center gap-2 rounded-2xl bg-karte text-[16px] font-semibold"
+        style={{ color: FARBE }}
       >
-        <Plus size={22} /> Workout eintragen
+        <Plus size={20} /> Anderes Workout eintragen (Laufen, Rad …)
       </button>
 
       <WorkoutDiagramm />
@@ -92,39 +147,67 @@ export default function FitnessSeite() {
         )}
       </Karte>
 
-      {/* Liste aller Workouts */}
-      <Karte titel="Workouts">
+      {/* Alle gemachten Workouts, nach Wochen gruppiert */}
+      <Karte titel="Deine Workouts">
         {!workouts || workouts.length === 0 ? (
-          <p className="text-[14px] text-grau">Noch keine Workouts. Trag eins ein oder importiere deine Health-Daten.</p>
+          <p className="text-[14px] text-grau">Noch keine Workouts. Trag eins ein, starte ein Gym-Training oder importiere deine Health-Daten.</p>
         ) : (
-          <ul>
-            {workouts.slice(0, 30).map((w, i) => {
-              const Icon = iconFuer(w.art)
-              return (
-                <li key={w.id} className={`flex min-h-16 items-center gap-3 ${i > 0 ? 'border-t border-linie' : ''}`}>
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ background: FARBE + '33' }}>
-                    <Icon size={20} color={FARBE} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[16px] font-medium">
-                      {w.art} <span className="text-[13px] font-normal text-grau">· {QUELLE[w.quelle] ?? w.quelle}</span>
-                    </p>
-                    <p className="text-[13px] text-grau">
-                      {new Date(w.start).toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'numeric' })} · {w.dauerMin} Min
-                      {w.distanzKm ? ` · ${w.distanzKm.toLocaleString('de-DE')} km` : ''}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => confirm(`${w.art}-Workout löschen?`) && db.workouts.delete(w.id)}
-                    className="tippbar flex h-11 w-11 items-center justify-center text-grau"
-                    aria-label="Workout löschen"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
+          wochen.map(([woche, liste]) => (
+            <div key={woche} className="mb-3 last:mb-0">
+              <p className="mb-1 flex justify-between text-[12px] font-semibold uppercase tracking-wide text-grau">
+                <span>{wochenTitel(woche)}</span>
+                <span>
+                  {liste.length} {liste.length === 1 ? 'Workout' : 'Workouts'} · {liste.reduce((s, w) => s + w.dauerMin, 0)} Min
+                </span>
+              </p>
+              <ul>
+                {liste.map((w, i) => {
+                  const Icon = iconFuer(w.art)
+                  const gym = gymZu(w)
+                  const inhalt = (
+                    <>
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ background: FARBE + '33' }}>
+                        <Icon size={20} color={FARBE} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[16px] font-medium">
+                          {gym ? gym.name : w.art} <span className="text-[13px] font-normal text-grau">· {gym && w.quelle === 'manuell' ? 'Gym-Log' : (QUELLE[w.quelle] ?? w.quelle)}</span>
+                        </p>
+                        <p className="text-[13px] text-grau">
+                          {new Date(w.start).toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'numeric' })} · {w.dauerMin} Min
+                          {w.distanzKm ? ` · ${w.distanzKm.toLocaleString('de-DE')} km` : ''}
+                          {gym ? ` · ${zahl(volumen(gym) / 1000)} t` : ''}
+                        </p>
+                        {/* Bei Gym-Trainings: welche Übungen */}
+                        {gym && <p className="truncate text-[12px] text-grau">{gym.uebungen.map((u) => uebungName(u.uebungId)).join(', ')}</p>}
+                      </div>
+                    </>
+                  )
+                  return (
+                    <li key={w.id} className={`flex min-h-16 items-center gap-3 ${i > 0 ? 'border-t border-linie' : ''}`}>
+                      {gym ? (
+                        <Link to={`/fitness/gym/training/${gym.id}`} className="tippbar flex min-w-0 flex-1 items-center gap-3 py-1">
+                          {inhalt}
+                          <ChevronRight size={16} className="text-grau" />
+                        </Link>
+                      ) : (
+                        <>
+                          {inhalt}
+                          <button
+                            onClick={() => confirm(`${w.art}-Workout löschen?`) && db.workouts.delete(w.id)}
+                            className="tippbar flex h-11 w-11 items-center justify-center text-grau"
+                            aria-label="Workout löschen"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          ))
         )}
       </Karte>
 

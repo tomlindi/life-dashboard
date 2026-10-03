@@ -8,6 +8,7 @@ import { heute, tagVon, wochenStart } from '../../core/datum'
 import { euro, zahl } from '../../core/format'
 import { useAusgeblendet } from '../../core/einstellungen'
 import { berechneHalbjahr } from '../schule/noten'
+import { ohneDoppelte } from '../fitness/workouts'
 import { abiPrognose, STANDARD_PRUEFUNGEN, type AbiPruefung } from '../schule/abi'
 
 /** Liest für jeden Bereich eine kurze Kennzahl aus der Datenbank. */
@@ -17,7 +18,7 @@ function useKennzahlen(): Record<string, string> {
       const h = heute()
       const ws = wochenStart()
       const [workouts, noten, faecher, ziele, habits, haken, buchungen, schlaf, mahlzeiten, freunde, hobbyZeiten, stimmung, hj] = await Promise.all([
-        db.workouts.toArray(),
+        db.workouts.toArray().then(ohneDoppelte),
         db.noten.toArray(),
         db.faecher.toArray(),
         db.ziele.count(),

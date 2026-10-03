@@ -237,6 +237,68 @@ export interface HobbyZeit {
   minuten: number
 }
 
+// ---------- Gym (Krafttraining) ----------
+
+/** Eine Übung aus deiner Übungsliste, z. B. "Bankdrücken". */
+export interface Uebung {
+  id: string
+  name: string
+  gruppe: string // Muskelgruppe, z. B. "Brust"
+  notiz?: string
+}
+
+/** normal = Arbeitssatz, aufwaermen = zählt nicht für Bestleistungen */
+export type SatzTyp = 'normal' | 'aufwaermen' | 'drop' | 'versagen'
+
+export interface Satz {
+  id: string
+  kg?: number
+  wdh?: number
+  typ: SatzTyp
+  erledigt: boolean
+}
+
+/** Eine Übung innerhalb eines Trainings, mit ihren Sätzen. */
+export interface EinheitUebung {
+  id: string
+  uebungId: string
+  pauseSek: number
+  ziel?: string // Zielwiederholungen aus dem Plan, z. B. "8–10"
+  notiz?: string
+  saetze: Satz[]
+}
+
+/** Ein Gym-Training (eine "Einheit"). */
+export interface GymEinheit {
+  id: string
+  name: string
+  planId?: string
+  start: string // ISO-Zeitstempel
+  ende?: string // leer = Training läuft noch
+  notiz?: string
+  uebungen: EinheitUebung[]
+  pauseEnde?: string // Ende der laufenden Pause (für den Countdown)
+}
+
+/** Eine Übung in einem Trainingsplan (Vorlage). */
+export interface PlanUebung {
+  id: string
+  uebungId: string
+  saetze: number
+  wdh: string // z. B. "8-10"
+  kg?: number
+  pauseSek: number
+  notiz?: string
+}
+
+export interface GymPlan {
+  id: string
+  name: string
+  notiz?: string
+  uebungen: PlanUebung[]
+  sortierung: number
+}
+
 // ---------- Die Datenbank selbst ----------
 
 class LifeDB extends Dexie {
@@ -256,6 +318,9 @@ class LifeDB extends Dexie {
   freunde!: Table<Freund, string>
   hobbys!: Table<Hobby, string>
   hobbyZeiten!: Table<HobbyZeit, string>
+  uebungen!: Table<Uebung, string>
+  gymPlaene!: Table<GymPlan, string>
+  gymEinheiten!: Table<GymEinheit, string>
   workouts!: Table<Workout, string>
   schritte!: Table<Schritte, string>
   termine!: Table<Termin, string>
@@ -300,6 +365,12 @@ class LifeDB extends Dexie {
       freunde: 'id',
       hobbys: 'id',
       hobbyZeiten: 'id, hobbyId, datum',
+    })
+    // Version 3: Gym-Training (Übungen, Pläne, Trainingseinheiten)
+    this.version(3).stores({
+      uebungen: 'id, name',
+      gymPlaene: 'id, sortierung',
+      gymEinheiten: 'id, start',
     })
   }
 }

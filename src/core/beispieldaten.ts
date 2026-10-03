@@ -3,6 +3,7 @@
 // damit "Beispieldaten löschen" nur diese Einträge entfernt und nichts von deinen echten Daten.
 import { db } from './db'
 import { heute, letzteTage, tagPlus, tagString } from './datum'
+import { standardUebungenAnlegen, uebungNachName } from '../modules/fitness/gym/daten'
 
 const DEMO = 'demo:'
 
@@ -207,6 +208,44 @@ export async function ladeBeispieldaten() {
     { id: `${DEMO}fr3`, name: 'Mia', geburtstag: geburtstagIn(140, 2009), zuletzt: tagPlus(h, -18), plaene: [] },
   ])
 
+  // ---------- Gym: ein Plan und zwei vergangene Trainings ----------
+  await standardUebungenAnlegen()
+  const [bank, schulter, seit, trizeps] = await Promise.all(
+    ['Bankdrücken', 'Schulterdrücken', 'Seitheben', 'Trizepsdrücken (Kabel)'].map((n) => uebungNachName(n)),
+  )
+  await db.gymPlaene.put({
+    id: `${DEMO}plan-push`,
+    name: 'Push (Beispiel)',
+    notiz: 'Brust, Schultern, Trizeps',
+    sortierung: 0,
+    uebungen: [
+      { id: 'demo-pu1', uebungId: bank, saetze: 4, wdh: '6-8', kg: 60, pauseSek: 150 },
+      { id: 'demo-pu2', uebungId: schulter, saetze: 3, wdh: '8-10', kg: 30, pauseSek: 120 },
+      { id: 'demo-pu3', uebungId: seit, saetze: 3, wdh: '12-15', kg: 8, pauseSek: 90 },
+      { id: 'demo-pu4', uebungId: trizeps, saetze: 3, wdh: '10-12', kg: 20, pauseSek: 90 },
+    ],
+  })
+  const satz = (kg: number, wdh: number, typ: 'normal' | 'aufwaermen' = 'normal') => ({ id: crypto.randomUUID(), kg, wdh, typ, erledigt: true })
+  for (const [tageZurueck, plus] of [[6, 0], [2, 2.5]] as const) {
+    const start = zeit(tagPlus(h, -tageZurueck), 17, 30)
+    const ende = zeit(tagPlus(h, -tageZurueck), 18, 35)
+    const id = `${DEMO}training-${tageZurueck}`
+    await db.gymEinheiten.put({
+      id,
+      name: 'Push (Beispiel)',
+      planId: `${DEMO}plan-push`,
+      start,
+      ende,
+      uebungen: [
+        { id: `${id}-1`, uebungId: bank, pauseSek: 150, ziel: '6-8', saetze: [satz(40, 10, 'aufwaermen'), satz(60 + plus, 8), satz(60 + plus, 7), satz(60 + plus, 6), satz(55 + plus, 8)] },
+        { id: `${id}-2`, uebungId: schulter, pauseSek: 120, ziel: '8-10', saetze: [satz(30, 10), satz(30, 9), satz(30, 8)] },
+        { id: `${id}-3`, uebungId: seit, pauseSek: 90, ziel: '12-15', saetze: [satz(8, 15), satz(8, 13), satz(8, 12)] },
+        { id: `${id}-4`, uebungId: trizeps, pauseSek: 90, ziel: '10-12', saetze: [satz(20 + plus, 12), satz(20 + plus, 11), satz(20 + plus, 10)] },
+      ],
+    })
+    await db.workouts.put({ id: `gym:${id}`, quelle: 'manuell', art: 'Gym', start, dauerMin: 65 })
+  }
+
   // ---------- Hobbys ----------
   await db.hobbys.bulkPut([
     { id: `${DEMO}hb1`, name: 'Gitarre', emoji: '🎸', zielMinWoche: 180, ziel: 'Wonderwall flüssig spielen' },
@@ -224,7 +263,9 @@ export async function ladeBeispieldaten() {
 export async function loescheBeispieldaten() {
   const istDemoId = (id: string) => id.startsWith(DEMO)
   await Promise.all([
-    db.workouts.filter((x) => istDemoId(x.id)).delete(),
+    db.workouts.filter((x) => istDemoId(x.id) || x.id.startsWith(`gym:${DEMO}`)).delete(),
+    db.gymPlaene.filter((x) => istDemoId(x.id)).delete(),
+    db.gymEinheiten.filter((x) => istDemoId(x.id)).delete(),
     db.termine.filter((x) => istDemoId(x.id)).delete(),
     db.aufgaben.filter((x) => istDemoId(x.id)).delete(),
     db.habits.filter((x) => istDemoId(x.id)).delete(),

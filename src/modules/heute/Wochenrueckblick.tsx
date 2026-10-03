@@ -4,6 +4,7 @@ import { db, holeEinstellung } from '../../core/db'
 import { letzteTage, tagVon } from '../../core/datum'
 import { mittel, zahl } from '../../core/format'
 import Karte from '../../core/ui/Karte'
+import { ohneDoppelte } from '../fitness/workouts'
 
 const fmt = (n: number | null, stellen = 1) => (n === null ? '–' : zahl(n, stellen))
 
@@ -33,7 +34,7 @@ export default function Wochenrueckblick() {
       db.stimmung.toArray(),
       db.wasser.toArray(),
       db.schritte.toArray(),
-      db.workouts.toArray(),
+      db.workouts.toArray().then(ohneDoppelte),
       db.schlaf.toArray(),
       holeEinstellung<number>('schlafZiel', 8),
     ])

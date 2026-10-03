@@ -31,6 +31,12 @@ export function wochenStart(): string {
   return tagPlus(tagString(d), -tagImWoche)
 }
 
+/** Montag der Woche, in der ein Tag liegt. */
+export function wocheVon(tag: string): string {
+  const d = new Date(tag + 'T12:00:00')
+  return tagPlus(tag, -((d.getDay() + 6) % 7))
+}
+
 /** Uhrzeit "08:30" aus einem ISO-Zeitstempel. */
 export function uhrzeit(iso: string): string {
   const d = new Date(iso)

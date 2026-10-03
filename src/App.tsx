@@ -42,6 +42,10 @@ function Seiten() {
           {module.map((m) => (
             <Route key={m.id} path={`/${m.id}`} element={<m.Seite />} />
           ))}
+          {/* Unterseiten der Bereiche, z. B. /fitness/gym */}
+          {module.flatMap((m) =>
+            (m.unterseiten ?? []).map((u) => <Route key={`${m.id}/${u.pfad}`} path={`/${m.id}/${u.pfad}`} element={<u.Seite />} />),
+          )}
           <Route path="/mehr" element={<MehrSeite />} />
           <Route path="/import" element={<ImportSeite />} />
           <Route path="/backup" element={<BackupSeite />} />

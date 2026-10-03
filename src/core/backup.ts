@@ -20,13 +20,20 @@ async function sammleDaten() {
  */
 export async function exportiereBackup(): Promise<'geteilt' | 'heruntergeladen' | 'abgebrochen'> {
   const daten = await sammleDaten()
-  const name = `life-dashboard-backup-${heute()}.json`
-  const datei = new File([JSON.stringify(daten, null, 1)], name, { type: 'application/json' })
+  const ergebnis = await teileDatei(`life-dashboard-backup-${heute()}.json`, JSON.stringify(daten, null, 1), 'application/json')
+  if (ergebnis !== 'abgebrochen') await setzeEinstellung('letztesBackup', new Date().toISOString())
+  return ergebnis
+}
 
+/**
+ * Gibt eine Datei weiter: auf dem iPhone über das Teilen-Menü ("In Dateien sichern", AirDrop …),
+ * am Computer als normaler Download.
+ */
+export async function teileDatei(name: string, inhalt: string, typ: string): Promise<'geteilt' | 'heruntergeladen' | 'abgebrochen'> {
+  const datei = new File([inhalt], name, { type: typ })
   if (navigator.canShare?.({ files: [datei] })) {
     try {
-      await navigator.share({ files: [datei], title: 'Life Dashboard Backup' })
-      await setzeEinstellung('letztesBackup', new Date().toISOString())
+      await navigator.share({ files: [datei], title: name })
       return 'geteilt'
     } catch (e) {
       if ((e as Error).name === 'AbortError') return 'abgebrochen'
@@ -39,7 +46,6 @@ export async function exportiereBackup(): Promise<'geteilt' | 'heruntergeladen' 
   link.download = name
   link.click()
   setTimeout(() => URL.revokeObjectURL(url), 2000)
-  await setzeEinstellung('letztesBackup', new Date().toISOString())
   return 'heruntergeladen'
 }
 

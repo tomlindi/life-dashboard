@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Check } from 'lucide-react'
 import { db } from '../../core/db'
 import { useSchrittziel, useWochenziel } from '../../core/einstellungen'
+import { ohneDoppelte } from '../fitness/workouts'
 import { heute, tagVon, uhrzeit, wochenStart, tagPlus } from '../../core/datum'
 import Karte from '../../core/ui/Karte'
 import Ring from '../../core/ui/Ring'
@@ -87,7 +88,7 @@ export function Aufgaben() {
 export function Aktivitaet() {
   const tag = heute()
   const schritte = useLiveQuery(() => db.schritte.get(tag), [tag])
-  const workouts = useLiveQuery(() => db.workouts.toArray(), [])
+  const workouts = useLiveQuery(async () => ohneDoppelte(await db.workouts.toArray()), [])
   const heutige = (workouts ?? []).filter((w) => tagVon(w.start) === tag)
   const dieseWoche = (workouts ?? []).filter((w) => tagVon(w.start) >= wochenStart()).length
   const anzahl = schritte?.anzahl ?? 0

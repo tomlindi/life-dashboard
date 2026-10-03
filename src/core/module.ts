@@ -14,4 +14,6 @@ export interface Modul {
   Seite: LazyExoticComponent<ComponentType>
   /** Kurzer Text für die Kachel auf der Startseite (optional, kommt aus den Daten) */
   Kachel?: ComponentType
+  /** Weitere Unterseiten, z. B. { pfad: 'gym', Seite: … } wird zu /fitness/gym */
+  unterseiten?: { pfad: string; Seite: LazyExoticComponent<ComponentType> }[]
 }
