@@ -1,4 +1,4 @@
-// Bereich "Fitness": Wochenziel, Jahresübersicht, Workout eintragen, Sportarten (je eigene Seite), Diagramme, alle Workouts.
+// Bereich "Fitness": Wochenziel, Trainingskalender (Monat, aufklappbar zum Jahr), Workout eintragen, Sportarten (je eigene Seite), Diagramme, alle Workouts.
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
