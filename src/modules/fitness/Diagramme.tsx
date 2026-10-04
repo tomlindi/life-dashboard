@@ -7,6 +7,7 @@ import { heute, kurzerWochentag, letzteTage, tagPlus, tagVon } from '../../core/
 import { kurzDatum, zahl } from '../../core/format'
 import Karte from '../../core/ui/Karte'
 import { SchnellEingabe } from '../../core/ui/Formular'
+import { ZeitraumWahl, zeitraumAb, type ZeitraumLabel } from '../../core/ui/Zeitraum'
 import { useSchrittziel } from '../../core/einstellungen'
 
 /** Gemeinsames Aussehen der Diagramme: dezente Achse, dunkler Tooltip. */
@@ -41,21 +42,11 @@ export function WorkoutDiagramm() {
   )
 }
 
-/** Gewicht: letzter Wert, Verlauf der letzten 30 Einträge und schnelles Eintragen. */
-const ZEITRAEUME = [
-  { label: '1M', tage: 30 },
-  { label: '3M', tage: 91 },
-  { label: '6M', tage: 182 },
-  { label: '1J', tage: 365 },
-  { label: 'Alle', tage: Infinity },
-] as const
-
 /** Gewicht: Verlauf über einen wählbaren Zeitraum, Veränderung, Min/Max und schnelles Eintragen. */
 export function GewichtKarte() {
   const werte = useLiveQuery(() => db.gewicht.orderBy('datum').toArray(), []) ?? []
-  const [zeitraum, setZeitraum] = useState<(typeof ZEITRAEUME)[number]['label']>('3M')
-  const tage = ZEITRAEUME.find((z) => z.label === zeitraum)!.tage
-  const ab = tage === Infinity ? '' : tagPlus(heute(), -tage)
+  const [zeitraum, setZeitraum] = useState<ZeitraumLabel>('3M')
+  const ab = zeitraumAb(zeitraum)
   // x = Tage seit dem ersten Wert -> echte Zeitachse (Abstände zwischen Messungen stimmen)
   const imZeitraum = werte.filter((g) => g.datum >= ab)
   const erster = imZeitraum[0]
@@ -67,19 +58,7 @@ export function GewichtKarte() {
 
   return (
     <Karte titel="Gewicht" akzent="#64d2ff" rechts={aktuell && <span className="text-[17px] font-bold">{zahl(aktuell.kg)} kg</span>}>
-      {/* Zeitraum wählen */}
-      <div className="mb-3 flex gap-1 rounded-xl bg-karte2 p-1">
-        {ZEITRAEUME.map((z) => (
-          <button
-            key={z.label}
-            onClick={() => setZeitraum(z.label)}
-            className="tippbar min-h-8 flex-1 rounded-lg text-[13px] font-semibold"
-            style={{ background: zeitraum === z.label ? '#636366' : 'transparent' }}
-          >
-            {z.label}
-          </button>
-        ))}
-      </div>
+      <ZeitraumWahl wert={zeitraum} onWahl={setZeitraum} />
 
       {daten.length >= 2 ? (
         <>

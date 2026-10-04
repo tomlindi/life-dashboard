@@ -205,26 +205,19 @@ export interface Schlaf {
 
 export type Bewertung = 'gesund' | 'okay' | 'ungesund'
 
-/** Geschätzte Nährwerte (z. B. aus der Foto-Analyse). Alles in Gramm, Energie in kcal. */
-export interface Naehrwerte {
-  kcal?: number
-  eiweiss?: number
-  kohlenhydrate?: number
-  fett?: number
-  zucker?: number
-  ballaststoffe?: number
-}
-
 export interface Mahlzeit {
   id: string
   datum: string
   name: string
   bewertung: Bewertung
-  tipp?: string // kurzer Tipp (von der Foto-Analyse oder selbst geschrieben)
-  portion?: string // z. B. "1 Teller, ca. 400 g"
-  naehrwerte?: Naehrwerte
-  bild?: string // kleines Vorschaubild (Data-URL, ca. 20 KB)
-  quelle?: 'foto' | 'manuell'
+  // Nährwerte sind freiwillig (ältere oder schnelle Einträge haben keine). Gramm, außer kcal.
+  kcal?: number
+  protein?: number
+  kohlenhydrate?: number
+  fett?: number
+  bild?: string // kleines Vorschaubild als JPEG-"data:"-Text (ca. 160 px)
+  tipp?: string // kurzer Tipp der KI (oder selbst geschrieben)
+  quelle?: 'ki' | 'manuell' // Nährwerte von der KI geschätzt oder von Hand eingetragen
 }
 
 export interface Gewicht {
