@@ -1,4 +1,4 @@
-// Bereich "Fitness": Wochenziel, Workout eintragen, Sportarten (je eigene Seite), Diagramme, alle Workouts.
+// Bereich "Fitness": Wochenziel, Jahresübersicht, Workout eintragen, Sportarten (je eigene Seite), Diagramme, alle Workouts.
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -12,6 +12,7 @@ import Karte from '../../core/ui/Karte'
 import Ring from '../../core/ui/Ring'
 import { SPORTARTEN, istWorkoutTermin, sportart } from './arten'
 import { GewichtKarte, SchritteDiagramm, WorkoutDiagramm } from './Diagramme'
+import Jahresansicht from './Jahresansicht'
 import WorkoutFormular from './WorkoutFormular'
 import WorkoutListe from './WorkoutListe'
 import { ohneDoppelte } from './workouts'
@@ -82,6 +83,8 @@ export default function FitnessSeite() {
           </div>
         </div>
       </Karte>
+
+      <Jahresansicht workouts={workouts} />
 
       {/* Laufendes Gym-Training */}
       {laufend && (
