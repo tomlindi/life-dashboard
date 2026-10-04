@@ -1,4 +1,4 @@
-// Bereich "Schlaf": letzte Nacht, Ziel, Diagramm, Wochendurchschnitte, Qualität 1–5.
+// Bereich "Schlaf": letzte Nacht, Ziel, Diagramm, Verlauf, Wochendurchschnitte, Qualität 1–5.
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Minus, Plus, Star } from 'lucide-react'
@@ -12,6 +12,7 @@ import Karte from '../../core/ui/Karte'
 import Ring from '../../core/ui/Ring'
 import Sheet from '../../core/ui/Sheet'
 import { Eingabe, Knopf, Label, Leer } from '../../core/ui/Formular'
+import SchlafVerlauf from './Verlauf'
 
 const FARBE = '#5e5ce6'
 
@@ -150,6 +151,8 @@ export default function SchlafSeite() {
           </ResponsiveContainer>
         </div>
       </Karte>
+
+      <SchlafVerlauf schlaf={schlaf} ziel={ziel} />
 
       <Karte titel="Durchschnitt pro Woche">
         <ul className="space-y-2">

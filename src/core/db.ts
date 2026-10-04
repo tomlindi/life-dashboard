@@ -210,6 +210,13 @@ export interface Mahlzeit {
   datum: string
   name: string
   bewertung: Bewertung
+  // Nährwerte sind freiwillig (ältere oder schnelle Einträge haben keine). Gramm, außer kcal.
+  kcal?: number
+  protein?: number
+  kohlenhydrate?: number
+  fett?: number
+  bild?: string // kleines Vorschaubild als JPEG-"data:"-Text (ca. 160 px)
+  quelle?: 'ki' | 'manuell' // Nährwerte von der KI geschätzt oder von Hand eingetragen
 }
 
 export interface Gewicht {

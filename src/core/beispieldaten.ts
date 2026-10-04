@@ -192,14 +192,24 @@ export async function ladeBeispieldaten() {
 
   // ---------- Ernährung ----------
   const bewertungen = ['gesund', 'okay', 'ungesund'] as const
+  // Grobe Nährwerte je Mahlzeit (kcal, Protein, Kohlenhydrate, Fett). Jede 4. Mahlzeit bleibt ohne Werte.
+  const naehrwerte = [
+    [450, 20, 60, 14],
+    [750, 38, 85, 26],
+    [650, 32, 70, 22],
+  ]
   await db.mahlzeiten.bulkPut(
     tage.flatMap((datum, i) =>
-      ['Frühstück', 'Mittagessen', 'Abendessen'].map((name, j) => ({
-        id: `${DEMO}m${i}-${j}`,
-        datum,
-        name,
-        bewertung: bewertungen[Math.floor(pseudo(i * 3 + j) * 2.6)],
-      })),
+      ['Frühstück', 'Mittagessen', 'Abendessen'].map((name, j) => {
+        const [kcal, protein, kohlenhydrate, fett] = naehrwerte[j].map((w) => Math.round(w * (0.8 + pseudo(i * 7 + j) * 0.4)))
+        return {
+          id: `${DEMO}m${i}-${j}`,
+          datum,
+          name,
+          bewertung: bewertungen[Math.floor(pseudo(i * 3 + j) * 2.6)],
+          ...((i * 3 + j) % 4 === 3 ? {} : { kcal, protein, kohlenhydrate, fett, quelle: 'manuell' as const }),
+        }
+      }),
     ),
   )
 

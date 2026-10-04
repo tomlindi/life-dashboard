@@ -1,4 +1,5 @@
-// Bereich "Gewohnheiten": Habits abhaken, Streak (Tage in Folge) und die letzten 7 Tage.
+// Bereich "Gewohnheiten": Habits abhaken, Streak (Tage in Folge) und die letzten 7 Tage,
+// darunter die Entwicklung über Wochen und Monate (Verlauf.tsx).
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Flame } from 'lucide-react'
@@ -9,6 +10,7 @@ import Seite from '../../core/ui/Seite'
 import Karte from '../../core/ui/Karte'
 import Sheet from '../../core/ui/Sheet'
 import { Eingabe, Knopf, Label, Leer, LoeschKnopf, PlusKnopf } from '../../core/ui/Formular'
+import EntwicklungKarte from './Verlauf'
 
 const FARBE = '#30d158'
 const EMOJIS = ['📚', '🧘', '🏃', '💧', '🗣️', '⏰', '🦷', '📵', '🥗', '✍️', '🎸', '😴']
@@ -101,6 +103,8 @@ export default function GewohnheitenSeite() {
           </ul>
         )}
       </Karte>
+
+      <EntwicklungKarte habits={habits} eintraege={eintraege} />
 
       <Sheet titel="Neue Gewohnheit" offen={neuOffen} onZu={() => setNeuOffen(false)}>
         <div className="mb-4">
