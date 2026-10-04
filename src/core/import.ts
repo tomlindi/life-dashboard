@@ -101,21 +101,8 @@ export interface Zaehler {
 }
 export type ImportErgebnis = Record<'schritte' | 'workouts' | 'schlaf' | 'gewicht' | 'termine' | 'aufgaben', Zaehler> & { hinweise: string[] }
 
-/** Wandelt Text in ein Objekt um und prüft grob, ob es unser Format ist. */
-export function leseImportText(text: string): Record<string, unknown> {
-  let daten: unknown
-  try {
-    daten = JSON.parse(text.trim())
-  } catch {
-    throw new Error('Das ist kein gültiges JSON. Hast du den Kurzbefehl ausgeführt, bevor du hier importierst?')
-  }
-  if (!daten || typeof daten !== 'object' || Array.isArray(daten)) throw new Error('Unerwartetes Format: Es wird ein JSON-Objekt { … } erwartet.')
-  const o = daten as Record<string, unknown>
-  if ('tabellen' in o && o.app === 'life-dashboard') throw new Error('Das ist ein Backup. Bitte unter „Backup & Daten“ wiederherstellen.')
-  const bekannte = ['schritte', 'workouts', 'schlaf', 'gewicht', 'termine', 'aufgaben']
-  if (!bekannte.some((k) => k in o)) throw new Error('Keine bekannten Daten gefunden (erwartet: ' + bekannte.join(', ') + ').')
-  return o
-}
+// Das Zerlegen des Textes (ein Objekt, Array, ein Objekt pro Zeile …) steckt in core/importText.ts
+export { leseImportText, ImportFehler } from './importText'
 
 export async function importiere(o: Record<string, unknown>): Promise<ImportErgebnis> {
   const leer = (): Zaehler => ({ neu: 0, aktualisiert: 0 })

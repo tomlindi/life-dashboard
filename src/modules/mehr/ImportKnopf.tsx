@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { ClipboardPaste } from 'lucide-react'
 import { importiere, leseImportText, zusammenfassung } from '../../core/import'
+import ImportFehlerAnzeige from './ImportFehlerAnzeige'
 
 export default function ImportKnopf({ klein = false, onFertig }: { klein?: boolean; onFertig?: () => void }) {
-  const [status, setStatus] = useState<{ ok: boolean; zeilen: string[] } | null>(null)
+  const [status, setStatus] = useState<{ ok: true; zeilen: string[] } | { ok: false; fehler: unknown } | null>(null)
   const [laeuft, setLaeuft] = useState(false)
 
   async function los() {
@@ -18,8 +19,8 @@ export default function ImportKnopf({ klein = false, onFertig }: { klein?: boole
       setStatus({ ok: true, zeilen: zusammenfassung(ergebnis) })
       onFertig?.()
     } catch (e) {
-      const meldung = (e as Error).name === 'NotAllowedError' ? 'Kein Zugriff auf die Zwischenablage. Erlaube das Einfügen oder nutze „Mehr → Daten importieren“.' : (e as Error).message
-      setStatus({ ok: false, zeilen: [meldung] })
+      const keinZugriff = (e as Error).name === 'NotAllowedError'
+      setStatus({ ok: false, fehler: keinZugriff ? new Error('Kein Zugriff auf die Zwischenablage. Erlaube das Einfügen oder nutze „Mehr → Daten importieren“.') : e })
     }
     setLaeuft(false)
   }
@@ -33,14 +34,19 @@ export default function ImportKnopf({ klein = false, onFertig }: { klein?: boole
       >
         <ClipboardPaste size={20} /> {laeuft ? 'Importiere …' : 'Aus Zwischenablage importieren'}
       </button>
-      {status && (
-        <div className={`mt-2 rounded-2xl p-3 text-[14px] leading-snug ${status.ok ? 'bg-[#30d158]/15' : 'bg-[#ff453a]/15'}`}>
-          {status.ok ? '✅ ' : '⚠️ '}
+      {status?.ok && (
+        <div className="mt-2 rounded-2xl bg-[#30d158]/15 p-3 text-[14px] leading-snug">
+          ✅{' '}
           {status.zeilen.map((z) => (
             <span key={z} className="block">
               {z}
             </span>
           ))}
+        </div>
+      )}
+      {status && !status.ok && (
+        <div className="mt-2">
+          <ImportFehlerAnzeige fehler={status.fehler} />
         </div>
       )}
     </div>

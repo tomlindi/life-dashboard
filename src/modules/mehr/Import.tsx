@@ -7,6 +7,7 @@ import { importiere, leseImportText, zusammenfassung } from '../../core/import'
 import Seite from '../../core/ui/Seite'
 import Karte from '../../core/ui/Karte'
 import ImportKnopf from './ImportKnopf'
+import ImportFehlerAnzeige from './ImportFehlerAnzeige'
 
 /** So sieht das JSON aus, das der Kurzbefehl erzeugen soll (siehe docs/KURZBEFEHL.md). */
 export const BEISPIEL = `{
@@ -22,7 +23,7 @@ export const BEISPIEL = `{
 export default function ImportSeite() {
   const letzterImport = useLiveQuery(() => db.einstellungen.get('letzterImport'), [])
   const [text, setText] = useState('')
-  const [meldung, setMeldung] = useState<{ ok: boolean; zeilen: string[] } | null>(null)
+  const [meldung, setMeldung] = useState<{ ok: true; zeilen: string[] } | { ok: false; fehler: unknown } | null>(null)
   const dateiFeld = useRef<HTMLInputElement>(null)
 
   async function verarbeite(inhalt: string) {
@@ -31,7 +32,7 @@ export default function ImportSeite() {
       setMeldung({ ok: true, zeilen: zusammenfassung(ergebnis) })
       setText('')
     } catch (e) {
-      setMeldung({ ok: false, zeilen: [(e as Error).message] })
+      setMeldung({ ok: false, fehler: e })
     }
   }
 
@@ -82,14 +83,19 @@ export default function ImportSeite() {
         >
           Importieren
         </button>
-        {meldung && (
-          <div className={`mt-2 rounded-2xl p-3 text-[14px] ${meldung.ok ? 'bg-[#30d158]/15' : 'bg-[#ff453a]/15'}`}>
-            {meldung.ok ? '✅ ' : '⚠️ '}
+        {meldung?.ok && (
+          <div className="mt-2 rounded-2xl bg-[#30d158]/15 p-3 text-[14px]">
+            ✅{' '}
             {meldung.zeilen.map((z) => (
               <span key={z} className="block">
                 {z}
               </span>
             ))}
+          </div>
+        )}
+        {meldung && !meldung.ok && (
+          <div className="mt-2">
+            <ImportFehlerAnzeige fehler={meldung.fehler} />
           </div>
         )}
       </Karte>

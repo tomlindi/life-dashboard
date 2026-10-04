@@ -12,6 +12,15 @@ Eine Web-App darf nicht direkt auf Apple Health, Kalender oder Erinnerungen zugr
 
 So muss der Text aussehen, den der Kurzbefehl erzeugt. **Alle Blöcke sind optional**: Du kannst mit einem Block anfangen und die anderen später ergänzen.
 
+> **Auch einfacher geht's:** Die App akzeptiert außerdem **ein JSON-Objekt pro Zeile** (leere Zeilen sind egal), ein **Array** `[{…},{…}]` oder **Objekte direkt hintereinander**. Einzelne Einträge ordnet sie selbst zu: mit `titel` und `start` → Termin, nur `titel` → Erinnerung, `art` und `start` → Workout, `anzahl` → Schritte, `kg` → Gewicht, `stunden`/`stadium` → Schlaf. Eindeutig wird es mit einem Feld `"typ"`, z. B. `{"typ":"termin","titel":"Mathe","start":"…"}`.
+> Passt etwas nicht, zeigt die App die kaputte Zeile und die ersten 200 Zeichen der Zwischenablage an. Typografische Anführungszeichen („ “ ”), die iOS beim Tippen setzt, werden automatisch repariert.
+
+Beispiel „ein Objekt pro Zeile“ (z. B. direkt aus „Kalenderereignisse suchen“ → „Wiederholen mit jedem“ → „Text“ → „Text kombinieren“ mit **Neue Zeile**):
+```
+{"titel":"Mathe","start":"2026-10-06T08:00:00+02:00","ende":"2026-10-06T09:30:00+02:00","kalender":"Schule"}
+{"titel":"Gym","start":"2026-10-06T17:30:00+02:00","kalender":"Sport"}
+```
+
 ```json
 {
   "version": 1,
