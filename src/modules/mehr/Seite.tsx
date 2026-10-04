@@ -1,6 +1,6 @@
 // "Mehr": Daten importieren, Backup, alle weiteren Bereiche und Bereiche ein-/ausblenden.
 import { Link } from 'react-router-dom'
-import { CalendarDays, ChevronRight, ClipboardPaste, HardDrive, ListChecks, type LucideIcon } from 'lucide-react'
+import { CalendarDays, ChevronRight, ClipboardPaste, HardDrive, ListChecks, Settings, type LucideIcon } from 'lucide-react'
 import { module, TAB_IDS } from '..'
 import { useAusgeblendet } from '../../core/einstellungen'
 import Seite from '../../core/ui/Seite'
@@ -31,6 +31,7 @@ export default function MehrSeite() {
         <Zeile to="/erinnerungen" icon={ListChecks} farbe="#0a84ff" name="Erinnerungen" oben={false} />
         <Zeile to="/import" icon={ClipboardPaste} farbe="#0a84ff" name="Daten importieren" oben={false} />
         <Zeile to="/backup" icon={HardDrive} farbe="#8e8e93" name="Backup & Daten" oben={false} />
+        <Zeile to="/einstellungen" icon={Settings} farbe="#8e8e93" name="Einstellungen" oben={false} />
       </div>
 
       {weitere.length > 0 && (

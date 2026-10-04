@@ -14,6 +14,7 @@ const ImportSeite = lazy(() => import('./modules/mehr/Import'))
 const BackupSeite = lazy(() => import('./modules/mehr/Backup'))
 const KalenderSeite = lazy(() => import('./modules/kalender/KalenderSeite'))
 const ErinnerungenSeite = lazy(() => import('./modules/kalender/ErinnerungenSeite'))
+const EinstellungenSeite = lazy(() => import('./modules/mehr/Einstellungen'))
 
 /**
  * Ein App-Icon im Dock: abgerundetes Quadrat ("Squircle") mit Farbverlauf und weißem Symbol,
@@ -53,6 +54,7 @@ function Seiten() {
           <Route path="/backup" element={<BackupSeite />} />
           <Route path="/kalender" element={<KalenderSeite />} />
           <Route path="/erinnerungen" element={<ErinnerungenSeite />} />
+          <Route path="/einstellungen" element={<EinstellungenSeite />} />
         </Routes>
       </Suspense>
     </Sicherheitsnetz>
