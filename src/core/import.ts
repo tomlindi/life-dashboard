@@ -77,6 +77,17 @@ export function workoutArt(roh: unknown): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Sonstiges'
 }
 
+/**
+ * Erkennt ganztägige Termine, auch wenn der Kurzbefehl es nicht mitschickt:
+ * Beginn um 00:00 und Ende um 23:59 (oder 00:00 eines späteren Tages), in lokaler Zeit.
+ */
+function istGanztags(start: Date, ende: Date | null): boolean {
+  if (!ende || start.getHours() !== 0 || start.getMinutes() !== 0) return false
+  const endeUm2359 = ende.getHours() === 23 && ende.getMinutes() === 59
+  const endeUmMitternacht = ende.getHours() === 0 && ende.getMinutes() === 0 && ende > start
+  return endeUm2359 || endeUmMitternacht
+}
+
 /** Gesamtlänge mehrerer Zeitspannen, Überlappungen zählen nur einmal (z. B. Uhr + iPhone). */
 function vereinigteStunden(spannen: [number, number][]): number {
   const sortiert = [...spannen].sort((a, b) => a[0] - b[0])
@@ -209,7 +220,7 @@ export async function importiere(o: Record<string, unknown>): Promise<ImportErge
           ende: ende?.toISOString(),
           ort: feld(e, 'ort', 'location') ? String(feld(e, 'ort', 'location')) : undefined,
           kalender: feld(e, 'kalender', 'calendar') ? String(feld(e, 'kalender', 'calendar')) : undefined,
-          ganztaegig: /^(true|ja|1|yes)$/i.test(String(feld(e, 'ganztaegig', 'ganztägig', 'allday') ?? '')) || undefined,
+          ganztaegig: /^(true|ja|1|yes)$/i.test(String(feld(e, 'ganztaegig', 'ganztägig', 'allday') ?? '')) || istGanztags(start, ende) || undefined,
           notiz: feld(e, 'notiz', 'notizen', 'notes') ? String(feld(e, 'notiz', 'notizen', 'notes')) : undefined,
           zielId: alt?.zielId, // Zuordnung zu Ziel/Projekt bleibt erhalten
           projektId: alt?.projektId,

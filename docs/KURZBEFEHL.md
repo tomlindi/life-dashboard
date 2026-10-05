@@ -15,6 +15,8 @@ So muss der Text aussehen, den der Kurzbefehl erzeugt. **Alle Blöcke sind optio
 > **Auch einfacher geht's:** Die App akzeptiert außerdem **ein JSON-Objekt pro Zeile** (leere Zeilen sind egal), ein **Array** `[{…},{…}]` oder **Objekte direkt hintereinander**. Einzelne Einträge ordnet sie selbst zu: mit `titel` und `start` → Termin, nur `titel` → Erinnerung, `art` und `start` → Workout, `anzahl` → Schritte, `kg` → Gewicht, `stunden`/`stadium` → Schlaf. Eindeutig wird es mit einem Feld `"typ"`, z. B. `{"typ":"termin","titel":"Mathe","start":"…"}`.
 > Passt etwas nicht, zeigt die App die kaputte Zeile und die ersten 200 Zeichen der Zwischenablage an. Typografische Anführungszeichen („ “ ”), die iOS beim Tippen setzt, werden automatisch repariert.
 
+> ⚠️ **Wichtig: Vor „In Zwischenablage kopieren“ immer „Text kombinieren“ (Trennzeichen: Neue Zeile).** Kopierst du direkt die *Wiederholungsergebnisse* (eine Liste), legt iOS jeden Termin als eigenen Zwischenablage-Eintrag ab. Life liest inzwischen alle Einträge zusammen, aber nicht jede iOS-Version gibt sie heraus. Mit „Text kombinieren“ ist es immer genau ein Text, und es kommen garantiert alle Termine an.
+
 Beispiel „ein Objekt pro Zeile“ (z. B. direkt aus „Kalenderereignisse suchen“ → „Wiederholen mit jedem“ → „Text“ → „Text kombinieren“ mit **Neue Zeile**):
 ```
 {"titel":"Mathe","start":"2026-10-06T08:00:00+02:00","ende":"2026-10-06T09:30:00+02:00","kalender":"Schule"}

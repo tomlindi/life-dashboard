@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ClipboardPaste } from 'lucide-react'
 import { importiere, leseImportText, zusammenfassung } from '../../core/import'
 import ImportFehlerAnzeige from './ImportFehlerAnzeige'
+import { leseZwischenablage } from '../../core/zwischenablage'
 
 export default function ImportKnopf({ klein = false, onFertig }: { klein?: boolean; onFertig?: () => void }) {
   const [status, setStatus] = useState<{ ok: true; zeilen: string[] } | { ok: false; fehler: unknown } | null>(null)
@@ -14,9 +15,10 @@ export default function ImportKnopf({ klein = false, onFertig }: { klein?: boole
     try {
       // Auf dem iPhone erscheint jetzt eine kleine "Einfügen"-Blase, die du antippen musst.
       // Das ist eine Schutzfunktion von iOS und lässt sich nicht abschalten.
-      const text = await navigator.clipboard.readText()
+      // Liest ALLE Einträge der Zwischenablage (ein Kurzbefehl legt Listen als viele Einträge ab)
+      const { text, eintraege } = await leseZwischenablage()
       const ergebnis = await importiere(leseImportText(text))
-      setStatus({ ok: true, zeilen: zusammenfassung(ergebnis) })
+      setStatus({ ok: true, zeilen: [...zusammenfassung(ergebnis), ...(eintraege > 1 ? [`(aus ${eintraege} Einträgen der Zwischenablage zusammengesetzt)`] : [])] })
       onFertig?.()
     } catch (e) {
       const keinZugriff = (e as Error).name === 'NotAllowedError'

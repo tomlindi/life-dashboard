@@ -8,6 +8,7 @@ import { db, type GymEinheit } from '../../../core/db'
 import { neueId } from '../../../core/datum'
 import { kurzDatum, zahl } from '../../../core/format'
 import { teileDatei } from '../../../core/backup'
+import { leseZwischenablage } from '../../../core/zwischenablage'
 import Karte from '../../../core/ui/Karte'
 import Sheet from '../../../core/ui/Sheet'
 import { Leer, PlusKnopf } from '../../../core/ui/Formular'
@@ -156,7 +157,7 @@ export default function GymSeite() {
             <button
               onClick={async () => {
                 try {
-                  await planImport(await navigator.clipboard.readText())
+                  await planImport((await leseZwischenablage()).text)
                 } catch {
                   setMeldung('⚠️ Kein Zugriff auf die Zwischenablage.')
                 }
