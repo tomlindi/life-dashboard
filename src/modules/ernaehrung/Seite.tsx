@@ -14,6 +14,7 @@ import Karte from '../../core/ui/Karte'
 import { Leer, LoeschKnopf } from '../../core/ui/Formular'
 import NaehrwertRinge from './NaehrwertRinge'
 import ErnaehrungKalender from './Kalender'
+import MakroVerlauf from './MakroVerlauf'
 import FotoErfassung from './FotoErfassung'
 import NaehrwertSheet, { entwurfVon, type Entwurf } from './NaehrwertSheet'
 import { BEWERTUNG, FARBE, hatNaehrwerte, kurzText } from './naehrwerte'
@@ -44,6 +45,8 @@ export default function ErnaehrungSeite() {
   return (
     <Seite titel="Ernährung" farbe={FARBE}>
       <NaehrwertRinge mahlzeiten={heutige} />
+
+      <MakroVerlauf mahlzeiten={mahlzeiten} />
 
       <ErnaehrungKalender mahlzeiten={mahlzeiten} />
 

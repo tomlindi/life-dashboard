@@ -2,6 +2,7 @@
 // (Kalorien, Protein, Kohlenhydrate, Fett) und kleine Rechen-Helfer.
 import type { Bewertung, Mahlzeit } from '../../core/db'
 import { zahl } from '../../core/format'
+import { useEinstellung } from '../../core/einstellungen'
 import { BEWERTUNG_FARBE } from './Kalender'
 
 export const FARBE = '#a3e635'
@@ -52,3 +53,22 @@ export function alsZahl(text: string): number | undefined {
 
 /** Zahl für ein Eingabefeld (mit Komma, ohne Tausenderpunkt). */
 export const alsText = (n?: number) => (n == null ? '' : String(n).replace('.', ','))
+
+/**
+ * Wurde das Tagesziel "getroffen"?
+ * Protein: mindestens 90 % (mehr ist kein Problem).
+ * Kalorien, Kohlenhydrate, Fett: zwischen 90 % und 110 % (zu viel zählt also nicht als getroffen).
+ */
+export function zielGetroffen(key: Naehrwert, wert: number, ziel: number): boolean {
+  const anteil = wert / (ziel || 1)
+  return key === 'protein' ? anteil >= 0.9 : anteil >= 0.9 && anteil <= 1.1
+}
+
+/** Erklärung zu zielGetroffen() für die Oberfläche. */
+export const TREFFER_REGEL = 'Getroffen = 90–110 % vom Tagesziel (Protein: ab 90 %)'
+
+/** Tagesziele; fehlende Werte (z. B. aus einer älteren Version) kommen vom Standard. */
+export function useErnaehrungsZiele(): [Naehrwerte, (neu: Naehrwerte) => void] {
+  const [gespeichert, setZiele] = useEinstellung<Partial<Naehrwerte>>('ernaehrungZiele', STANDARD_ZIELE)
+  return [{ ...STANDARD_ZIELE, ...gespeichert }, setZiele]
+}

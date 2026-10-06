@@ -3,19 +3,12 @@
 // Die Tagesziele lassen sich über "Ziele" ändern (gespeichert als Einstellung "ernaehrungZiele").
 import { useState } from 'react'
 import type { Mahlzeit } from '../../core/db'
-import { useEinstellung } from '../../core/einstellungen'
 import { zahl } from '../../core/format'
 import Karte from '../../core/ui/Karte'
 import Ring from '../../core/ui/Ring'
 import Sheet from '../../core/ui/Sheet'
 import { Knopf } from '../../core/ui/Formular'
-import { FARBE, NAEHRWERTE, STANDARD_ZIELE, alsText, alsZahl, hatNaehrwerte, summe, type Naehrwert, type Naehrwerte } from './naehrwerte'
-
-/** Tagesziele; fehlende Werte (z. B. aus einer älteren Version) kommen vom Standard. */
-function useErnaehrungsZiele(): [Naehrwerte, (neu: Naehrwerte) => void] {
-  const [gespeichert, setZiele] = useEinstellung<Partial<Naehrwerte>>('ernaehrungZiele', STANDARD_ZIELE)
-  return [{ ...STANDARD_ZIELE, ...gespeichert }, setZiele]
-}
+import { FARBE, NAEHRWERTE, alsText, alsZahl, hatNaehrwerte, summe, useErnaehrungsZiele, type Naehrwert, type Naehrwerte } from './naehrwerte'
 
 export default function NaehrwertRinge({ mahlzeiten }: { mahlzeiten: Mahlzeit[] }) {
   const [ziele, setZiele] = useErnaehrungsZiele()
