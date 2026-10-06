@@ -1,9 +1,9 @@
 // Seite "Einstellungen": Schlüssel für die Foto-Analyse in "Ernährung".
 // Standard ist Google Gemini (kostenlos). Claude (Anthropic) wird nur benutzt, wenn KEIN Gemini-Schlüssel da ist.
 // Alle Schlüssel liegen nur im localStorage dieses Geräts: nicht in der Datenbank, nicht im Backup, nicht im Code.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Eye, EyeOff, KeyRound } from 'lucide-react'
-import { STANDARD_MODELL, zuletztGenutztesModell, geminiModell, geminiSchluessel, setzeGeminiModell, setzeGeminiSchluessel, testeGemini } from '../../core/gemini'
+import { STANDARD_MODELL, zuletztGenutztesModell, geminiModell, geminiSchluessel, setzeGeminiModell, setzeGeminiSchluessel, testeGemini, verfuegbareModelle } from '../../core/gemini'
 import { kiAnbieter, kiSchluessel, setzeKiSchluessel } from '../../core/ki'
 import Seite from '../../core/ui/Seite'
 import Karte from '../../core/ui/Karte'
@@ -41,6 +41,12 @@ export default function EinstellungenSeite() {
   const [anbieter, setAnbieter] = useState(kiAnbieter())
   const [meldung, setMeldung] = useState('')
   const [testet, setTestet] = useState(false)
+  const [modelle, setModelle] = useState<string[]>([])
+
+  // Vorschläge fürs Modell-Feld: was Google für diesen Schlüssel gerade anbietet
+  useEffect(() => {
+    if (geminiSchluessel()) verfuegbareModelle().then(setModelle)
+  }, [])
 
   function speichereGemini() {
     setzeGeminiSchluessel(gemini)
@@ -56,6 +62,8 @@ export default function EinstellungenSeite() {
     try {
       await testeGemini()
       setMeldung(`✅ Verbindung klappt (Modell: ${zuletztGenutztesModell()}).`)
+      setModell(geminiModell()) // falls ein abgeschaltetes Modell automatisch zurückgesetzt wurde
+      verfuegbareModelle().then(setModelle)
     } catch (e) {
       setMeldung('⚠️ ' + (e as Error).message)
     }
@@ -76,14 +84,21 @@ export default function EinstellungenSeite() {
 
         <label className="mb-1.5 block text-[13px] text-grau">Modell</label>
         <div className="mb-1 flex gap-2">
-          <input value={modell} onChange={(e) => setModell(e.target.value)} autoCapitalize="off" spellCheck={false} className="h-11 min-w-0 flex-1 rounded-2xl bg-karte2 px-3 text-[15px] outline-none" />
+          <input value={modell} onChange={(e) => setModell(e.target.value)} list="gemini-modelle" autoCapitalize="off" spellCheck={false} className="h-11 min-w-0 flex-1 rounded-2xl bg-karte2 px-3 text-[15px] outline-none" />
           {modell !== STANDARD_MODELL && (
             <button onClick={() => setModell(STANDARD_MODELL)} className="tippbar rounded-2xl bg-karte2 px-3 text-[13px] text-grau">
               Standard
             </button>
           )}
         </div>
-        <p className="mb-4 text-[12px] text-grau">„{STANDARD_MODELL}“ zeigt automatisch immer auf das aktuelle Flash-Modell von Google.</p>
+        <datalist id="gemini-modelle">
+          {[STANDARD_MODELL, ...modelle].map((m) => (
+            <option key={m} value={m} />
+          ))}
+        </datalist>
+        <p className="mb-4 text-[12px] text-grau">
+          „{STANDARD_MODELL}“ zeigt automatisch immer auf das aktuelle Flash-Modell von Google. Ist es überlastet oder abgeschaltet, nimmt die App von selbst ein anderes verfügbares Modell.
+        </p>
 
         <div className="grid grid-cols-2 gap-2">
           <button onClick={speichereGemini} className="tippbar min-h-12 rounded-2xl text-[15px] font-semibold text-black" style={{ background: GRUEN }}>
