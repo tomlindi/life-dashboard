@@ -37,7 +37,7 @@ export const setzeGeminiModell = (m: string) => schreib(MODELL_SPEICHER, m.trim(
 
 // ---------- Anfrage ----------
 
-/** Ersatzmodell, wenn das eingestellte Modell am Limit ist (429) oder nicht gefunden wird (404). */
+/** Ersatzmodell, wenn das eingestellte Modell am Limit ist (429), fehlt (404) oder dauerhaft überlastet ist (503). */
 export const ERSATZ_MODELL = 'gemini-2.5-flash'
 /** Wartezeit vor dem zweiten Versuch, wenn Google überlastet ist (503). */
 const WARTEZEIT_503 = 2000
@@ -118,7 +118,7 @@ async function sendeMitWiederholung(modell: string, schluessel: string, teile: u
  * Schickt Teile (Text und/oder Bild) an Gemini und gibt den Antworttext zurück.
  * Mit `schema` antwortet Gemini garantiert als JSON in genau diesem Format.
  * Der Schlüssel steht im Header (nicht in der Adresse, damit er in keinem Verlauf auftaucht).
- * Bei 429 (Limit erreicht) oder 404 (Modell nicht gefunden) wird automatisch ERSATZ_MODELL benutzt.
+ * Bei 429 (Limit erreicht), 404 (Modell nicht gefunden) oder anhaltendem 503 wird automatisch ERSATZ_MODELL benutzt.
  */
 export async function frageGemini(teile: unknown[], schema?: object): Promise<string> {
   const schluessel = geminiSchluessel()
@@ -129,7 +129,8 @@ export async function frageGemini(teile: unknown[], schema?: object): Promise<st
   try {
     return await sendeMitWiederholung(modell, schluessel, teile, schema)
   } catch (e) {
-    const wechseln = e instanceof GeminiFehler && (e.status === 429 || e.status === 404) && modell !== ERSATZ_MODELL
+    // 503 kommt hier nur an, wenn auch der zweite Versuch überlastet war -> dann ebenfalls anderes Modell
+    const wechseln = e instanceof GeminiFehler && [429, 404, 503].includes(e.status) && modell !== ERSATZ_MODELL
     if (!wechseln) throw e
     return sendeMitWiederholung(ERSATZ_MODELL, schluessel, teile, schema)
   }
