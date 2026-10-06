@@ -3,7 +3,7 @@
 // Alle Schlüssel liegen nur im localStorage dieses Geräts: nicht in der Datenbank, nicht im Backup, nicht im Code.
 import { useState } from 'react'
 import { Eye, EyeOff, KeyRound } from 'lucide-react'
-import { STANDARD_MODELL, geminiModell, geminiSchluessel, setzeGeminiModell, setzeGeminiSchluessel, testeGemini } from '../../core/gemini'
+import { STANDARD_MODELL, zuletztGenutztesModell, geminiModell, geminiSchluessel, setzeGeminiModell, setzeGeminiSchluessel, testeGemini } from '../../core/gemini'
 import { kiAnbieter, kiSchluessel, setzeKiSchluessel } from '../../core/ki'
 import Seite from '../../core/ui/Seite'
 import Karte from '../../core/ui/Karte'
@@ -55,7 +55,7 @@ export default function EinstellungenSeite() {
     setMeldung('')
     try {
       await testeGemini()
-      setMeldung(`✅ Verbindung klappt (Modell: ${geminiModell()}).`)
+      setMeldung(`✅ Verbindung klappt (Modell: ${zuletztGenutztesModell()}).`)
     } catch (e) {
       setMeldung('⚠️ ' + (e as Error).message)
     }
@@ -93,7 +93,7 @@ export default function EinstellungenSeite() {
             {testet ? 'Teste …' : 'Testen'}
           </button>
         </div>
-        {meldung && <p className="mt-3 text-[14px] leading-snug">{meldung}</p>}
+        {meldung && <p className="mt-3 whitespace-pre-line break-words text-[14px] leading-snug">{meldung}</p>}
       </Karte>
 
       <Karte titel="Alternative: Claude (Anthropic)">

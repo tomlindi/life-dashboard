@@ -1,9 +1,9 @@
 // Bereitet ein Handyfoto für die KI vor: verkleinern und als JPEG umwandeln.
-// - Für die KI: lange Seite höchstens 1568 px (größer bringt der KI nichts, kostet nur mehr Zeit und Geld).
+// - Für die KI: lange Seite höchstens 1024 px als JPEG (größer bringt der KI nichts, macht die Anfrage nur groß und langsam).
 // - Zum Speichern: ein kleines Vorschaubild (lange Seite 160 px), damit die Datenbank klein bleibt.
 // iPhone-Fotos (HEIC) wandelt Safari beim Auswählen schon selbst in JPEG um.
 
-const KI_KANTE = 1568
+const KI_KANTE = 1024
 const VORSCHAU_KANTE = 160
 
 export interface VorbereitetesFoto {

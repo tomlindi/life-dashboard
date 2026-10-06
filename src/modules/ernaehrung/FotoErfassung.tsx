@@ -64,7 +64,7 @@ export default function FotoErfassung({ onEntwurf }: { onEntwurf: (e: Entwurf) =
         )}
       </button>
 
-      {fehler && <p className="mt-2 text-[14px] leading-snug text-[#ff453a]">{fehler}</p>}
+      {fehler && <p className="mt-2 text-[14px] leading-snug whitespace-pre-line break-words text-[#ff453a]">{fehler}</p>}
 
       <div className="mt-1 flex items-center justify-between">
         <button
