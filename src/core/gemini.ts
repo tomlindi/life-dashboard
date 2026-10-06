@@ -34,11 +34,9 @@ const schreib = (k: string, wert: string) => {
 
 export const geminiSchluessel = () => lies(SCHLUESSEL_SPEICHER)
 export const setzeGeminiSchluessel = (k: string) => {
-  // Neuer Schlüssel = evtl. andere Modelle erlaubt -> gemerkte Listen vergessen
-  if (k.trim() !== lies(SCHLUESSEL_SPEICHER)) {
-    schreib(LISTE_SPEICHER, '')
-    schreib(GESPERRT_SPEICHER, '')
-  }
+  // Speichern = Neustart: gemerkte Modell-Liste und gesperrte Modelle vergessen (evtl. neuer Schlüssel mit anderen Modellen)
+  schreib(LISTE_SPEICHER, '')
+  schreib(GESPERRT_SPEICHER, '')
   schreib(SCHLUESSEL_SPEICHER, k.trim())
 }
 export const geminiModell = () => lies(MODELL_SPEICHER) || STANDARD_MODELL
@@ -51,28 +49,42 @@ export const setzeGeminiModell = (m: string) => schreib(MODELL_SPEICHER, m.trim(
 // Flash-Modelle dieser Schlüssel benutzen darf, und merkt sich die Liste einen Tag lang.
 
 const LISTE_GUELTIG_MS = 24 * 60 * 60 * 1000
-/** Googles zweiter Alias: zeigt immer auf das aktuelle Flash-Lite-Modell. Notnagel, falls die Liste nicht abrufbar ist. */
+/** So lange wird ein abgeschaltetes Modell übersprungen, danach wieder probiert. */
+const SPERRE_GUELTIG_MS = 7 * LISTE_GUELTIG_MS
+/** Googles zweiter Alias: zeigt immer auf das aktuelle Flash-Lite-Modell (ein anderes Modell als Flash). */
 const LITE_ALIAS = 'gemini-flash-lite-latest'
+/** Googles Aliase werden nie abgeschaltet und daher auch nie gesperrt. */
+const istAlias = (m: string) => m === STANDARD_MODELL || m === LITE_ALIAS
 /** Höchstens so viele Ersatzmodelle pro Foto ausprobieren (schont das kostenlose Kontingent). */
 const MAX_ERSATZ = 3
 
-/** Modelle, die bei diesem Schlüssel mit 404 geantwortet haben (abgeschaltet). Werden übersprungen. */
-const gesperrte = (): string[] => {
+/** Modelle, die bei diesem Schlüssel mit 404 geantwortet haben (abgeschaltet), mit Zeitpunkt. Abgelaufene fallen raus. */
+function gesperrte(): string[] {
   try {
-    return JSON.parse(lies(GESPERRT_SPEICHER) || '[]')
+    const roh: unknown = JSON.parse(lies(GESPERRT_SPEICHER) || '{}')
+    if (!roh || typeof roh !== 'object' || Array.isArray(roh)) return []
+    const jetzt = Date.now()
+    return Object.entries(roh as Record<string, unknown>)
+      .filter(([, zeit]) => typeof zeit === 'number' && jetzt - zeit >= 0 && jetzt - zeit < SPERRE_GUELTIG_MS)
+      .map(([modell]) => modell)
   } catch {
     return []
   }
 }
-const sperre = (modell: string) => schreib(GESPERRT_SPEICHER, JSON.stringify([...new Set([...gesperrte(), modell])]))
+function sperre(modell: string) {
+  if (istAlias(modell)) return
+  const jetzt = Date.now()
+  schreib(GESPERRT_SPEICHER, JSON.stringify(Object.fromEntries([...gesperrte(), modell].map((m) => [m, jetzt]))))
+}
 
 /**
- * Reihenfolge der Ersatzmodelle: fertige vor Vorschau-Versionen, dann neueste Version zuerst,
- * bei gleicher Version normales Flash vor Flash-Lite. Alte Versionen kommen spät, weil Google sie zuerst abschaltet.
- * Beispiel: gemini-3.8-flash, gemini-3.8-flash-lite, gemini-2.5-flash, gemini-3.9-flash-preview-…
+ * Reihenfolge der Ersatzmodelle: Googles Aliase zuerst (werden nie abgeschaltet), dann fertige vor Vorschau-Versionen,
+ * neueste Version zuerst, bei gleicher Version normales Flash vor Flash-Lite. Alte Versionen kommen spät,
+ * weil Google sie zuerst abschaltet.
+ * Beispiel: gemini-flash-latest, gemini-flash-lite-latest, gemini-3.8-flash, gemini-3.8-flash-lite, gemini-2.5-flash, gemini-3.9-flash-preview-…
  */
 export function sortiereModelle(namen: string[]): string[] {
-  const version = (n: string) => parseFloat(n.match(/gemini-(\d+(?:\.\d+)?)/)?.[1] ?? '0')
+  const version = (n: string) => (/-latest$/.test(n) ? 999 : parseFloat(n.match(/gemini-(\d+(?:\.\d+)?)/)?.[1] ?? '0'))
   const vorschau = (n: string) => (/preview|exp/.test(n) ? 1 : 0)
   const lite = (n: string) => (n.includes('lite') ? 1 : 0)
   return [...namen].sort((a, b) => vorschau(a) - vorschau(b) || version(b) - version(a) || lite(a) - lite(b) || a.localeCompare(b))
@@ -88,9 +100,12 @@ export function waehleFlashModelle(liste: { name?: string; supportedGenerationMe
 
 /** Fragt Google nach den verfügbaren Flash-Modellen (mit Zwischenspeicher). Bei Problemen: leere Liste. */
 export async function verfuegbareModelle(schluessel = geminiSchluessel()): Promise<string[]> {
+  if (!schluessel) return []
   try {
-    const gemerkt = JSON.parse(lies(LISTE_SPEICHER) || 'null') as { zeit: number; modelle: string[] } | null
-    if (gemerkt && Date.now() - gemerkt.zeit < LISTE_GUELTIG_MS && gemerkt.modelle.length) return gemerkt.modelle
+    const gemerkt = JSON.parse(lies(LISTE_SPEICHER) || 'null') as { zeit?: unknown; modelle?: unknown } | null
+    const alter = Date.now() - (typeof gemerkt?.zeit === 'number' ? gemerkt.zeit : NaN)
+    const modelle = gemerkt?.modelle
+    if (alter >= 0 && alter < LISTE_GUELTIG_MS && Array.isArray(modelle) && modelle.length && modelle.every((m) => typeof m === 'string')) return modelle
   } catch {
     // kaputter Zwischenspeicher -> neu laden
   }
@@ -172,11 +187,16 @@ async function sende(modell: string, schluessel: string, teile: unknown[], schem
   return text
 }
 
-/** Bei diesen Fehlern lohnt sich ein anderes Modell (Limit, abgeschaltet, überlastet). Bei Schlüssel-Fehlern nicht. */
-const anderesModellHilft = (e: unknown): e is GeminiFehler => e instanceof GeminiFehler && [404, 429, 500, 503].includes(e.status)
+/** Bei diesen Fehlern des HAUPTmodells lohnt sich ein anderes Modell (abgeschaltet, Limit, Störung). Bei Schlüssel-Fehlern nicht. */
+const anderesModellHilft = (e: unknown): e is GeminiFehler => e instanceof GeminiFehler && (e.status === 404 || e.status === 429 || e.status >= 500)
 
-/** Kürzt Googles Meldung für die Fehleranzeige. */
-const kurz = (t: string) => (t.length > 160 ? t.slice(0, 157) + '…' : t)
+/** Eine Zeile pro Versuch für die Fehleranzeige: kurz, bei Limit mit Wartezeit statt Googles langem Text. */
+function versuchsZeile(f: GeminiFehler): string {
+  const sekunden = f.status === 429 ? f.googleMeldung.match(/retry in ([\d.]+)\s*s/i)?.[1] : undefined
+  const erste = (f.googleMeldung || 'keine Meldung').split('\n')[0]
+  const text = sekunden ? `Limit erreicht, wieder frei in ca. ${Math.ceil(Number(sekunden))} s` : erste.length > 140 ? erste.slice(0, 137) + '…' : erste
+  return `• HTTP ${f.status} · ${f.modell}: ${text}`
+}
 
 /**
  * Schickt Teile (Text und/oder Bild) an Gemini und gibt den Antworttext zurück.
@@ -184,64 +204,74 @@ const kurz = (t: string) => (t.length > 160 ? t.slice(0, 157) + '…' : t)
  * Der Schlüssel steht im Header (nicht in der Adresse, damit er in keinem Verlauf auftaucht).
  *
  * Ablauf: eingestelltes Modell (bei 503 nach 2 Sekunden ein zweiter Versuch). Klappt das wegen
- * Limit (429), Abschaltung (404) oder Überlastung (5xx) nicht, probiert die App bis zu drei andere
- * Flash-Modelle aus Googles aktueller Liste. Schlägt alles fehl, zeigt die Meldung JEDEN Versuch,
- * damit man sieht, woran es zuerst lag.
+ * Abschaltung (404), Limit (429) oder Störung (5xx) nicht, probiert die App bis zu drei andere
+ * Flash-Modelle aus Googles aktueller Liste. Schlägt alles fehl, steht oben die eigentliche Ursache
+ * und darunter jeder Versuch.
  */
 export async function frageGemini(teile: unknown[], schema?: object): Promise<string> {
   const schluessel = geminiSchluessel()
   if (!schluessel) throw new Error('Es ist noch kein Gemini-Schlüssel eingerichtet (Mehr → Einstellungen).')
   if (!navigator.onLine) throw new Error('Keine Internetverbindung. Trag die Werte einfach von Hand ein.')
 
-  const modell = geminiModell()
-  let ersterFehler: GeminiFehler
+  // Ein selbst eingetragenes Modell, das Google abgeschaltet hat -> zurück auf Googles Alias
+  const pruefeAbgeschaltet = (m: string) => {
+    sperre(m)
+    if (m !== STANDARD_MODELL) setzeGeminiModell(STANDARD_MODELL)
+  }
+  let modell = geminiModell()
+  if (modell !== STANDARD_MODELL && gesperrte().includes(modell)) {
+    setzeGeminiModell(STANDARD_MODELL)
+    modell = STANDARD_MODELL
+  }
+
+  const fehler: GeminiFehler[] = []
   try {
     return await sende(modell, schluessel, teile, schema)
   } catch (e) {
     if (!anderesModellHilft(e)) throw e
-    ersterFehler = e
-    if (e.status === 404) {
-      sperre(modell)
-      // Ein selbst eingetragenes Modell gibt es nicht mehr -> zurück auf Googles Alias
-      if (modell !== STANDARD_MODELL) setzeGeminiModell(STANDARD_MODELL)
-    }
+    fehler.push(e)
+    if (e.status === 404) pruefeAbgeschaltet(modell)
   }
 
   // Überlastet: einmal kurz warten und dasselbe Modell nochmal fragen
-  if (ersterFehler.status === 503) {
+  if (fehler[0].status === 503) {
     await warte(WARTEZEIT_503)
     try {
       return await sende(modell, schluessel, teile, schema)
     } catch (e) {
       if (!anderesModellHilft(e)) throw e
+      if (e.status !== 503) fehler.push(e) // ein zweites "überlastet" macht die Liste nur länger
+      if (e.status === 404) pruefeAbgeschaltet(modell)
     }
   }
 
-  // Ersatzmodelle: aktuelle Liste von Google, Flash-Lite-Alias als Notnagel
-  const versucht = new Set([modell])
+  // Ersatzmodelle: Aliase und aktuelle Liste von Google (Flash-Lite-Alias als Notnagel, falls die Liste fehlt)
   const gesperrt = new Set(gesperrte())
-  const kandidaten = [...(modell !== STANDARD_MODELL ? [STANDARD_MODELL] : []), ...(await verfuegbareModelle(schluessel)), LITE_ALIAS]
-    .filter((m, i, alle) => alle.indexOf(m) === i && !versucht.has(m) && !gesperrt.has(m))
+  const kandidaten = [...new Set([STANDARD_MODELL, LITE_ALIAS, ...(await verfuegbareModelle(schluessel))])]
+    .filter((m) => m !== modell && !gesperrt.has(m))
     .slice(0, MAX_ERSATZ)
 
-  const fehler: GeminiFehler[] = [ersterFehler]
+  let abbruch = ''
   for (const ersatz of kandidaten) {
     try {
       return await sende(ersatz, schluessel, teile, schema)
     } catch (e) {
-      if (!anderesModellHilft(e)) throw e
+      if (!(e instanceof GeminiFehler)) {
+        // Netz weg oder leere Antwort beim Ersatzmodell: aufhören, aber die eigentliche Ursache nicht verdecken
+        abbruch = `• ${ersatz}: ${((e as Error)?.message ?? 'Fehler').split('\n')[0]}`
+        break
+      }
       if (e.status === 404) sperre(ersatz)
-      fehler.push(e)
+      fehler.push(e) // auch 400/403 eines Ersatzmodells betrifft nur dieses Modell -> nächstes probieren
     }
   }
 
-  // Alles fehlgeschlagen: Überschrift nach dem ERSTEN Fehler (der eigentlichen Ursache), darunter jeder Versuch
-  const hatLimit = fehler.some((f) => f.status === 429)
-  const ueberschrift = hatLimit ? fehlerText(429, '') : fehlerText(ersterFehler.status, ersterFehler.googleMeldung)
-  const versuche = fehler.map((f) => `• HTTP ${f.status} · ${f.modell}: ${kurz(f.googleMeldung || 'keine Meldung')}`).join('\n')
-  const zusammen = new GeminiFehler(ersterFehler.status, ersterFehler.googleMeldung, ersterFehler.modell)
-  zusammen.message = `${ueberschrift}\n${versuche}`
-  throw zusammen
+  // Alles fehlgeschlagen: Überschrift nach der eigentlichen Ursache, darunter jeder Versuch.
+  // Ein 404 heißt nur "dieses eine Modell ist abgeschaltet" -> Ursache ist dann der erste ANDERE Fehler (z. B. überlastet).
+  const ursache = fehler.find((f) => f.status !== 404) ?? fehler[0]
+  const gesamt = new GeminiFehler(ursache.status, ursache.googleMeldung, ursache.modell)
+  gesamt.message = [fehlerText(ursache.status, ursache.googleMeldung), ...fehler.map(versuchsZeile), ...(abbruch ? [abbruch] : [])].join('\n')
+  throw gesamt
 }
 
 /** Kurzer Test, ob Schlüssel und Modell funktionieren (für die Einstellungen). */

@@ -62,11 +62,11 @@ export default function EinstellungenSeite() {
     try {
       await testeGemini()
       setMeldung(`✅ Verbindung klappt (Modell: ${zuletztGenutztesModell()}).`)
-      setModell(geminiModell()) // falls ein abgeschaltetes Modell automatisch zurückgesetzt wurde
-      verfuegbareModelle().then(setModelle)
     } catch (e) {
       setMeldung('⚠️ ' + (e as Error).message)
     }
+    setModell(geminiModell()) // auch nach einem Fehler: ein abgeschaltetes Modell wurde evtl. automatisch zurückgesetzt
+    verfuegbareModelle().then(setModelle)
     setTestet(false)
   }
 
@@ -92,7 +92,7 @@ export default function EinstellungenSeite() {
           )}
         </div>
         <datalist id="gemini-modelle">
-          {[STANDARD_MODELL, ...modelle].map((m) => (
+          {[...new Set([STANDARD_MODELL, ...modelle])].map((m) => (
             <option key={m} value={m} />
           ))}
         </datalist>

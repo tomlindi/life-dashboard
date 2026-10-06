@@ -197,7 +197,7 @@ function Formular({ entwurf, onZu }: { entwurf: Entwurf; onZu: () => void }) {
         </div>
       )}
 
-      {fehler && <p className="text-[14px] leading-snug text-[#ff453a]">{fehler}</p>}
+      {fehler && <p className="whitespace-pre-line break-words text-[14px] leading-snug text-[#ff453a]">{fehler}</p>}
 
       <Knopf farbe={FARBE} onClick={speichern} deaktiviert={rechnet}>
         Speichern
