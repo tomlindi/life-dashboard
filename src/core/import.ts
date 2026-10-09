@@ -20,7 +20,7 @@
 // STRAVA SPÄTER: Eine direkte Strava-Anbindung müsste nur Workouts mit quelle "strava" liefern
 // (siehe src/core/strava.ts). Der Rest der App funktioniert dann unverändert.
 import { db, holeEinstellung, setzeEinstellung, type Quelle } from './db'
-import { aufgabeId, terminId, type AppleAktion } from './apple'
+import { aufgabeId, alteAufgabeId, terminId, type AppleAktion } from './apple'
 import { tagString, tagPlus, heute } from './datum'
 
 // ---------- Hilfsfunktionen zum "Aufräumen" der Eingabedaten ----------
@@ -102,6 +102,21 @@ function vereinigteStunden(spannen: [number, number][]): number {
   }
   summe += aktEnde - aktStart
   return summe / 3_600_000
+}
+
+/** "Ja", "true", "1" -> true. Alles andere (auch leer) -> false. */
+const jaNein = (x: unknown) => /^(ja|true|wahr|1|yes)$/i.test(String(x ?? '').trim())
+
+/** Priorität aus Erinnerungen: "Hoch"/"Mittel"/"Niedrig"/"Keine" (auch englisch oder als Zahl 0–3, "!!!"). */
+function prioritaetVon(x: unknown): number | undefined {
+  if (x === undefined || x === null || x === '') return undefined
+  const s = String(x).trim().toLowerCase()
+  if (/hoch|high|^!!!$/.test(s)) return 3
+  if (/mittel|medium|^!!$/.test(s)) return 2
+  if (/niedrig|low|^!$/.test(s)) return 1
+  if (/kein|none/.test(s)) return 0
+  const n = zahl(x)
+  return Number.isFinite(n) ? Math.min(3, Math.max(0, Math.round(n))) : undefined
 }
 
 // ---------- Prüfen & Importieren ----------
@@ -239,36 +254,52 @@ export async function importiere(o: Record<string, unknown>): Promise<ImportErge
     }
 
     // --- Aufgaben aus Erinnerungen ---
+    // Gleiche Aufgabe = gleicher Titel + gleiche Liste -> wird ersetzt statt doppelt gespeichert.
+    // Selbst in Life angelegte Aufgaben (quelle "manuell") fasst der Import nie an.
     if ('aufgaben' in o) {
       const importierteIds = new Set<string>()
       for (const e of liste(o.aufgaben)) {
         const titel = String(feld(e, 'titel', 'title', 'name') ?? '').trim()
         if (!titel) continue
-        // ID nur aus dem Titel: ändert sich das Fälligkeitsdatum, bleibt es dieselbe Aufgabe
-        const id = String(feld(e, 'id') ?? `erinnerungen:${titel.toLowerCase()}`)
+        const listenName = feld(e, 'liste', 'list') ? String(feld(e, 'liste', 'list')).trim() : undefined
+        const id = String(feld(e, 'id') ?? aufgabeId(titel, listenName))
+        // Doppelt in derselben Zwischenablage: nur einmal zählen (der letzte Eintrag gewinnt)
+        const schonGesehen = importierteIds.has(id)
         importierteIds.add(id)
-        const alt = await db.aufgaben.get(id)
+        let alt = await db.aufgaben.get(id)
+        // Aufgaben aus älteren Importen hatten eine ID nur aus dem Titel -> übernehmen (inkl. Projekt-Zuordnung)
+        if (!alt) {
+          const altId = alteAufgabeId(titel)
+          const vorher = altId !== id ? await db.aufgaben.get(altId) : undefined
+          if (vorher?.quelle === 'erinnerungen') {
+            alt = vorher
+            await db.aufgaben.delete(altId)
+          }
+        }
+        const prio = prioritaetVon(feld(e, 'prioritaet', 'priorität', 'priority'))
         await db.aufgaben.put({
           id,
           quelle: 'erinnerungen',
           titel,
           faellig: tag(feld(e, 'faellig', 'fällig', 'due', 'datum')) ?? undefined,
-          liste: feld(e, 'liste', 'list') ? String(feld(e, 'liste', 'list')) : alt?.liste,
+          liste: listenName ?? alt?.liste,
           notiz: feld(e, 'notiz', 'notizen', 'notes') ? String(feld(e, 'notiz', 'notizen', 'notes')) : undefined,
-          prioritaet: Number.isFinite(zahl(feld(e, 'prioritaet', 'priorität', 'priority'))) ? zahl(feld(e, 'prioritaet', 'priorität', 'priority')) : undefined,
+          prioritaet: prio,
+          markiert: jaNein(feld(e, 'markiert', 'flagged', 'fahne')) || undefined,
+          projektId: alt?.projektId, // Zuordnung zu einem Projekt bleibt erhalten
           // In Apple offen -> auch in Life offen. Ausnahme: in Life abgehakt, aber noch nicht an Apple gesendet.
           erledigt: alt?.sync === 'ausstehend' ? alt.erledigt : false,
           sync: alt?.sync === 'ausstehend' && alt.erledigt ? 'ausstehend' : undefined,
         })
-        erg.aufgaben[alt ? 'aktualisiert' : 'neu']++
+        if (!schonGesehen) erg.aufgaben[alt ? 'aktualisiert' : 'neu']++
       }
-      // Aufgaben, die in Erinnerungen nicht mehr offen sind, gelten als erledigt
+      // Aufgaben aus Erinnerungen, die diesmal fehlen, sind dort erledigt oder gelöscht -> in Life abhaken
       const fertig = await db.aufgaben.filter((a) => a.quelle === 'erinnerungen' && !a.erledigt && !importierteIds.has(a.id)).primaryKeys()
       for (const id of fertig) await db.aufgaben.update(id, { erledigt: true })
       // Abgehakte Einträge, die Apple nicht mehr meldet, sind bestätigt -> nicht mehr "ausstehend"
       const bestaetigt = await db.aufgaben.filter((a) => a.erledigt && a.sync === 'ausstehend' && !importierteIds.has(a.id)).primaryKeys()
       for (const id of bestaetigt) await db.aufgaben.update(id, { sync: undefined })
-      if (fertig.length) erg.hinweise.push(`${fertig.length} Aufgaben als erledigt markiert (in Erinnerungen abgehakt)`)
+      if (fertig.length) erg.hinweise.push(`${fertig.length} ${fertig.length === 1 ? 'Aufgabe' : 'Aufgaben'} als erledigt markiert (in Erinnerungen abgehakt oder gelöscht)`)
     }
   })
 
@@ -280,7 +311,7 @@ export async function importiere(o: Record<string, unknown>): Promise<ImportErge
     const offen = new Set((await db.aufgaben.toArray()).filter((a) => a.quelle === 'erinnerungen').map((a) => a.id))
     const rest = warteschlange.filter((a) => {
       if (a.typ === 'termin' && a.neu && !a.loeschen) return !termine.has(terminId(a.neu.titel, new Date(a.neu.start).toISOString()))
-      if (a.typ === 'erinnerung' && a.neu && !a.loeschen) return !offen.has(aufgabeId(a.neu.titel))
+      if (a.typ === 'erinnerung' && a.neu && !a.loeschen) return !offen.has(aufgabeId(a.neu.titel, a.neu.liste))
       return true
     })
     if (rest.length !== warteschlange.length) await setzeEinstellung('appleWarteschlange', rest)
@@ -300,5 +331,10 @@ export function zusammenfassung(e: ImportErgebnis): string[] {
       return z.neu + z.aktualisiert > 0 ? `${name}: ${z.neu} neu, ${z.aktualisiert} aktualisiert` : null
     })
     .filter((z): z is string => z !== null)
-  return [...(zeilen.length ? zeilen : ['Keine neuen Daten gefunden.']), ...e.hinweise]
+  // Für Life Sync die wichtigste Zeile zuerst: wie viele Termine und Aufgaben übernommen wurden
+  const anzahl = (z: Zaehler) => z.neu + z.aktualisiert
+  const t = anzahl(e.termine)
+  const a = anzahl(e.aufgaben)
+  const sync = t + a > 0 ? [`${t} ${t === 1 ? 'Termin' : 'Termine'} und ${a} ${a === 1 ? 'Aufgabe' : 'Aufgaben'} übernommen`] : []
+  return [...sync, ...(zeilen.length ? zeilen : ['Keine neuen Daten gefunden.']), ...e.hinweise]
 }

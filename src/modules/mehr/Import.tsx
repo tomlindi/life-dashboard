@@ -18,7 +18,11 @@ export const BEISPIEL = `{
   "gewicht": [{ "datum": "2026-10-01", "kg": 68.2 }],
   "termine": [{ "titel": "Mathe-Klausur", "start": "2026-10-08T08:00:00+02:00", "ende": "2026-10-08T09:30:00+02:00", "ort": "Raum 204" }],
   "aufgaben": [{ "titel": "Referat vorbereiten", "faellig": "2026-10-10" }]
-}`
+}
+
+Oder wie „Life Sync“: ein Objekt pro Zeile, "typ" sagt, was es ist (ohne "typ" = Termin):
+{"typ":"termin","titel":"Mathe-Klausur","start":"2026-10-08T08:00:00+02:00","ende":"2026-10-08T09:30:00+02:00"}
+{"typ":"aufgabe","titel":"Bio-Referat fertig machen","faellig":"2026-10-14T18:00:00+02:00","liste":"Schule","prioritaet":"Hoch","markiert":"Ja","notiz":"Folien 5 bis 10"}`
 
 export default function ImportSeite() {
   const letzterImport = useLiveQuery(() => db.einstellungen.get('letzterImport'), [])
@@ -40,9 +44,9 @@ export default function ImportSeite() {
     <Seite titel="Daten importieren" untertitel="Apple Health · Kalender · Erinnerungen">
       <Karte>
         <p className="mb-3 text-[14px] leading-snug text-grau">
-          1. Kurzbefehl „Life Dashboard Export“ ausführen → 2. hier tippen. Doppelte Einträge werden automatisch erkannt.
+          1. Kurzbefehl „Life Sync“ ausführen → 2. hier tippen. Termine und Aufgaben werden in einem Rutsch übernommen, doppelte Einträge automatisch erkannt.
         </p>
-        <ImportKnopf />
+        <ImportKnopf titel="Life Sync einfügen" />
         {letzterImport && (
           <p className="mt-3 text-[13px] text-grau">
             Letzter Import: {new Date(String(letzterImport.value)).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })}

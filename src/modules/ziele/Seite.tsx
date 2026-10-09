@@ -1,15 +1,18 @@
 // Bereich "Ziele & Projekte": langfristige Ziele mit Unterzielen, Projekte mit Aufgaben,
 // und Kalendertermine, die man einem Ziel oder Projekt zuordnen kann.
+// Aufgaben aus Apple Erinnerungen (außer Liste "Schule", die gehört zu Schule) lassen sich einem Projekt zuordnen.
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ChevronDown } from 'lucide-react'
-import { db, type Projekt, type Termin, type Ziel } from '../../core/db'
+import { ChevronDown, Flag } from 'lucide-react'
+import { db, type Aufgabe, type Projekt, type Termin, type Ziel } from '../../core/db'
 import { heute, neueId, tagPlus, tagVon, uhrzeit } from '../../core/datum'
 import { kurzDatum, relativ } from '../../core/format'
 import Seite from '../../core/ui/Seite'
 import Karte from '../../core/ui/Karte'
 import { Balken, Haken, Leer, LoeschKnopf, PlusKnopf, SchnellEingabe } from '../../core/ui/Formular'
 import { ProjektFormular, STATUS, ZielFormular } from './Formulare'
+import { schalteErinnerung } from '../../core/apple'
+import { istSchulListe } from '../../core/aufgaben'
 
 const FARBE = '#bf5af2'
 const STATUS_FARBE: Record<string, string> = { Idee: '#8e8e93', Aktiv: '#30d158', Pausiert: '#ffd60a', Fertig: '#0a84ff' }
@@ -35,6 +38,8 @@ export default function ZieleSeite() {
   const aufgaben = useLiveQuery(() => db.projektAufgaben.toArray(), []) ?? []
   // Termine ab heute (für Zuordnung und Anzeige)
   const termine = useLiveQuery(() => db.termine.where('start').aboveOrEqual(new Date(`${heute()}T00:00:00`).toISOString()).sortBy('start'), []) ?? []
+  // Aufgaben aus Erinnerungen, die zu einem Projekt passen könnten (Schule-Liste gehört zu Schule)
+  const erinnerungen = useLiveQuery(() => db.aufgaben.filter((a) => a.quelle === 'erinnerungen' && !istSchulListe(a.liste)).toArray(), []) ?? []
 
   const [formular, setFormular] = useState<null | 'ziel' | 'projekt'>(null)
   const [offen, setOffen] = useState<string | null>(null)
@@ -47,9 +52,17 @@ export default function ZieleSeite() {
   }
 
   function projektFortschritt(p: Projekt) {
-    const liste = aufgaben.filter((a) => a.projektId === p.id)
+    // eigene Projekt-Aufgaben + zugeordnete Erinnerungen
+    const liste = [...aufgaben.filter((a) => a.projektId === p.id), ...erinnerungen.filter((a) => a.projektId === p.id)]
     return { erledigt: liste.filter((a) => a.erledigt).length, alle: liste.length }
   }
+
+  /** Erinnerung einem Projekt zuordnen ("" = keinem). */
+  const ordneErinnerungZu = (a: Aufgabe, projektId: string) => db.aufgaben.update(a.id, { projektId: projektId || undefined })
+  // Zum Zuordnen: offene Erinnerungen, nach Liste und Fälligkeit sortiert
+  const offeneErinnerungen = erinnerungen
+    .filter((a) => !a.erledigt)
+    .sort((a, b) => (a.liste ?? '').localeCompare(b.liste ?? '', 'de') || (a.faellig ?? '9999').localeCompare(b.faellig ?? '9999'))
 
   /** Nächster Status beim Antippen: Idee → Aktiv → Pausiert → Fertig → Idee */
   const naechsterStatus = (p: Projekt) => STATUS[(STATUS.indexOf(p.status) + 1) % STATUS.length]
@@ -186,6 +199,17 @@ export default function ZieleSeite() {
                             <LoeschKnopf frage="Aufgabe löschen?" onLoeschen={() => db.projektAufgaben.delete(a.id)} />
                           </div>
                         ))}
+                      {/* Zugeordnete Erinnerungen: abhaken wird beim nächsten Abgleich an Apple geschickt */}
+                      {erinnerungen
+                        .filter((a) => a.projektId === p.id)
+                        .map((a) => (
+                          <div key={a.id} className="flex items-center">
+                            <Haken an={a.erledigt} farbe="#0a84ff" onClick={() => schalteErinnerung(a)} />
+                            <span className={`min-w-0 flex-1 truncate text-[15px] ${a.erledigt ? 'text-grau line-through' : ''}`}>{a.titel}</span>
+                            {a.markiert && <Flag size={14} color="#ff9f0a" fill="#ff9f0a" className="mr-2 shrink-0" />}
+                            <span className="shrink-0 text-[12px] text-grau">{a.liste ?? 'Erinnerungen'}</span>
+                          </div>
+                        ))}
                       <SchnellEingabe
                         platzhalter="Aufgabe hinzufügen …"
                         farbe="#0a84ff"
@@ -204,8 +228,9 @@ export default function ZieleSeite() {
                       <button
                         onClick={() =>
                           confirm(`Projekt „${p.titel}“ löschen?`) &&
-                          db.transaction('rw', db.projekte, db.projektAufgaben, async () => {
+                          db.transaction('rw', db.projekte, db.projektAufgaben, db.aufgaben, async () => {
                             await db.projektAufgaben.where('projektId').equals(p.id).delete()
+                            await db.aufgaben.filter((a) => a.projektId === p.id).modify({ projektId: undefined }) // Erinnerungen bleiben, nur ohne Projekt
                             await db.projekte.delete(p.id)
                           })
                         }
@@ -261,6 +286,45 @@ export default function ZieleSeite() {
                       ))}
                     </optgroup>
                   )}
+                </select>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Karte>
+
+      {/* ---------- Erinnerungen zuordnen ---------- */}
+      <Karte titel="Erinnerungen zuordnen" akzent="#0a84ff">
+        {offeneErinnerungen.length === 0 ? (
+          <Leer>Keine offenen Aufgaben aus Erinnerungen (außer Schule). Hol sie mit „Life Sync einfügen“ unter „Mehr → Daten importieren“.</Leer>
+        ) : projekte.length === 0 ? (
+          <Leer>Leg zuerst ein Projekt an, dann kannst du ihm hier Aufgaben aus Erinnerungen zuordnen.</Leer>
+        ) : (
+          <ul>
+            {offeneErinnerungen.map((a, i) => (
+              <li key={a.id} className={`flex min-h-14 items-center gap-3 py-1 ${i > 0 ? 'border-t border-linie' : ''}`}>
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-1 truncate text-[15px]">
+                    <span className="truncate">{a.titel}</span>
+                    {a.markiert && <Flag size={13} color="#ff9f0a" fill="#ff9f0a" className="shrink-0" />}
+                  </p>
+                  <p className="truncate text-[12px] text-grau">
+                    {a.liste ?? 'Erinnerungen'}
+                    {a.faellig ? ` · fällig ${relativ(a.faellig)}` : ''}
+                  </p>
+                </div>
+                <select
+                  value={a.projektId ?? ''}
+                  onChange={(e) => ordneErinnerungZu(a, e.target.value)}
+                  className="h-10 max-w-[45%] rounded-xl bg-karte2 px-2 text-[14px] outline-none"
+                  aria-label={`Projekt für „${a.titel}“`}
+                >
+                  <option value="">– kein Projekt –</option>
+                  {projekte.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.titel}
+                    </option>
+                  ))}
                 </select>
               </li>
             ))}

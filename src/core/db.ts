@@ -54,6 +54,8 @@ export interface Aufgabe {
   liste?: string // Name der Erinnerungen-Liste
   notiz?: string
   prioritaet?: number // 0 = keine, 1 = niedrig, 2 = mittel, 3 = hoch
+  markiert?: boolean // in Erinnerungen mit Fähnchen markiert
+  projektId?: string // Zuordnung zu einem Projekt (Ziele & Projekte), bleibt beim Import erhalten
   sync?: 'ausstehend'
 }
 

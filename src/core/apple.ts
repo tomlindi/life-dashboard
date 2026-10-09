@@ -44,7 +44,10 @@ async function inWarteschlange(aktion: AppleAktion) {
 
 /** Gleiche ID-Regel wie beim Import -> ein in Life erstellter Termin wird beim Import wiedererkannt. */
 export const terminId = (titel: string, startIso: string) => `kal:${titel}|${startIso.slice(0, 16)}`
-export const aufgabeId = (titel: string) => `erinnerungen:${titel.trim().toLowerCase()}`
+/** Erinnerung = Titel + Liste. Gleicher Titel in zwei Listen sind zwei Aufgaben, gleicher Titel in derselben Liste eine. */
+export const aufgabeId = (titel: string, liste?: string) => `erinnerungen:${(liste ?? '').trim().toLowerCase()}|${titel.trim().toLowerCase()}`
+/** Alte ID (bis Oktober 2026 nur aus dem Titel) – damit vorhandene Aufgaben beim Import übernommen werden. */
+export const alteAufgabeId = (titel: string) => `erinnerungen:${titel.trim().toLowerCase()}`
 
 // ---------- Termine ----------
 
@@ -72,7 +75,7 @@ export async function loescheTermin(t: Termin) {
 // ---------- Erinnerungen ----------
 
 export async function speichereErinnerung(neu: Omit<Aufgabe, 'id' | 'quelle' | 'erledigt'>, alt?: Aufgabe) {
-  const id = aufgabeId(neu.titel)
+  const id = aufgabeId(neu.titel, neu.liste)
   await db.transaction('rw', db.aufgaben, db.einstellungen, async () => {
     if (alt && alt.id !== id) await db.aufgaben.delete(alt.id)
     await db.aufgaben.put({ ...alt, ...neu, id, quelle: alt?.quelle ?? 'manuell', erledigt: alt?.erledigt ?? false, sync: 'ausstehend' })

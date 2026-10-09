@@ -188,10 +188,22 @@ Damit Termine und Erinnerungen, die du **in Life** anlegst, änderst oder abhaks
 
 Die Aktion „Erinnerung bearbeiten“ heißt je nach iOS-Version auch **„Erinnerungsdetail festlegen“**.
 
+### Was „Life Sync“ in die Zwischenablage kopiert
+Termine und Aufgaben zusammen, **ein JSON-Objekt pro Zeile**. Das Feld `"typ"` sagt, was es ist; ohne `"typ"` ist es ein Termin.
+```
+{"typ":"termin","titel":"Mathe","start":"2026-10-12T08:00:00+02:00","ende":"2026-10-12T09:30:00+02:00"}
+{"typ":"aufgabe","titel":"Bio-Referat fertig machen","faellig":"2026-10-14T18:00:00+02:00","liste":"Schule","prioritaet":"Hoch","markiert":"Ja","notiz":"Folien 5 bis 10"}
+```
+- `faellig` darf leer sein. `prioritaet`: Hoch / Mittel / Niedrig / Keine. `markiert`: Ja / Nein.
+- Gleicher Titel + gleiche Liste = dieselbe Aufgabe (wird ersetzt, nicht verdoppelt).
+- Aufgaben aus Erinnerungen, die beim nächsten Import fehlen, werden in Life abgehakt. Selbst in Life angelegte Aufgaben bleiben unberührt.
+- Liste „Schule“ erscheint bei Schule → Hausaufgaben, andere Listen lassen sich unter Ziele & Projekte einem Projekt zuordnen.
+- Auch erlaubt: ein Array `[…]` oder Objekte direkt hintereinander. Leere Zeilen werden ignoriert. Ist eine Zeile kaputt, zeigt Life genau diese Zeile an.
+
 ### Ablauf im Alltag
 1. In Life auf **„🔄 Mit Apple abgleichen“** tippen. Die Kurzbefehle-App öffnet sich und erledigt alles.
 2. Oben links auf **„◀ Life“** tippen (oder zurückwischen).
-3. Life zeigt **„Jetzt die aktuellen Apple-Daten übernehmen“** → **Importieren** → **Einfügen**.
+3. Life zeigt **„Jetzt die aktuellen Apple-Daten übernehmen“** → **Importieren** → **Einfügen** (oder unter *Mehr → Daten importieren* → **„Life Sync einfügen“**). Danach steht da, wie viele Termine und Aufgaben übernommen wurden.
 
 Einträge mit ⏳ sind in Life geändert, aber noch nicht von Apple bestätigt. Nach dem Import verschwindet das ⏳.
 
