@@ -118,6 +118,8 @@ export interface Fach {
   sortierung?: number
   /** Offizielle Zeugnisnote pro Halbjahr ("1" bis "4"), falls sie vom gerundeten Schnitt abweicht. */
   zeugnis?: Record<string, number>
+  /** Freie Notizen auf der Fachseite (Lehrkraft, Bewertung, Lernstoff …). */
+  notiz?: string
 }
 
 export interface Note {
@@ -135,6 +137,9 @@ export interface Klausur {
   fachId?: string
   titel: string
   datum: string
+  uhrzeit?: string // "08:00" (optional)
+  raum?: string
+  stoff?: string // Themen / Lernstoff
 }
 
 export interface Hausaufgabe {

@@ -8,6 +8,7 @@ import { importiere, leseImportText, zusammenfassung } from '../../src/core/impo
 import { inStandardEinheit, leseZahl, naechte, schlafIndex } from '../../src/core/health'
 import { heute, tagPlus } from '../../src/core/datum'
 import type { Projekt } from '../../src/core/db'
+import { istKlausurTermin, passtZuFach } from '../../src/modules/schule/klausuren'
 import { ganztaegigAm, liegtAm, tageDesTermins, tagNummer, zeitAm } from '../../src/modules/kalender/mehrtaegig'
 import { fortschritt, loescheAufgabe, neueAufgabe, passt, schalteAufgabe, sortiere, speichereReihenfolge, zielPasst } from '../../src/modules/ziele/projekte'
 

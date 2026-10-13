@@ -9,5 +9,7 @@ const modul: Modul = {
   icon: GraduationCap,
   farbe: '#ff9f0a',
   Seite: lazy(() => import('./Seite')),
+  // Eigene Seite pro Fach mit Notizen, z. B. /schule/fach/abc123
+  unterseiten: [{ pfad: 'fach/:id', Seite: lazy(() => import('./FachSeite')) }],
 }
 export default modul
