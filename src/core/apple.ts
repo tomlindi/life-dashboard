@@ -42,8 +42,14 @@ async function inWarteschlange(aktion: AppleAktion) {
   await setzeEinstellung(SCHLUESSEL, [...liste, aktion])
 }
 
-/** Gleiche ID-Regel wie beim Import -> ein in Life erstellter Termin wird beim Import wiedererkannt. */
+/**
+ * ID eines in Life angelegten Termins (Titel + Start). Life kennt den Apple-Kalender dafür noch nicht.
+ * Kommt der Termin beim Import von Apple zurück, bekommt er eine ID mit Kalender ("apple:…", siehe
+ * importierteTerminId), und der Import ersetzt den "kal:"-Eintrag mit gleichem Titel + Start.
+ */
 export const terminId = (titel: string, startIso: string) => `kal:${titel}|${startIso.slice(0, 16)}`
+/** ID eines importierten Termins: Titel + Start + Kalender. Verschoben = neuer Termin. */
+export const importierteTerminId = (titel: string, startIso: string, kalender?: string) => `apple:${kalender ?? ''}|${titel}|${startIso.slice(0, 16)}`
 export const aufgabeId = (titel: string) => `erinnerungen:${titel.trim().toLowerCase()}`
 
 // ---------- Termine ----------

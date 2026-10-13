@@ -2,14 +2,40 @@
 // Standard ist Google Gemini (kostenlos). Claude (Anthropic) wird nur benutzt, wenn KEIN Gemini-Schlüssel da ist.
 // Alle Schlüssel liegen nur im localStorage dieses Geräts: nicht in der Datenbank, nicht im Backup, nicht im Code.
 import { useEffect, useState } from 'react'
-import { Eye, EyeOff, KeyRound } from 'lucide-react'
+import { Eye, EyeOff, KeyRound, Minus, Plus } from 'lucide-react'
 import { STANDARD_MODELL, zuletztGenutztesModell, geminiModell, geminiSchluessel, setzeGeminiModell, setzeGeminiSchluessel, testeGemini, verfuegbareModelle } from '../../core/gemini'
 import { kiAnbieter, kiSchluessel, setzeKiSchluessel } from '../../core/ki'
 import Seite from '../../core/ui/Seite'
 import Karte from '../../core/ui/Karte'
 import KalenderFarbenEinstellung from '../kalender/KalenderFarbenEinstellung'
+import { useEinstellung } from '../../core/einstellungen'
+import { STANDARD_TERMINE_TAGE } from '../../core/import'
 
 const GRUEN = '#a3e635'
+
+/** Life Sync: für wie viele Tage der Kurzbefehl Termine holt (muss zum Kurzbefehl passen). */
+function TermineZeitraum() {
+  const [tage, setTage] = useEinstellung<number>('termineTage', STANDARD_TERMINE_TAGE)
+  return (
+    <Karte titel="Life Sync: Termine">
+      <div className="flex items-center justify-between">
+        <span className="text-[15px]">Zeitraum</span>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setTage(Math.max(1, tage - 1))} className="tippbar flex h-10 w-10 items-center justify-center rounded-full bg-karte2" aria-label="Einen Tag weniger">
+            <Minus size={18} />
+          </button>
+          <span className="w-20 text-center text-[17px] font-semibold">{tage} Tage</span>
+          <button onClick={() => setTage(Math.min(366, tage + 1))} className="tippbar flex h-10 w-10 items-center justify-center rounded-full bg-karte2" aria-label="Einen Tag mehr">
+            <Plus size={18} />
+          </button>
+        </div>
+      </div>
+      <p className="mt-3 text-[13px] leading-snug text-grau">
+        Stell hier dieselbe Anzahl Tage ein, die dein Kurzbefehl abfragt (ab heute 00:00). Importierte Termine in diesem Zeitraum, die im Import fehlen, werden gelöscht. Selbst angelegte und vergangene Termine bleiben.
+      </p>
+    </Karte>
+  )
+}
 
 /** Passwortfeld mit Auge zum Anzeigen. */
 function SchluesselFeld({ wert, onAendern, platzhalter }: { wert: string; onAendern: (s: string) => void; platzhalter: string }) {
@@ -74,6 +100,7 @@ export default function EinstellungenSeite() {
   return (
     <Seite titel="Einstellungen">
       <KalenderFarbenEinstellung />
+      <TermineZeitraum />
 
       <Karte titel="Foto-Analyse: Google Gemini (kostenlos)" akzent={GRUEN}>
         <p className="mb-3 text-[13px] leading-snug text-grau">
