@@ -5,17 +5,9 @@ import { GripVertical, Minus, Plus } from 'lucide-react'
 import { MAX_TABS, STANDARD_TABS } from '..'
 import { useAusgeblendet, useEinstellung } from '../../core/einstellungen'
 import Karte from '../../core/ui/Karte'
+import { Schalter } from '../../core/ui/Formular'
 import SortierListe from '../../core/ui/SortierListe'
 import { WAEHLBARE_SEITEN, useDockTabIds, type DockSeite } from '../../core/ui/Dock'
-
-/** Schalter im iOS-Stil. */
-function Schalter({ an, onClick, label }: { an: boolean; onClick: () => void; label: string }) {
-  return (
-    <button onClick={onClick} role="switch" aria-checked={an} aria-label={label} className="relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors" style={{ background: an ? '#30d158' : '#39393d' }}>
-      <span className="absolute top-[2px] h-[27px] w-[27px] rounded-full bg-white shadow transition-all" style={{ left: an ? 22 : 2 }} />
-    </button>
-  )
-}
 
 export default function DockSeiten() {
   const [ids, setIds] = useDockTabIds()

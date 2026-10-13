@@ -238,6 +238,24 @@ Einträge mit ⏳ sind in Life geändert, aber noch nicht von Apple bestätigt. 
 
 ---
 
+## 2c. Kurzbefehl „Life Timer“ (für den Fokus-Timer)
+
+Eine Web-App kann bei gesperrtem iPhone nicht klingeln. Darum stellt Life beim Start einer Pomodoro-Phase über diesen Kurzbefehl einen **echten iPhone-Timer**. Life übergibt ihm die Minuten als Text.
+
+**Kurzbefehle → + → Name genau „Life Timer“.** Unten auf **ⓘ** tippen und **„Kurzbefehl-Eingabe empfangen“** mit dem Typ **Text** einschalten.
+
+1. Aktion **„Zahl“** → als Wert **Kurzbefehl-Eingabe** einsetzen
+2. Aktion **„Timer starten“** → Dauer: **[Zahl] Minuten**
+
+Fertig. Beim ersten Start fragt iOS, ob Life den Kurzbefehl ausführen darf. Danach tippst du oben links auf **„◀ Life“**, um zurückzukommen.
+
+Gut zu wissen:
+- Hältst du den Fokus-Timer früher an oder beendest ihn, läuft der iPhone-Timer weiter. Kurzbefehle können einen Timer nicht stoppen. Stopp ihn dann in der Uhr-App.
+- Möchtest du das nicht, schalte in Life unter **Fokus → iPhone-Timer** den Schalter aus. Dann klingelt es nur, solange Life offen ist.
+- Bei der Stoppuhr wird kein iPhone-Timer gestellt.
+
+---
+
 ## 3. Noch einfacher machen
 
 - **Auf den Homescreen legen:** Kurzbefehl lange drücken → **Teilen** → **„Zum Home-Bildschirm“**. Lege ihn direkt neben das Life-Dashboard-Icon.

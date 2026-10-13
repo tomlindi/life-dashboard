@@ -350,6 +350,19 @@ export interface HealthWert {
   bekannt: boolean // false = Art kennt die App (noch) nicht
 }
 
+
+// ---------- Fokus-Timer ----------
+
+/** Eine abgeschlossene Fokuszeit (Pomodoro-Runde oder Stoppuhr). Pausen werden nicht gespeichert. */
+export interface FokusEinheit {
+  id: string
+  datum: string // "JJJJ-MM-TT" (Tag des Beginns)
+  start: string // ISO
+  ende: string // ISO
+  minuten: number
+  art: 'pomodoro' | 'stoppuhr'
+}
+
 // ---------- Die Datenbank selbst ----------
 
 class LifeDB extends Dexie {
@@ -383,6 +396,7 @@ class LifeDB extends Dexie {
   notizen!: Table<Notiz, string>
   einstellungen!: Table<Einstellung, string>
   health!: Table<HealthWert, string>
+  fokus!: Table<FokusEinheit, string>
 
   constructor() {
     super('life-dashboard')
@@ -432,6 +446,10 @@ class LifeDB extends Dexie {
     // brauchen keinen Eintrag hier, weil nicht nach ihnen gesucht wird.
     this.version(5).stores({
       projektAufgaben: 'id, projektId, elternId',
+    })
+    // Version 6: Fokus-Timer
+    this.version(6).stores({
+      fokus: 'id, datum',
     })
   }
 }

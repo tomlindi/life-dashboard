@@ -8,6 +8,14 @@ Die aktuelle Version steht in der App ganz unten unter Mehr → Einstellungen.
 - Nur anschauen (am PC): `git checkout v1.0.0`, danach `npm run dev`. Zurück zur neuesten mit `git checkout main`.
 - Online wirklich zurücksetzen: `git revert --no-edit v1.0.0..HEAD` und `git push`. Dabei entstehen neue Commits, die alles seit v1.0.0 rückgängig machen. Der Verlauf bleibt erhalten, und GitHub Pages baut automatisch die alte Version.
 
+## 1.6.0 – 13.10.2026
+
+**Fokus-Timer.** Neuer Bereich „Fokus“ (unter Mehr, auch als Dock-Seite wählbar) mit Pomodoro (Standard 25 min Fokus, 5 min Pause, nach 4 Runden 15 min lange Pause, alles einstellbar) und einer freien Stoppuhr. Der Timer läuft weiter, wenn die App zu ist. Beim Öffnen wird eine abgelaufene Runde mit ihrer geplanten Länge gespeichert. Die Statistik zeigt heute, diese Woche, den Schnitt pro Tag und die letzten 7 Tage als Balken. Läuft ein Timer, steht oben auf Heute ein Banner.
+
+**Echter iPhone-Timer.** Weil eine Web-App bei gesperrtem iPhone nicht klingeln kann, stellt Life beim Pomodoro-Start über den neuen Kurzbefehl „Life Timer“ einen iPhone-Timer (abschaltbar). Anleitung in docs/KURZBEFEHL.md, Abschnitt 2c.
+
+**Korrektur:** Der Pausen-Timer im Gym sitzt jetzt über dem Dock-Knopf statt ihn zu verdecken.
+
 ## 1.5.1 – 13.10.2026
 
 **Mehrtägige Termine an allen Tagen.** Bisher erschien ein Termin über mehrere Tage nur an seinem ersten Tag. Jetzt steht er im Kalender an jedem seiner Tage, mit Punkt und in der Tagesliste. Ganztägige Termine stehen oben mit „Tag 2 von 3“, eine Fahrt von Freitag 20:00 bis Sonntag 10:00 zeigt „ab 20:00“, dann „ganztägig“ und „bis 10:00“. Auch das Kalender-Widget auf Heute zeigt laufende mehrtägige Termine, die schon vor heute begonnen haben.

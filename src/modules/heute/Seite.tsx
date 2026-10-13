@@ -13,6 +13,7 @@ import { ErinnerungenWidget, KalenderWidget } from '../kalender/Widgets'
 import SyncKnopf from '../kalender/SyncKnopf'
 import HealthKacheln from './HealthKacheln'
 import FaelligeAufgaben from './FaelligeAufgaben'
+import FokusBanner from '../fokus/Banner'
 
 export default function HeuteSeite() {
   // Zeigt entweder "Beispieldaten laden" oder "löschen", je nachdem was gerade da ist.
@@ -21,6 +22,8 @@ export default function HeuteSeite() {
 
   return (
     <Seite titel={begruessung()} untertitel={langesDatum()}>
+      {/* Läuft der Fokus-Timer? Dann oben ein Banner */}
+      <FokusBanner />
       {/* Zwei Widgets nebeneinander wie auf dem iPhone-Homescreen */}
       <div className="grid grid-cols-2 gap-3">
         <KalenderWidget />

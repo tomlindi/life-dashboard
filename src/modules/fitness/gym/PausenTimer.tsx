@@ -3,25 +3,7 @@
 // auch wenn du kurz die App wechselst.
 import { useEffect, useRef, useState } from 'react'
 import { db } from '../../../core/db'
-
-/** Kurzer Piepton über die Web-Audio-Schnittstelle (ohne Sound-Datei). */
-function piep() {
-  try {
-    const ctx = new AudioContext()
-    for (const [verzoegerung, frequenz] of [[0, 880], [0.25, 880], [0.5, 1320]]) {
-      const ton = ctx.createOscillator()
-      const lautstaerke = ctx.createGain()
-      ton.frequency.value = frequenz
-      lautstaerke.gain.setValueAtTime(0.25, ctx.currentTime + verzoegerung)
-      lautstaerke.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + verzoegerung + 0.2)
-      ton.connect(lautstaerke).connect(ctx.destination)
-      ton.start(ctx.currentTime + verzoegerung)
-      ton.stop(ctx.currentTime + verzoegerung + 0.2)
-    }
-  } catch {
-    // Ton nicht möglich (z. B. Stummschaltung) – dann eben nur die Anzeige
-  }
-}
+import { piep } from '../../../core/ton'
 
 export default function PausenTimer({ einheitId, pauseEnde }: { einheitId: string; pauseEnde?: string }) {
   const [jetzt, setJetzt] = useState(Date.now())
@@ -56,7 +38,8 @@ export default function PausenTimer({ einheitId, pauseEnde }: { einheitId: strin
   const sekunden = String(Math.max(0, rest) % 60).padStart(2, '0')
 
   return (
-    <div className="fixed inset-x-3 z-40" style={{ bottom: '96px' }}>
+    // Sitzt über dem Dock-Knopf (der ist 8 px + 56 px hoch über dem Home-Balken)
+    <div className="fixed inset-x-3 z-40" style={{ bottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}>
       <div className={`flex items-center gap-2 rounded-2xl p-3 shadow-lg ${fertig ? 'bg-[#30d158] text-black' : 'bg-karte2'}`}>
         <div className="flex-1">
           <p className={`text-[12px] ${fertig ? '' : 'text-grau'}`}>{fertig ? 'Pause vorbei' : 'Pause'}</p>

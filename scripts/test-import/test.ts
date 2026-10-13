@@ -8,6 +8,7 @@ import { importiere, leseImportText, zusammenfassung } from '../../src/core/impo
 import { inStandardEinheit, leseZahl, naechte, schlafIndex } from '../../src/core/health'
 import { heute, tagPlus } from '../../src/core/datum'
 import type { Projekt } from '../../src/core/db'
+import { STANDARD_ZEITEN, anhalten, beenden, naechstePhase, phaseFertig, restMs, startePomodoro, starteStoppuhr, uhrText, weiter } from '../../src/modules/fokus/timer'
 import { ganztaegigAm, liegtAm, tageDesTermins, tagNummer, zeitAm } from '../../src/modules/kalender/mehrtaegig'
 import { fortschritt, loescheAufgabe, neueAufgabe, passt, schalteAufgabe, sortiere, speichereReihenfolge, zielPasst } from '../../src/modules/ziele/projekte'
 
@@ -217,6 +218,34 @@ pruefe('Fahrt: Mitte ganztägig, Anfang nicht', [ganztaegigAm(fahrt, tagPlus(T1,
 pruefe('Fahrt: Uhrzeiten pro Tag', [zeitAm(fahrt, T1).von, zeitAm(fahrt, tagPlus(T1, 2)).von], ['ab 20:00', 'bis 10:00'])
 pruefe('Normaler Termin: von–bis', zeitAm(normal, T1), { von: '08:00', bis: '09:30' })
 pruefe('Tag 2 von 3', tagNummer(urlaub, tagPlus(T1, 1)), 'Tag 2 von 3')
+
+// ---------- 10. Fokus-Timer ----------
+console.log('\n10. Fokus-Timer')
+const Z = STANDARD_ZEITEN // 25 / 5 / 15 min, lange Pause nach 4 Runden
+const t0 = Date.parse('2026-10-13T10:00:00Z')
+const minute = 60_000
+pruefe('Phasen: Fokus -> Pause, Runde 4 -> lange Pause, danach Runde 1', [naechstePhase('fokus', 1, Z), naechstePhase('fokus', 4, Z), naechstePhase('pause', 1, Z), naechstePhase('langePause', 4, Z)], [
+  { phase: 'pause', runde: 1 },
+  { phase: 'langePause', runde: 4 },
+  { phase: 'fokus', runde: 2 },
+  { phase: 'fokus', runde: 1 },
+])
+const p = startePomodoro(Z, t0)
+pruefe('Restzeit nach 10 min = 15 min', restMs(p, t0 + 10 * minute), 15 * minute)
+// App war zu: Ende ist schon 40 min her -> gespeichert werden die geplanten 25 min, mit geplantem Ende
+const fertig = phaseFertig(p, Z)
+pruefe('Abgelaufene Fokusrunde zählt mit geplanter Länge', [fertig.ergebnis?.minuten, fertig.ergebnis?.ende], [25, new Date(t0 + 25 * minute).toISOString()])
+pruefe('Danach ist die Pause vorbereitet (5 min, wartet auf Start)', [fertig.neu.phase, fertig.neu.bereit, fertig.neu.restMs], ['pause', true, 5 * minute])
+const angehalten = anhalten(p, t0 + 10 * minute)
+pruefe('Anhalten merkt sich die Restzeit', angehalten.restMs, 15 * minute)
+pruefe('Weiter nach 1 h Pause: Ende = jetzt + Rest', weiter(angehalten, t0 + 70 * minute).ende, new Date(t0 + 85 * minute).toISOString())
+pruefe('Pomodoro früh beenden speichert die geschaffte Zeit (10 min)', beenden(p, Z, t0 + 10 * minute)?.minuten, 10)
+pruefe('Unter 1 min wird nichts gespeichert', beenden(p, Z, t0 + 30_000), undefined)
+let s = starteStoppuhr(t0)
+s = anhalten(s, t0 + 12 * minute)
+s = weiter(s, t0 + 60 * minute)
+pruefe('Stoppuhr zählt nur laufende Zeit (12 + 8 = 20 min)', beenden(s, Z, t0 + 68 * minute)?.minuten, 20)
+pruefe('Uhr-Text', [uhrText(25 * minute), uhrText(3_723_000)], ['25:00', '1:02:03'])
 
 console.log(fehler ? `\n✗ ${fehler} Prüfung(en) fehlgeschlagen` : '\n✓ Alle Prüfungen bestanden')
 process.exit(fehler ? 1 : 0)

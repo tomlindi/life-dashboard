@@ -12,6 +12,7 @@ import ernaehrung from './ernaehrung'
 import koerper from './koerper'
 import freunde from './freunde'
 import hobbys from './hobbys'
+import fokus from './fokus'
 import stimmung from './stimmung'
 import type { Modul } from '../core/module'
 
@@ -26,6 +27,7 @@ export const module: Modul[] = [
   koerper,
   freunde,
   hobbys,
+  fokus,
   stimmung,
 ]
 

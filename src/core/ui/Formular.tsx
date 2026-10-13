@@ -143,3 +143,13 @@ export function PlusKnopf({ farbe, onClick, label = 'Neu' }: { farbe: string; on
     </button>
   )
 }
+
+/** Schalter im iOS-Stil. */
+export function Schalter({ an, onClick, label }: { an: boolean; onClick: () => void; label: string }) {
+  return (
+    <button onClick={onClick} role="switch" aria-checked={an} aria-label={label} className="relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors" style={{ background: an ? '#30d158' : '#39393d' }}>
+      <span className="absolute top-[2px] h-[27px] w-[27px] rounded-full bg-white shadow transition-all" style={{ left: an ? 22 : 2 }} />
+    </button>
+  )
+}
+

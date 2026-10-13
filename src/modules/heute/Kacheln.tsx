@@ -35,6 +35,7 @@ function useKennzahlen(): Record<string, string> {
       const { gesamt } = berechneHalbjahr(faecher, noten, hj, hj) // Schnitt des aktuellen Halbjahrs
       const pruefungen = await holeEinstellung<AbiPruefung[]>('abiPruefungen', STANDARD_PRUEFUNGEN)
       const gewicht = await db.gewicht.orderBy('datum').last()
+      const fokusMin = (await db.fokus.where('datum').equals(h).toArray()).reduce((s, e) => s + e.minuten, 0)
       const abi = faecher.length ? abiPrognose(faecher, noten, hj, pruefungen) : null
       const konto = buchungen.reduce((s, b) => s + (b.art === 'einnahme' ? b.betrag : -b.betrag), 0)
       const hobbyMin = hobbyZeiten.reduce((s, z) => s + z.minuten, 0)
@@ -47,6 +48,7 @@ function useKennzahlen(): Record<string, string> {
         schlaf: schlaf ? `${zahl(schlaf.stunden)} h zuletzt` : 'Keine Daten',
         ernaehrung: `${mahlzeiten} Mahlzeiten heute`,
         koerper: gewicht ? `${zahl(gewicht.kg)} kg` : 'Keine Daten',
+        fokus: `${fokusMin} min heute`,
         freunde: `${freunde} Freunde`,
         hobbys: `${zahl(hobbyMin / 60)} h diese Woche`,
         stimmung: stimmung ? ['😞', '😕', '😐', '🙂', '😄'][stimmung.wert - 1] + ' heute' : 'Noch kein Eintrag',
