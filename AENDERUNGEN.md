@@ -1,8 +1,16 @@
 # Änderungen
 
-Neueste Änderungen stehen oben. Zurück zum Stand vor einem Umbau: `git reset --hard <Tag>` (z. B. `vor-umbau-2026-10-13`).
+Neueste Version steht oben. Jede Version hat einen Git-Tag (z. B. `v1.0.0`).
+Versionsnummern: neue Funktion → 1.0.0 wird 1.1.0, Fehlerkorrektur → 1.1.0 wird 1.1.1.
+Die aktuelle Version steht in der App ganz unten unter Mehr → Einstellungen.
 
-## 13.10.2026
+**Zu einer alten Version zurück:**
+- Nur anschauen (am PC): `git checkout v1.0.0`, danach `npm run dev`. Zurück zur neuesten mit `git checkout main`.
+- Online wirklich zurücksetzen: `git revert --no-edit v1.0.0..HEAD` und `git push`. Dabei entstehen neue Commits, die alles seit v1.0.0 rückgängig machen. Der Verlauf bleibt erhalten, und GitHub Pages baut automatisch die alte Version.
+
+## 1.0.0 – 13.10.2026
+
+**Versionsnummern.** Ab jetzt hat die App Versionen. Die Nummer steht klein unten in den Einstellungen, jede Version bekommt einen Git-Tag. Dieser Stand ist 1.0.0 und umfasst alles bis hierher.
 
 **Tab-Leiste wie bei Apple.** Auf Heute, Mehr und den Bereichen, die selbst in der Leiste stehen, ist die Leiste sichtbar. Auf allen anderen Seiten und beim Runterscrollen fährt sie weich nach unten weg. Sie kommt zurück beim Hochscrollen, bei „Zurück“ und beim Hochwischen knapp über dem Home-Balken, wo dann ein kleiner Griff zu sehen ist. Jede Unterseite hat jetzt oben links „‹ Zurück“.
 

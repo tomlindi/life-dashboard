@@ -3,11 +3,15 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import paket from './package.json' with { type: 'json' }
 
 export default defineConfig({
   // './' = alle Pfade relativ. So läuft die App auch unter
   // deinname.github.io/life-dashboard/ (also in einem Unterordner).
   base: './',
+  // Versionsnummer aus package.json in die App einsetzen (angezeigt unten in den Einstellungen).
+  // Neue Funktion: 1.0.0 -> 1.1.0, Fehlerkorrektur: 1.1.0 -> 1.1.1
+  define: { __APP_VERSION__: JSON.stringify(paket.version) },
   plugins: [
     react(),
     tailwindcss(),

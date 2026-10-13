@@ -170,6 +170,8 @@ export default function EinstellungenSeite() {
           <li>Ohne Schlüssel oder Internet funktioniert die manuelle Eingabe ganz normal weiter.</li>
         </ul>
       </Karte>
+
+      <p className="pt-2 text-center text-[12px] text-grau">Life Dashboard · Version {__APP_VERSION__}</p>
     </Seite>
   )
 }
