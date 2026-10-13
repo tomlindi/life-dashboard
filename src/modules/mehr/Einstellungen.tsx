@@ -1,4 +1,4 @@
-// Seite "Einstellungen": Schlüssel für die Foto-Analyse in "Ernährung".
+// Seite "Einstellungen": Kalenderfarben und Schlüssel für die Foto-Analyse in "Ernährung".
 // Standard ist Google Gemini (kostenlos). Claude (Anthropic) wird nur benutzt, wenn KEIN Gemini-Schlüssel da ist.
 // Alle Schlüssel liegen nur im localStorage dieses Geräts: nicht in der Datenbank, nicht im Backup, nicht im Code.
 import { useEffect, useState } from 'react'
@@ -7,6 +7,7 @@ import { STANDARD_MODELL, zuletztGenutztesModell, geminiModell, geminiSchluessel
 import { kiAnbieter, kiSchluessel, setzeKiSchluessel } from '../../core/ki'
 import Seite from '../../core/ui/Seite'
 import Karte from '../../core/ui/Karte'
+import KalenderFarbenEinstellung from '../kalender/KalenderFarbenEinstellung'
 
 const GRUEN = '#a3e635'
 
@@ -72,6 +73,8 @@ export default function EinstellungenSeite() {
 
   return (
     <Seite titel="Einstellungen">
+      <KalenderFarbenEinstellung />
+
       <Karte titel="Foto-Analyse: Google Gemini (kostenlos)" akzent={GRUEN}>
         <p className="mb-3 text-[13px] leading-snug text-grau">
           Für die Foto-Analyse in „Ernährung“. Kostenlosen Schlüssel holen: auf{' '}

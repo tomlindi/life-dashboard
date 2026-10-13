@@ -1,4 +1,5 @@
 // Kalender wie in Apples Kalender-App: Monatsansicht oben, Termine des gewählten Tages darunter.
+// Unter jedem Datum ein farbiger Punkt pro Kalender mit Terminen (höchstens 3, sonst "+"), darunter eine Legende.
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -8,9 +9,22 @@ import { db, type Termin } from '../../core/db'
 import { heute, langesDatum, tagVon, uhrzeit } from '../../core/datum'
 import TerminSheet from './TerminSheet'
 import SyncKnopf from './SyncKnopf'
-import { farbeFuer, ROT } from './farben'
+import { ROT, kalenderName, useKalenderFarben } from './farben'
 
 const WOCHENTAGE = ['M', 'D', 'M', 'D', 'F', 'S', 'S']
+
+/** Kleine runde Punkte (5 px) unter einem Datum: einer pro Kalender, höchstens 3, bei mehr ein "+". */
+function Punkte({ kalender, farbe }: { kalender: string[]; farbe: (k: string) => string }) {
+  const sortiert = [...kalender].sort((a, b) => a.localeCompare(b, 'de'))
+  return (
+    <span className="flex h-[5px] items-center gap-[3px]">
+      {sortiert.slice(0, 3).map((k) => (
+        <span key={k} className="h-[5px] w-[5px] rounded-full" style={{ background: farbe(k) }} />
+      ))}
+      {sortiert.length > 3 && <span className="text-[9px] font-bold leading-none text-grau">+</span>}
+    </span>
+  )
+}
 
 export default function KalenderSeite() {
   const termine = useLiveQuery(() => db.termine.orderBy('start').toArray(), []) ?? []
@@ -19,7 +33,14 @@ export default function KalenderSeite() {
   const [sheet, setSheet] = useState<{ offen: boolean; termin?: Termin }>({ offen: false })
 
   // Welche Tage haben Termine? (für die Punkte im Monatsraster)
-  const tageMitTerminen = new Set(termine.map((t) => tagVon(t.start)))
+  const { farbe } = useKalenderFarben()
+  // Pro Tag: welche Kalender haben dort Termine? (für die farbigen Punkte im Monatsraster)
+  const kalenderProTag = new Map<string, Set<string>>()
+  for (const t of termine) {
+    const tag = tagVon(t.start)
+    if (!kalenderProTag.has(tag)) kalenderProTag.set(tag, new Set())
+    kalenderProTag.get(tag)!.add(kalenderName(t.kalender))
+  }
   const amTag = termine.filter((t) => tagVon(t.start) === gewaehlt)
   const ganztags = amTag.filter((t) => t.ganztaegig)
   const mitZeit = amTag.filter((t) => !t.ganztaegig)
@@ -32,7 +53,9 @@ export default function KalenderSeite() {
     ...Array<null>(leerVorne).fill(null),
     ...Array.from({ length: tageImMonat }, (_, i) => `${monat.jahr}-${String(monat.monat + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`),
   ]
-  const blaettern = (n: number) => setMonat(({ jahr, monat: m }) => ({ jahr: m + n < 0 ? jahr - 1 : m + n > 11 ? jahr + 1 : jahr, monat: (m + n + 12) % 12 }))
+  const monatsPraefix = `${monat.jahr}-${String(monat.monat + 1).padStart(2, '0')}`
+  const kalenderImMonat = [...new Set([...kalenderProTag].filter(([tag]) => tag.startsWith(monatsPraefix)).flatMap(([, k]) => [...k]))].sort((a, b) => a.localeCompare(b, 'de'))
+  const blaettern =(n: number) => setMonat(({ jahr, monat: m }) => ({ jahr: m + n < 0 ? jahr - 1 : m + n > 11 ? jahr + 1 : jahr, monat: (m + n + 12) % 12 }))
 
   function zuHeute() {
     setGewaehlt(heute())
@@ -94,11 +117,23 @@ export default function KalenderSeite() {
               >
                 {Number(tag.slice(8))}
               </span>
-              <span className="h-1 w-1 rounded-full" style={{ background: tageMitTerminen.has(tag) ? '#8e8e93' : 'transparent' }} />
+              <Punkte kalender={[...(kalenderProTag.get(tag) ?? [])]} farbe={farbe} />
             </button>
           )
         })}
       </div>
+
+      {/* Legende: alle Kalender, die in diesem Monat Termine haben */}
+      {kalenderImMonat.length > 0 && (
+        <div className="-mt-2 mb-4 flex flex-wrap gap-x-3 gap-y-1 px-1">
+          {kalenderImMonat.map((k) => (
+            <span key={k} className="flex items-center gap-1.5 text-[12px] text-grau">
+              <span className="h-[7px] w-[7px] rounded-full" style={{ background: farbe(k) }} />
+              {k}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Termine des gewählten Tages */}
       <h2 className="mb-2 border-t border-linie pt-3 text-[17px] font-semibold">{langesDatum(new Date(gewaehlt + 'T12:00:00'))}</h2>
@@ -108,7 +143,7 @@ export default function KalenderSeite() {
           key={t.id}
           onClick={() => setSheet({ offen: true, termin: t })}
           className="tippbar mb-1.5 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[15px] font-medium"
-          style={{ background: farbeFuer(t.kalender) + '33', color: farbeFuer(t.kalender) }}
+          style={{ background: farbe(t.kalender) + '33', color: farbe(t.kalender) }}
         >
           {t.titel}
           {t.sync && <Clock size={13} className="ml-auto text-[#ffd60a]" />}
@@ -126,7 +161,7 @@ export default function KalenderSeite() {
                   <span className="block">{uhrzeit(t.start)}</span>
                   {t.ende && <span className="block text-grau">{uhrzeit(t.ende)}</span>}
                 </span>
-                <span className="w-1 shrink-0 rounded-full" style={{ background: farbeFuer(t.kalender) }} />
+                <span className="w-1 shrink-0 rounded-full" style={{ background: farbe(t.kalender) }} />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5 text-[16px] font-medium">
                     <span className="truncate">{t.titel}</span>

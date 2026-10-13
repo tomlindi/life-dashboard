@@ -4,9 +4,10 @@ import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../core/db'
 import { heute, tagPlus, tagVon, uhrzeit } from '../../core/datum'
-import { farbeFuer, ROT } from './farben'
+import { ROT, useKalenderFarben } from './farben'
 
 export function KalenderWidget() {
+  const { farbe } = useKalenderFarben() // Farbstreifen links wie in Apple Kalender
   const h = heute()
   // Termine von heute (noch nicht vorbei) und morgen
   const termine =
@@ -38,7 +39,7 @@ export function KalenderWidget() {
             {!heutige.length && <p className="text-[11px] font-semibold uppercase text-grau">Morgen</p>}
             {liste.slice(0, 2).map((t) => (
               <div key={t.id} className="flex gap-1.5">
-                <span className="w-[3px] shrink-0 rounded-full" style={{ background: farbeFuer(t.kalender) }} />
+                <span className="w-[3px] shrink-0 rounded-full" style={{ background: farbe(t.kalender) }} />
                 <div className="min-w-0">
                   <p className="truncate text-[13px] font-semibold leading-tight">{t.titel}</p>
                   <p className="text-[12px] leading-tight text-grau">{t.ganztaegig ? 'ganztägig' : `${uhrzeit(t.start)}${t.ende ? `–${uhrzeit(t.ende)}` : ''}`}</p>
