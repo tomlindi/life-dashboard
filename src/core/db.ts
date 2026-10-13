@@ -5,6 +5,7 @@
 // Spalten wir schnell suchen wollen (der erste Eintrag ist der eindeutige Schlüssel).
 // Weitere Bereiche (Schule, Geld, ...) fügen wir später als neue "version" hinzu.
 import Dexie, { type Table } from 'dexie'
+import type { SchlafPhase } from './health'
 
 // ---------- Typen: so sieht ein Eintrag in jeder Tabelle aus ----------
 
@@ -224,6 +225,7 @@ export interface Gewicht {
   datum: string
   kg: number
   demo?: boolean
+  quelle?: Quelle // "health" = aus Apple Health
 }
 
 // ---------- Freunde & Hobbys ----------
@@ -319,6 +321,26 @@ export interface GymPlan {
   sortierung: number
 }
 
+
+// ---------- Apple Health (über Life Sync) ----------
+
+/**
+ * Ein Rohwert aus Apple Health, genau wie er vom Kurzbefehl kam (eine Zeile mit "typ":"health").
+ * Gleiche Art + gleicher Start = derselbe Wert (wird beim nächsten Import ersetzt, nicht verdoppelt).
+ */
+export interface HealthWert {
+  id: string // "art|Start (ISO, auf die Sekunde)", bei Schlaf zusätzlich "|phase"
+  art: string // "schritte", "schlaf", … oder eine unbekannte Art (wird trotzdem gespeichert)
+  start: string // ISO-Zeitstempel
+  ende?: string
+  tag: string // lokaler Tag des Starts "JJJJ-MM-TT" (zum schnellen Suchen pro Tag)
+  wert?: number // Zahl in der Standardeinheit (kg, cm, %, ml, kcal, g, Anzahl); fehlt bei Schlaf
+  text: string // "wert" so, wie er im Import stand (z. B. "72,4 kg" oder "Kern")
+  einheit?: string
+  phase?: SchlafPhase // nur bei Schlaf
+  bekannt: boolean // false = Art kennt die App (noch) nicht
+}
+
 // ---------- Die Datenbank selbst ----------
 
 class LifeDB extends Dexie {
@@ -351,6 +373,7 @@ class LifeDB extends Dexie {
   wasser!: Table<Wasser, string>
   notizen!: Table<Notiz, string>
   einstellungen!: Table<Einstellung, string>
+  health!: Table<HealthWert, string>
 
   constructor() {
     super('life-dashboard')
@@ -391,6 +414,10 @@ class LifeDB extends Dexie {
       uebungen: 'id, name',
       gymPlaene: 'id, sortierung',
       gymEinheiten: 'id, start',
+    })
+    // Version 4: Rohwerte aus Apple Health. "[art+tag]" = schnell alle Werte einer Art für einen Zeitraum finden
+    this.version(4).stores({
+      health: 'id, art, tag, [art+tag]',
     })
   }
 }

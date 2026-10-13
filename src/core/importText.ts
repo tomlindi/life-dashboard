@@ -8,14 +8,15 @@
 //   4. Objekte hintereinander:     {…}{…}  oder  {…},{…}
 // Leere Zeilen werden ignoriert. Jedes Objekt ist entweder ein "Paket" (mit Schlüsseln wie
 // "termine", "aufgaben" …) oder ein EINZELNER Eintrag, der automatisch zugeordnet wird
-// (Termin, Erinnerung, Workout, Schritte, Schlaf, Gewicht).
+// (Termin, Erinnerung, Workout, Schritte, Schlaf, Gewicht, Health-Wert).
 //
-// Passt etwas nicht, gibt es einen ImportFehler mit Zeilennummer, der kaputten Zeile und
+// Kaputte Zeilen werden übersprungen und nach dem Import mit Zeilennummer gemeldet. Ist gar nichts
+// lesbar, gibt es einen ImportFehler mit Zeilennummer, der kaputten Zeile und
 // den ersten 200 Zeichen des Textes. So sieht man sofort, was der Kurzbefehl falsch macht.
 //
 // Diese Datei hat absichtlich keine Verbindung zur Datenbank, damit man sie einfach testen kann.
 
-export const KATEGORIEN = ['schritte', 'workouts', 'schlaf', 'gewicht', 'termine', 'aufgaben'] as const
+export const KATEGORIEN = ['schritte', 'workouts', 'schlaf', 'gewicht', 'termine', 'aufgaben', 'health'] as const
 type Kategorie = (typeof KATEGORIEN)[number]
 type Objekt = Record<string, unknown>
 
@@ -60,8 +61,9 @@ interface Stueck {
 /**
  * Zerlegt den Text in einzelne JSON-Werte (Objekte oder Arrays).
  * Funktioniert für "alles in einem", "ein Objekt pro Zeile" und "Objekte hintereinander".
+ * Kaputte Stellen werden übersprungen und in `fehler` gesammelt (mit Zeilennummer).
  */
-export function zerlege(text: string): Stueck[] {
+export function zerlege(text: string, fehler: ImportFehler[] = []): Stueck[] {
   const t = text.trim()
   if (!t) throw new ImportFehler('Die Zwischenablage ist leer. Hast du den Kurzbefehl ausgeführt?', text)
 
@@ -70,6 +72,12 @@ export function zerlege(text: string): Stueck[] {
     return [{ wert: JSON.parse(t), zeile: 1 }]
   } catch {
     // weiter mit dem Zerlegen
+  }
+
+  /** Position des nächsten Zeilenanfangs (zum Überspringen einer kaputten Zeile). */
+  const naechsteZeile = (pos: number) => {
+    const n = text.indexOf('\n', pos)
+    return n < 0 ? text.length : n + 1
   }
 
   const stuecke: Stueck[] = []
@@ -82,11 +90,9 @@ export function zerlege(text: string): Stueck[] {
       continue
     }
     if (z !== '{' && z !== '[') {
-      throw new ImportFehler(
-        `In Zeile ${zeileVon(text, i)} steht etwas, das kein JSON-Objekt ist (erwartet wird „{“).`,
-        text,
-        zeileVon(text, i),
-      )
+      fehler.push(new ImportFehler(`In Zeile ${zeileVon(text, i)} steht etwas, das kein JSON-Objekt ist (erwartet wird „{“).`, text, zeileVon(text, i)))
+      i = naechsteZeile(i)
+      continue
     }
     // Passendes Ende suchen: Klammern zählen, Text in Anführungszeichen dabei überspringen
     const start = i
@@ -111,18 +117,24 @@ export function zerlege(text: string): Stueck[] {
       }
     }
     const zeile = zeileVon(text, start)
-    if (ende < 0) throw new ImportFehler(`Das Objekt ab Zeile ${zeile} wird nicht geschlossen (es fehlt eine „}“ oder ein Anführungszeichen).`, text, zeile)
+    if (ende < 0) {
+      fehler.push(new ImportFehler(`Das Objekt ab Zeile ${zeile} wird nicht geschlossen (es fehlt eine „}“ oder ein Anführungszeichen).`, text, zeile))
+      i = naechsteZeile(start)
+      continue
+    }
 
     const teil = text.slice(start, ende + 1)
     try {
       stuecke.push({ wert: JSON.parse(teil), zeile })
+      i = ende + 1
     } catch (e) {
       // Die Browser-Meldung ist englisch; die Stelle ("column 16") reicht als Hinweis
       const stelle = (e as Error).message.match(/column (\d+)/)?.[1]
       const tipp = /'|,\s*}|:\s*\d+,\d/.test(teil) ? ' Tipp: JSON braucht gerade Anführungszeichen "…", und Zahlen mit Komma müssen in Anführungszeichen stehen.' : ''
-      throw new ImportFehler(`Zeile ${zeile} ist kein gültiges JSON${stelle ? ` (Fehler etwa an Zeichen ${stelle})` : ''}.${tipp}`, text, zeile)
+      fehler.push(new ImportFehler(`Zeile ${zeile} ist kein gültiges JSON${stelle ? ` (Fehler etwa an Zeichen ${stelle})` : ''}.${tipp}`, text, zeile))
+      // Geht das kaputte Stück über mehrere Zeilen (z. B. fehlendes Anführungszeichen), nur diese eine Zeile überspringen
+      i = teil.includes('\n') ? naechsteZeile(start) : ende + 1
     }
-    i = ende + 1
   }
   return stuecke
 }
@@ -137,6 +149,8 @@ const hat = (o: Objekt, ...namen: string[]) => namen.some((n) => o[n] !== undefi
 export function kategorieVon(o: Objekt): Kategorie | null {
   const typ = String(o.typ ?? o.kategorie ?? o.type ?? '').toLowerCase()
   if (typ) {
+    // Zuerst: Apple-Health-Zeilen ({"typ":"health","art":"schritte",…}). Sonst würde "art" + "start" als Workout gelten.
+    if (/health|gesundheit/.test(typ)) return 'health'
     if (/termin|event|kalender/.test(typ)) return 'termine'
     if (/aufgabe|erinnerung|reminder|todo/.test(typ)) return 'aufgaben'
     if (/workout|training/.test(typ)) return 'workouts'
@@ -156,8 +170,9 @@ export function kategorieVon(o: Objekt): Kategorie | null {
 }
 
 /**
- * Hauptfunktion: macht aus dem Text EIN Import-Paket {version, termine: […], aufgaben: […], …}.
- * Wirft ImportFehler mit Zeilennummer, wenn etwas nicht passt.
+ * Hauptfunktion: macht aus dem Text EIN Import-Paket {version, termine: […], aufgaben: […], health: […], …}.
+ * Kaputte oder unbekannte Zeilen werden übersprungen und im Paket unter "uebersprungen" gemeldet
+ * (Liste von Texten mit Zeilennummer). Ist GAR NICHTS lesbar, gibt es einen ImportFehler.
  */
 export function leseImportText(roh: string): Objekt {
   try {
@@ -170,7 +185,8 @@ export function leseImportText(roh: string): Objekt {
 }
 
 function lesePaket(text: string): Objekt {
-  const stuecke = zerlege(text)
+  const fehler: ImportFehler[] = []
+  const stuecke = zerlege(text, fehler)
   const paket: Objekt = {}
   const fuegeHinzu = (k: Kategorie, eintraege: unknown) => {
     const liste = Array.isArray(eintraege) ? eintraege : [eintraege]
@@ -184,7 +200,8 @@ function lesePaket(text: string): Objekt {
       return
     }
     if (!o || typeof o !== 'object') {
-      throw new ImportFehler(`Zeile ${zeile} enthält kein Objekt, sondern „${String(o).slice(0, 40)}“.`, text, zeile)
+      fehler.push(new ImportFehler(`Zeile ${zeile} enthält kein Objekt, sondern „${String(o).slice(0, 40)}“.`, text, zeile))
+      return
     }
     const obj = o as Objekt
     if ('tabellen' in obj && obj.app === 'life-dashboard') {
@@ -201,11 +218,14 @@ function lesePaket(text: string): Objekt {
     // Einzelner Eintrag
     const k = kategorieVon(obj)
     if (!k) {
-      throw new ImportFehler(
-        `Zeile ${zeile}: Dieser Eintrag lässt sich nicht zuordnen. Ein Termin braucht „titel“ und „start“, eine Erinnerung „titel“, ein Workout „art“ und „start“.`,
-        text,
-        zeile,
+      fehler.push(
+        new ImportFehler(
+          `Zeile ${zeile}: Eintrag lässt sich nicht zuordnen (ein Termin braucht „titel“ und „start“, eine Erinnerung „titel“, ein Health-Wert "typ":"health").`,
+          text,
+          zeile,
+        ),
       )
+      return
     }
     fuegeHinzu(k, obj)
   }
@@ -213,7 +233,9 @@ function lesePaket(text: string): Objekt {
   for (const s of stuecke) verarbeite(s.wert, s.zeile)
 
   if (!KATEGORIEN.some((k) => k in paket)) {
-    throw new ImportFehler(`Keine bekannten Daten gefunden (erwartet: ${KATEGORIEN.join(', ')}).`, text)
+    // Nichts Brauchbares: den ersten konkreten Fehler zeigen (mit Zeile), sonst den allgemeinen
+    throw fehler[0] ?? new ImportFehler(`Keine bekannten Daten gefunden (erwartet: ${KATEGORIEN.join(', ')}).`, text)
   }
+  if (fehler.length) paket.uebersprungen = fehler.map((f) => f.message + (f.zeilenText ? `  →  ${f.zeilenText}` : ''))
   return paket
 }

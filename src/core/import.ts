@@ -23,6 +23,7 @@ import { db, holeEinstellung, setzeEinstellung, type Quelle } from './db'
 import { aufgabeId, importierteTerminId, terminId, type AppleAktion } from './apple'
 import { vergibKalenderFarben } from '../modules/kalender/farben'
 import { tagString, tagPlus, heute } from './datum'
+import { ART_NAMEN, healthArt, inStandardEinheit, leseZahl, nachtVon, naechte, schlafPhase, type HealthArt } from './health'
 
 // ---------- Hilfsfunktionen zum "Aufräumen" der Eingabedaten ----------
 
@@ -115,6 +116,8 @@ export interface Zaehler {
 export type ImportErgebnis = Record<'schritte' | 'workouts' | 'schlaf' | 'gewicht' | 'termine' | 'aufgaben', Zaehler> & {
   hinweise: string[]
   termineTage: number // für welchen Zeitraum der Abgleich der Termine galt
+  health: Zaehler // alle Health-Werte zusammen
+  healthArten: Record<string, number> // Anzahl Health-Werte je Art, z. B. { schritte: 7, schlaf: 40 }
 }
 
 // Das Zerlegen des Textes (ein Objekt, Array, ein Objekt pro Zeile …) steckt in core/importText.ts
@@ -127,12 +130,16 @@ export async function importiere(o: Record<string, unknown>): Promise<ImportErge
   const leer = (): Zaehler => ({ neu: 0, aktualisiert: 0 })
   // Zeitraum: Schickt der Kurzbefehl "termineTage" mit, gilt das, sonst die Einstellung
   const termineTage = Math.min(366, Math.max(1, Math.round(zahl(o.termineTage)) || (await holeEinstellung<number>('termineTage', STANDARD_TERMINE_TAGE))))
-  const erg: ImportErgebnis = { schritte: leer(), workouts: leer(), schlaf: leer(), gewicht: leer(), termine: { ...leer(), geloescht: 0 }, aufgaben: leer(), hinweise: [], termineTage }
+  const erg: ImportErgebnis = { schritte: leer(), workouts: leer(), schlaf: leer(), gewicht: leer(), termine: { ...leer(), geloescht: 0 }, aufgaben: leer(), hinweise: [], termineTage, health: leer(), healthArten: {} }
   const kalenderNamen = new Set<string>()
   let termineUebersprungen = 0
+  // Zeilen, die schon beim Lesen kaputt waren (siehe importText.ts)
+  const uebersprungen = Array.isArray(o.uebersprungen) ? (o.uebersprungen as string[]) : []
+  let healthKaputt = 0
+  const unbekannteArten = new Map<string, number>()
 
   // Alles in einer "Transaktion": Entweder klappt der ganze Import oder gar nichts wird geändert.
-  await db.transaction('rw', [db.schritte, db.workouts, db.schlaf, db.gewicht, db.termine, db.aufgaben], async () => {
+  await db.transaction('rw', [db.schritte, db.workouts, db.schlaf, db.gewicht, db.termine, db.aufgaben, db.health], async () => {
     // --- Schritte: Werte pro Tag aufsummieren (falls Health Einzelmessungen liefert) ---
     const schritteProTag = new Map<string, number>()
     for (const e of liste(o.schritte)) {
@@ -263,6 +270,9 @@ export async function importiere(o: Record<string, unknown>): Promise<ImportErge
     if (importierteIds.size === 0) {
       // Schutz: Ein Import ganz ohne Termine ist eher ein Fehler im Kurzbefehl als ein leerer Kalender
       erg.hinweise.push('Keine Termine im Import – zur Sicherheit wurde kein Termin gelöscht.')
+    } else if (uebersprungen.length) {
+      // Schutz: Eine unlesbare Zeile könnte ein Termin gewesen sein -> der würde sonst fälschlich gelöscht
+      erg.hinweise.push('Weil Zeilen nicht lesbar waren, wurde zur Sicherheit kein Termin gelöscht.')
     } else {
       const von = new Date(`${heute()}T00:00:00`).toISOString()
       const bis = new Date(`${tagPlus(heute(), termineTage)}T00:00:00`).toISOString()
@@ -274,6 +284,78 @@ export async function importiere(o: Record<string, unknown>): Promise<ImportErge
         .primaryKeys()
       await db.termine.bulkDelete(veraltet)
       erg.termine.geloescht = veraltet.length
+    }
+
+    // --- Apple Health ({"typ":"health","art":…,"start":…,"ende":…,"wert":…,"einheit":…}) ---
+    // Alle Werte landen roh in der Tabelle "health" (gleiche Art + gleicher Start = ersetzen).
+    // Schritte, Schlaf und Gewicht werden zusätzlich pro Tag in ihre bisherigen Tabellen übertragen,
+    // damit die vorhandenen Seiten und Diagramme sie zeigen. Ein Health-Wert ersetzt dort die eigene Eingabe.
+    const betroffen = { schritte: new Set<string>(), schlaf: new Set<string>(), gewicht: new Set<string>() }
+    for (const e of liste(o.health)) {
+      const artRoh = String(feld(e, 'art', 'name') ?? '').trim()
+      const start = zeitpunkt(feld(e, 'start', 'startdatum', 'datum'))
+      const ende = zeitpunkt(feld(e, 'ende', 'enddatum'))
+      const text = String(feld(e, 'wert', 'value') ?? '').trim()
+      const einheit = feld(e, 'einheit', 'unit') ? String(feld(e, 'einheit', 'unit')).trim() : undefined
+      const art = healthArt(artRoh)
+      // Ohne Art oder Start ist die Zeile nicht zu gebrauchen; Schlaf braucht zusätzlich ein Ende (Dauer)
+      if (!artRoh || !start || (art === 'schlaf' && !ende)) {
+        healthKaputt++
+        continue
+      }
+      let wert: number | undefined
+      if (art !== 'schlaf') {
+        const z = leseZahl(text)
+        if (Number.isFinite(z)) wert = art ? Math.round(inStandardEinheit(art, z, `${einheit ?? ''} ${text}`) * 100) / 100 : z
+        else if (art) {
+          healthKaputt++ // bekannte Art, aber keine Zahl im Wert
+          continue
+        }
+      }
+      const artName = art ?? artRoh.toLowerCase()
+      const startIso = start.toISOString()
+      // Erkennung: Art + Start. Bei Schlaf zusätzlich die Phase, denn iPhone ("Schlafend", "Im Bett")
+      // und Apple Watch ("Kern") melden oft Phasen mit genau derselben Startzeit.
+      const phase = art === 'schlaf' ? schlafPhase(text) : undefined
+      const id = `${artName}|${startIso.slice(0, 19)}${phase ? `|${phase}` : ''}`
+      const alt = await db.health.get(id)
+      await db.health.put({
+        id,
+        art: artName,
+        start: startIso,
+        ende: ende?.toISOString(),
+        tag: tagString(start),
+        wert,
+        text,
+        einheit,
+        phase,
+        bekannt: art !== null,
+      })
+      erg.health[alt ? 'aktualisiert' : 'neu']++
+      erg.healthArten[artName] = (erg.healthArten[artName] ?? 0) + 1
+      if (!art) unbekannteArten.set(artRoh, (unbekannteArten.get(artRoh) ?? 0) + 1)
+      if (art === 'schritte') betroffen.schritte.add(tagString(start))
+      if (art === 'gewicht') betroffen.gewicht.add(tagString(start))
+      if (art === 'schlaf') betroffen.schlaf.add(nachtVon(startIso))
+    }
+    // Schritte: Tagessumme aller Health-Werte dieses Tages
+    for (const t of betroffen.schritte) {
+      const werte = await db.health.where('[art+tag]').equals(['schritte', t]).toArray()
+      await db.schritte.put({ datum: t, anzahl: Math.round(werte.reduce((s, w) => s + (w.wert ?? 0), 0)) })
+    }
+    // Schlaf: alle Phasen der Nacht zusammenfassen (sie beginnen am Vortag ab 12 Uhr oder am Tag bis 12 Uhr)
+    for (const n of betroffen.schlaf) {
+      const phasen = await db.health.where('[art+tag]').between(['schlaf', tagPlus(n, -1)], ['schlaf', n], true, true).toArray()
+      const nacht = naechte(phasen).find((x) => x.datum === n)
+      if (!nacht) continue // z. B. nur "Im Bett", aber kein Schlaf gemessen
+      const alt = await db.schlaf.get(n)
+      // Qualitätsbewertung, die du in der App vergeben hast, bleibt erhalten
+      await db.schlaf.put({ datum: n, stunden: Math.round((nacht.schlafMin / 60) * 100) / 100, qualitaet: alt?.qualitaet, quelle: 'health' })
+    }
+    // Gewicht: der letzte Messwert des Tages
+    for (const t of betroffen.gewicht) {
+      const letzter = (await db.health.where('[art+tag]').equals(['gewicht', t]).sortBy('start')).at(-1)
+      if (letzter?.wert) await db.gewicht.put({ datum: t, kg: Math.round(letzter.wert * 10) / 10, quelle: 'health' })
     }
 
     // --- Aufgaben aus Erinnerungen ---
@@ -310,6 +392,15 @@ export async function importiere(o: Record<string, unknown>): Promise<ImportErge
     }
   })
   if (termineUebersprungen) erg.hinweise.push(`${termineUebersprungen} Termin-Zeilen ohne Titel oder gültigen Start übersprungen`)
+  if (healthKaputt) erg.hinweise.push(`${healthKaputt} Health-Zeilen ohne Art, Start/Ende oder lesbaren Wert übersprungen`)
+  if (unbekannteArten.size) {
+    erg.hinweise.push(`Unbekannte Health-Arten gespeichert (noch ohne Anzeige): ${[...unbekannteArten].map(([a, n]) => `„${a}“ (${n})`).join(', ')}`)
+  }
+  if (uebersprungen.length) {
+    // Die ersten paar kaputten Zeilen mit Nummer zeigen, damit man den Kurzbefehl reparieren kann
+    erg.hinweise.push(`${uebersprungen.length} Zeilen nicht lesbar und übersprungen:`, ...uebersprungen.slice(0, 5).map((z) => `• ${z}`))
+    if (uebersprungen.length > 5) erg.hinweise.push(`• … und ${uebersprungen.length - 5} weitere`)
+  }
 
   // Neue Kalender bekommen gleich ihre Farbe (nächste freie Apple-Farbe)
   if (kalenderNamen.size) await vergibKalenderFarben(kalenderNamen)
@@ -350,5 +441,13 @@ export function zusammenfassung(e: ImportErgebnis): string[] {
       })
       .filter((z): z is string => z !== null),
   ]
+  // Health: Summe und Aufteilung nach Art, z. B. "Health: 47 neu, 3 aktualisiert (Schritte 7, Schlaf 40, Wasser 3)"
+  const h = e.health
+  if (h.neu + h.aktualisiert > 0) {
+    const arten = Object.entries(e.healthArten)
+      .map(([art, n]) => `${ART_NAMEN[art as HealthArt] ?? art} ${n}`)
+      .join(', ')
+    zeilen.push(`Health: ${h.neu} neu, ${h.aktualisiert} aktualisiert (${arten})`)
+  }
   return [...zeilen, ...e.hinweise]
 }

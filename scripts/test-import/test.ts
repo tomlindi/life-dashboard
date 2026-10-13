@@ -1,0 +1,166 @@
+// TEST FÜR DEN LIFE-SYNC-IMPORT (Termine, Aufgaben, Apple Health) mit Beispieldaten.
+// Läuft in Node mit einer nachgebauten Datenbank (fake-indexeddb), deine echten Daten bleiben unberührt.
+// Start: npm run test:import
+import 'fake-indexeddb/auto' // muss als Erstes kommen: stellt "indexedDB" in Node bereit
+import { db, holeEinstellung } from '../../src/core/db'
+import { importiere, leseImportText, zusammenfassung } from '../../src/core/import'
+import { inStandardEinheit, leseZahl, naechte, schlafIndex } from '../../src/core/health'
+import { heute, tagPlus } from '../../src/core/datum'
+
+// ---------- Mini-Testwerkzeug ----------
+let fehler = 0
+function pruefe(name: string, ist: unknown, soll: unknown) {
+  const ok = JSON.stringify(ist) === JSON.stringify(soll)
+  if (!ok) fehler++
+  console.log(`${ok ? '  ✓' : '  ✗'} ${name}${ok ? '' : `  → ist ${JSON.stringify(ist)}, soll ${JSON.stringify(soll)}`}`)
+}
+const ungefaehr = (x: number, stellen = 2) => Math.round(x * 10 ** stellen) / 10 ** stellen
+
+/** Zeitpunkt mit Zeitzone wie vom Kurzbefehl, z. B. "2026-10-12T23:00:00+02:00" (lokale Zeit). */
+function zeit(tag: string, uhr: string) {
+  const d = new Date(`${tag}T${uhr}:00`)
+  const min = -d.getTimezoneOffset()
+  const vz = min >= 0 ? '+' : '-'
+  const z = (n: number) => String(Math.floor(Math.abs(n))).padStart(2, '0')
+  return `${tag}T${uhr}:00${vz}${z(min / 60)}:${z(min % 60)}`
+}
+const H = heute()
+const GESTERN = tagPlus(H, -1)
+const zeile = (o: object) => JSON.stringify(o)
+const termin = (titel: string, tag: string, uhr: string, kalender: string) => zeile({ typ: 'termin', titel, start: zeit(tag, uhr), kalender })
+const health = (art: string, start: string, ende: string, wert: string, einheit?: string) => zeile({ typ: 'health', art, start, ende, wert, einheit })
+
+// ---------- 1. Zahlen lesen ----------
+console.log('\n1. Zahlen und Einheiten')
+pruefe('"72,4 kg"', leseZahl('72,4 kg'), 72.4)
+pruefe('"8.432"', leseZahl('8.432'), 8432)
+pruefe('"1.234,5 kcal"', leseZahl('1.234,5 kcal'), 1234.5)
+pruefe('"1,234.5"', leseZahl('1,234.5'), 1234.5)
+pruefe('"0,18"', leseZahl('0,18'), 0.18)
+pruefe('"18 %"', leseZahl('18 %'), 18)
+pruefe('"abc" = keine Zahl', Number.isNaN(leseZahl('abc')), true)
+pruefe('Größe "1,82 m" -> cm', inStandardEinheit('groesse', 1.82, 'm 1,82 m'), 182)
+pruefe('Größe "182 cm"', inStandardEinheit('groesse', 182, 'cm'), 182)
+pruefe('KFA 0,18 -> 18 %', inStandardEinheit('kfa', 0.18, ''), 18)
+pruefe('KFA 18 %', inStandardEinheit('kfa', 18, '%'), 18)
+pruefe('Wasser 1,5 l -> ml', inStandardEinheit('wasser', 1.5, 'l'), 1500)
+pruefe('Wasser 500 mL', inStandardEinheit('wasser', 500, 'mL'), 500)
+pruefe('Gewicht 72400 g -> kg', inStandardEinheit('gewicht', 72400, 'g'), 72.4)
+
+// ---------- 2. Schlaf: Phasen und Index ----------
+console.log('\n2. Schlaf')
+const phasen = [
+  { start: zeit(GESTERN, '22:30'), ende: zeit(H, '07:00'), phase: 'bett' as const },
+  { start: zeit(GESTERN, '23:00'), ende: zeit(H, '06:45'), phase: 'schlafend' as const }, // iPhone, doppelt zur Uhr
+  { start: zeit(GESTERN, '23:00'), ende: zeit(H, '01:00'), phase: 'kern' as const },
+  { start: zeit(H, '01:00'), ende: zeit(H, '02:00'), phase: 'tief' as const },
+  { start: zeit(H, '02:00'), ende: zeit(H, '03:00'), phase: 'rem' as const },
+  { start: zeit(H, '03:00'), ende: zeit(H, '03:15'), phase: 'wach' as const },
+  { start: zeit(H, '03:15'), ende: zeit(H, '06:45'), phase: 'kern' as const },
+]
+const [nacht] = naechte(phasen)
+pruefe('Nacht gehört zu heute', nacht.datum, H)
+pruefe('Schlaf 7,5 h ("Schlafend" vom iPhone ignoriert, Wach/Im Bett zählen nicht)', nacht.schlafMin / 60, 7.5)
+pruefe('Wachzeit 15 min', nacht.minuten.wach, 15)
+const idx = schlafIndex(nacht, 8, [])
+pruefe('Schlafindex (37,5 + 16,7 + 11,25 + 20 ≈ 85)', idx.wert, 85)
+const nurSchlafend = naechte([{ start: zeit(GESTERN, '23:00'), ende: zeit(H, '07:00'), phase: 'schlafend' }])[0]
+pruefe('Ohne Phasen: nur Dauer + Regelmäßigkeit (8 h von 8 h = 100)', schlafIndex(nurSchlafend, 8, []).wert, 100)
+
+// ---------- 3. Erster Import: alles in Ordnung ----------
+console.log('\n3. Erster Import (Termine, Aufgaben, Health)')
+// Vorher: ein Termin aus einem Import VOR dem Update (alte ID ohne Kalender, mit Ziel verknüpft),
+// ein in Life angelegter Termin, ein vergangener Termin und ein selbst eingetragener Schlaf mit Sternen.
+const morgen = tagPlus(H, 1)
+await db.termine.put({ id: `kal:Mathe|${new Date(zeit(morgen, '08:00')).toISOString().slice(0, 16)}`, quelle: 'kalender', titel: 'Mathe', start: new Date(zeit(morgen, '08:00')).toISOString(), zielId: 'abi' })
+await db.termine.put({ id: 'kal:Selbst angelegt|x', quelle: 'manuell', titel: 'Selbst angelegt', start: new Date(zeit(tagPlus(H, 2), '10:00')).toISOString(), sync: 'ausstehend' })
+await db.termine.put({ id: 'apple:Schule|Alt|x', quelle: 'kalender', titel: 'Vergangen', start: new Date(zeit(tagPlus(H, -3), '10:00')).toISOString(), kalender: 'Schule' })
+await db.schlaf.put({ datum: H, stunden: 6, qualitaet: 4, quelle: 'manuell' })
+
+const import1 = [
+  termin('Mathe', morgen, '08:00', 'Schule'),
+  termin('Training', tagPlus(H, 3), '17:30', 'Sport'),
+  termin('Kino', tagPlus(H, 5), '20:00', 'Privat'),
+  zeile({ typ: 'aufgabe', titel: 'Referat üben', faellig: tagPlus(H, 4) }),
+  zeile({ typ: 'aufgabe', titel: 'Vokabeln' }),
+  health('schritte', zeit(GESTERN, '00:00'), zeit(H, '00:00'), '8.432', 'count'),
+  health('schritte', zeit(H, '00:00'), zeit(morgen, '00:00'), '3120 count'),
+  ...phasen.map((p) => health('schlaf', p.start, p.ende, { bett: 'Im Bett', schlafend: 'Schlafend', kern: 'Kern', tief: 'Tief', rem: 'REM', wach: 'Wach' }[p.phase])),
+  health('gewicht', zeit(H, '07:30'), zeit(H, '07:30'), '72,4 kg', 'kg'),
+  health('groesse', zeit(H, '07:30'), zeit(H, '07:30'), '1,82', 'm'),
+  health('kfa', zeit(H, '07:30'), zeit(H, '07:30'), '0,18'),
+  health('wasser', zeit(H, '00:00'), zeit(morgen, '00:00'), '1,5 l'),
+  health('alkohol', zeit(GESTERN, '00:00'), zeit(H, '00:00'), '2'),
+  health('kalorien', zeit(H, '00:00'), zeit(morgen, '00:00'), '2.150 kcal'),
+  health('protein', zeit(H, '00:00'), zeit(morgen, '00:00'), '120,5 g'),
+  health('kohlenhydrate', zeit(H, '00:00'), zeit(morgen, '00:00'), '260'),
+  health('fett', zeit(H, '00:00'), zeit(morgen, '00:00'), '70,2'),
+  health('puls', zeit(H, '08:00'), zeit(H, '08:00'), '62', 'count/min'), // unbekannte Art
+].join('\n')
+
+const erg1 = await importiere(leseImportText(import1))
+console.log('   Meldung: ' + zusammenfassung(erg1).join(' | '))
+pruefe('Termine: 2 neu, 1 aktualisiert (alter Mathe-Eintrag übernommen), 0 gelöscht', [erg1.termine.neu, erg1.termine.aktualisiert, erg1.termine.geloescht], [2, 1, 0])
+const mathe = (await db.termine.toArray()).filter((t) => t.titel === 'Mathe')
+pruefe('Mathe nur einmal, neue ID mit Kalender, Ziel bleibt', mathe.map((t) => [t.id.startsWith('apple:Schule|'), t.zielId]), [[true, 'abi']])
+pruefe('Selbst angelegter Termin bleibt', !!(await db.termine.get('kal:Selbst angelegt|x')), true)
+pruefe('Aufgaben: 2 neu', erg1.aufgaben.neu, 2)
+pruefe('Health: 19 Werte neu (auch zwei Schlafphasen mit gleichem Start)', erg1.health.neu, 19)
+pruefe('Unbekannte Art "puls" gespeichert und gemeldet', [(await db.health.where('art').equals('puls').count()), erg1.hinweise.some((h) => h.includes('puls'))], [1, true])
+pruefe('Schritte gestern 8432', (await db.schritte.get(GESTERN))?.anzahl, 8432)
+pruefe('Schlaf heute 7,5 h aus Health, Sterne bleiben', await db.schlaf.get(H), { datum: H, stunden: 7.5, qualitaet: 4, quelle: 'health' })
+pruefe('Gewicht 72,4 kg (aus Health)', await db.gewicht.get(H), { datum: H, kg: 72.4, quelle: 'health' })
+const werte = Object.fromEntries((await db.health.where('tag').equals(H).toArray()).filter((w) => w.wert !== undefined).map((w) => [w.art, w.wert]))
+pruefe('Größe 182 cm, KFA 18 %, Wasser 1500 ml, Kalorien 2150, Protein 120,5', [werte.groesse, werte.kfa, werte.wasser, werte.kalorien, werte.protein], [182, 18, 1500, 2150, 120.5])
+const farben = await holeEinstellung<Record<string, string>>('kalenderFarben', {})
+pruefe('Kalender bekommen verschiedene Farben', new Set([farben.Schule, farben.Sport, farben.Privat]).size, 3)
+
+// ---------- 4. Zweiter Import: Termin gelöscht und einer verschoben ----------
+console.log('\n4. Zweiter Import: "Training" gelöscht, "Kino" verschoben, Schritte aktualisiert')
+const import2 = [
+  termin('Mathe', morgen, '08:00', 'Schule'),
+  termin('Kino', tagPlus(H, 6), '20:00', 'Privat'), // verschoben
+  health('schritte', zeit(H, '00:00'), zeit(morgen, '00:00'), '5.020'), // gleicher Start -> ersetzen
+].join('\n')
+const erg2 = await importiere(leseImportText(import2))
+console.log('   Meldung: ' + zusammenfassung(erg2).join(' | '))
+pruefe('Termine: 1 neu, 1 aktualisiert, 2 gelöscht', [erg2.termine.neu, erg2.termine.aktualisiert, erg2.termine.geloescht], [1, 1, 2])
+pruefe('Vergangener Termin bleibt', (await db.termine.toArray()).some((t) => t.titel === 'Vergangen'), true)
+pruefe('Selbst angelegter Termin bleibt', !!(await db.termine.get('kal:Selbst angelegt|x')), true)
+pruefe('Schritte heute ersetzt statt verdoppelt (5020)', [(await db.schritte.get(H))?.anzahl, await db.health.where('[art+tag]').equals(['schritte', H]).count()], [5020, 1])
+pruefe('Health: 1 aktualisiert', [erg2.health.neu, erg2.health.aktualisiert], [0, 1])
+
+// ---------- 5. Kaputte Zeilen ----------
+console.log('\n5. Import mit kaputten Zeilen')
+const import3 = [
+  termin('Mathe', morgen, '08:00', 'Schule'), // "Kino" fehlt -> würde gelöscht, aber Schutz greift
+  '{"typ":"termin","titel":"Kaputt","start":"2026-10-20T10:00:00+02:00"', // Klammer fehlt
+  '{"typ":"health","art":"gewicht","wert":72,4}', // Komma-Zahl ohne Anführungszeichen
+  'hallo welt',
+  zeile({ typ: 'health', art: 'gewicht', wert: '71,9 kg' }), // ohne Start
+  zeile({ typ: 'health', art: 'wasser', start: zeit(GESTERN, '00:00'), wert: 'viel' }), // keine Zahl
+  health('wasser', zeit(GESTERN, '00:00'), zeit(H, '00:00'), '2.000 ml'),
+].join('\n')
+const erg3 = await importiere(leseImportText(import3))
+console.log('   Meldung:\n     ' + zusammenfassung(erg3).join('\n     '))
+pruefe('Kein Termin gelöscht (Schutz wegen unlesbarer Zeilen)', [erg3.termine.geloescht, (await db.termine.toArray()).some((t) => t.titel === 'Kino')], [0, true])
+pruefe('3 unlesbare Zeilen gemeldet', erg3.hinweise.some((h) => h.startsWith('3 Zeilen nicht lesbar')), true)
+pruefe('2 Health-Zeilen übersprungen (ohne Start, ohne Zahl)', erg3.hinweise.some((h) => h.startsWith('2 Health-Zeilen')), true)
+pruefe('Gültige Zeile trotzdem importiert (Wasser 2000 ml)', (await db.health.get(`wasser|${new Date(zeit(GESTERN, '00:00')).toISOString().slice(0, 19)}`))?.wert, 2000)
+
+// ---------- 6. Import ganz ohne Termine ----------
+console.log('\n6. Import ohne Termine (nur Health)')
+const erg4 = await importiere(leseImportText(health('schritte', zeit(H, '00:00'), zeit(morgen, '00:00'), '6000')))
+pruefe('Nichts gelöscht + Hinweis', [erg4.termine.geloescht, (await db.termine.count()) > 0, erg4.hinweise.some((h) => h.startsWith('Keine Termine im Import'))], [0, true, true])
+
+// ---------- 7. Gar nichts lesbar ----------
+console.log('\n7. Völlig kaputter Text')
+try {
+  leseImportText('das ist kein JSON')
+  pruefe('Fehler erwartet', 'kein Fehler', 'ImportFehler')
+} catch (e) {
+  pruefe('ImportFehler mit Zeilennummer', [(e as Error).name, (e as { zeile?: number }).zeile], ['ImportFehler', 1])
+}
+
+console.log(fehler ? `\n✗ ${fehler} Prüfung(en) fehlgeschlagen` : '\n✓ Alle Prüfungen bestanden')
+process.exit(fehler ? 1 : 0)
