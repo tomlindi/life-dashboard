@@ -8,6 +8,10 @@ Die aktuelle Version steht in der App ganz unten unter Mehr → Einstellungen.
 - Nur anschauen (am PC): `git checkout v1.0.0`, danach `npm run dev`. Zurück zur neuesten mit `git checkout main`.
 - Online wirklich zurücksetzen: `git revert --no-edit v1.0.0..HEAD` und `git push`. Dabei entstehen neue Commits, die alles seit v1.0.0 rückgängig machen. Der Verlauf bleibt erhalten, und GitHub Pages baut automatisch die alte Version.
 
+## 1.5.1 – 13.10.2026
+
+**Mehrtägige Termine an allen Tagen.** Bisher erschien ein Termin über mehrere Tage nur an seinem ersten Tag. Jetzt steht er im Kalender an jedem seiner Tage, mit Punkt und in der Tagesliste. Ganztägige Termine stehen oben mit „Tag 2 von 3“, eine Fahrt von Freitag 20:00 bis Sonntag 10:00 zeigt „ab 20:00“, dann „ganztägig“ und „bis 10:00“. Auch das Kalender-Widget auf Heute zeigt laufende mehrtägige Termine, die schon vor heute begonnen haben.
+
 ## 1.5.0 – 13.10.2026
 
 **Filter für langfristige Ziele.** Über den Zielen stehen die Chips Alle, Offen und Erreicht (Erreicht = 100 %). Die Auswahl bleibt gespeichert.

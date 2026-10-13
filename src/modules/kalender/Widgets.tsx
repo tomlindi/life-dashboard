@@ -2,27 +2,38 @@
 // Kalender (Wochentag rot, großes Datum, nächste Termine) und Erinnerungen (Anzahl + offene Einträge).
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../../core/db'
-import { heute, tagPlus, tagVon, uhrzeit } from '../../core/datum'
+import { db, type Termin } from '../../core/db'
+import { heute, tagPlus } from '../../core/datum'
 import { ROT, useKalenderFarben } from './farben'
+import { ganztaegigAm, letzterTag, liegtAm, zeitAm } from './mehrtaegig'
 
 export function KalenderWidget() {
   const { farbe, sichtbar } = useKalenderFarben() // Farbstreifen links wie in Apple Kalender; ausgeblendete Kalender weglassen
   const h = heute()
-  // Termine von heute (noch nicht vorbei) und morgen
+  const morgenTag = tagPlus(h, 1)
+  // Termine, die vor übermorgen beginnen und bis heute oder später dauern. Der Blick ein Jahr zurück
+  // erwischt auch mehrtägige Termine, die schon vor heute angefangen haben (z. B. Urlaub seit gestern).
   const termine =
     useLiveQuery(
       () =>
         db.termine
           .where('start')
-          .between(new Date(`${h}T00:00:00`).toISOString(), new Date(`${tagPlus(h, 2)}T00:00:00`).toISOString())
+          .between(new Date(`${tagPlus(h, -366)}T00:00:00`).toISOString(), new Date(`${tagPlus(h, 2)}T00:00:00`).toISOString())
           .sortBy('start'),
       [h],
     ) ?? []
   const jetzt = new Date().toISOString()
-  const heutige = termine.filter((t) => sichtbar(t.kalender) && tagVon(t.start) === h && (t.ganztaegig || (t.ende ?? t.start) >= jetzt))
-  const morgen = termine.filter((t) => sichtbar(t.kalender) && tagVon(t.start) === tagPlus(h, 1))
+  // Heute: noch nicht vorbei (ganztägige bzw. mehrtägige Termine gelten den ganzen Tag)
+  const heutige = termine.filter((t) => sichtbar(t.kalender) && liegtAm(t, h) && (ganztaegigAm(t, h) || letzterTag(t) > h || (t.ende ?? t.start) >= jetzt))
+  const morgen = termine.filter((t) => sichtbar(t.kalender) && liegtAm(t, morgenTag))
   const liste = heutige.length ? heutige : morgen
+  const tag = heutige.length ? h : morgenTag
+  // Zeit-Text für den angezeigten Tag, z. B. "08:00–09:30", "ab 20:00", "bis 10:00" oder "ganztägig"
+  const zeitText = (t: Termin) => {
+    if (ganztaegigAm(t, tag)) return 'ganztägig'
+    const z = zeitAm(t, tag)
+    return z.bis ? `${z.von}–${z.bis}` : z.von
+  }
   const d = new Date()
 
   return (
@@ -42,7 +53,7 @@ export function KalenderWidget() {
                 <span className="w-[3px] shrink-0 rounded-full" style={{ background: farbe(t.kalender) }} />
                 <div className="min-w-0">
                   <p className="truncate text-[13px] font-semibold leading-tight">{t.titel}</p>
-                  <p className="text-[12px] leading-tight text-grau">{t.ganztaegig ? 'ganztägig' : `${uhrzeit(t.start)}${t.ende ? `–${uhrzeit(t.ende)}` : ''}`}</p>
+                  <p className="text-[12px] leading-tight text-grau">{zeitText(t)}</p>
                 </div>
               </div>
             ))}

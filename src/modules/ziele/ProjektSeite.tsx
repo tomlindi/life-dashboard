@@ -16,6 +16,7 @@ import { Leer } from '../../core/ui/Formular'
 import { ProjektFormular } from './Formulare'
 import { STATUS_FARBE, aendereProjekt, farbeVon, fortschritt } from './projekte'
 import AufgabenListe, { ErinnerungEintrag } from './AufgabenListe'
+import { letzterTag } from '../kalender/mehrtaegig'
 
 /** Notizfeld: speichert beim Tippen (kurz verzögert) und beim Verlassen des Feldes. */
 function Notizen({ projektId, start }: { projektId: string; start: string }) {
@@ -58,7 +59,8 @@ export default function ProjektSeite() {
   const farbe = farbeVon(projekt)
   const f = fortschritt(projekt, aufgaben, erinnerungen)
   const offeneAufgaben = aufgaben.filter((a) => !a.elternId && !a.erledigt).length
-  const kommendeTermine = termine.filter((t) => tagVon(t.start) >= heute())
+  // Kommende und gerade laufende (auch mehrtägige, die schon begonnen haben)
+  const kommendeTermine = termine.filter((t) => letzterTag(t) >= heute())
   const ueberfaellig = projekt.deadline && projekt.deadline < heute() && projekt.status !== 'Fertig'
 
   return (

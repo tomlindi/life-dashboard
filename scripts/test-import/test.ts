@@ -8,6 +8,7 @@ import { importiere, leseImportText, zusammenfassung } from '../../src/core/impo
 import { inStandardEinheit, leseZahl, naechte, schlafIndex } from '../../src/core/health'
 import { heute, tagPlus } from '../../src/core/datum'
 import type { Projekt } from '../../src/core/db'
+import { ganztaegigAm, liegtAm, tageDesTermins, tagNummer, zeitAm } from '../../src/modules/kalender/mehrtaegig'
 import { fortschritt, loescheAufgabe, neueAufgabe, passt, schalteAufgabe, sortiere, speichereReihenfolge, zielPasst } from '../../src/modules/ziele/projekte'
 
 // ---------- Mini-Testwerkzeug ----------
@@ -199,6 +200,23 @@ pruefe('Bearbeiten setzt "Zuletzt bearbeitet"', ((await db.projekte.get('a'))?.g
 await loescheAufgabe(design)
 pruefe('Aufgabe löschen löscht Unteraufgaben mit', await db.projektAufgaben.where('projektId').equals('a').count(), 0)
 pruefe('Ziel-Filter: 100 % = Erreicht, 80 % = Offen', [zielPasst(100, 'Erreicht'), zielPasst(80, 'Erreicht'), zielPasst(80, 'Offen'), zielPasst(100, 'Offen'), zielPasst(50, 'Alle')], [true, false, true, false, true])
+
+// ---------- 9. Mehrtägige Termine ----------
+console.log('\n9. Mehrtägige Termine')
+const iso = (tag: string, uhr: string) => new Date(zeit(tag, uhr)).toISOString()
+const T1 = tagPlus(H, 10)
+const urlaub = { start: iso(T1, '00:00'), ende: iso(tagPlus(T1, 2), '23:59'), ganztaegig: true } // 3 Tage ganztägig
+const urlaubMitternacht = { start: iso(T1, '00:00'), ende: iso(tagPlus(T1, 3), '00:00'), ganztaegig: true } // Ende 00:00 = Vortag
+const fahrt = { start: iso(T1, '20:00'), ende: iso(tagPlus(T1, 2), '10:00') } // Fr 20:00 bis So 10:00
+const normal = { start: iso(T1, '08:00'), ende: iso(T1, '09:30') }
+pruefe('Ganztägig 3 Tage -> 3 Tage', tageDesTermins(urlaub).length, 3)
+pruefe('Ende genau 00:00 zählt nicht mit', tageDesTermins(urlaubMitternacht).length, 3)
+pruefe('Normaler Termin -> 1 Tag', tageDesTermins(normal), [T1])
+pruefe('Fahrt liegt auch am mittleren Tag', liegtAm(fahrt, tagPlus(T1, 1)), true)
+pruefe('Fahrt: Mitte ganztägig, Anfang nicht', [ganztaegigAm(fahrt, tagPlus(T1, 1)), ganztaegigAm(fahrt, T1)], [true, false])
+pruefe('Fahrt: Uhrzeiten pro Tag', [zeitAm(fahrt, T1).von, zeitAm(fahrt, tagPlus(T1, 2)).von], ['ab 20:00', 'bis 10:00'])
+pruefe('Normaler Termin: von–bis', zeitAm(normal, T1), { von: '08:00', bis: '09:30' })
+pruefe('Tag 2 von 3', tagNummer(urlaub, tagPlus(T1, 1)), 'Tag 2 von 3')
 
 console.log(fehler ? `\n✗ ${fehler} Prüfung(en) fehlgeschlagen` : '\n✓ Alle Prüfungen bestanden')
 process.exit(fehler ? 1 : 0)
