@@ -1,7 +1,7 @@
 // Bereich "Ziele & Projekte":
 //   • oben die Projekte mit Filter und Sortierung (ProjektListe.tsx); jedes Projekt hat eine eigene Seite (ProjektSeite.tsx)
-//   • langfristige Ziele mit Unterzielen; zugeordnete Termine und Erinnerungen sind eingeklappt
-//   • unten: Kalendertermine einem Ziel/Projekt zuordnen, Erinnerungen einem Projekt zuordnen
+//   • langfristige Ziele mit Filter (Alle/Offen/Erreicht) und Unterzielen; zugeordnete Termine und Erinnerungen sind eingeklappt
+//   • unten (eingeklappt): Kalendertermine einem Ziel/Projekt zuordnen, Erinnerungen einem Projekt zuordnen
 // Aufgaben aus Apple Erinnerungen (außer Liste "Schule", die gehört zu Schule) lassen sich einem Projekt zuordnen.
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -15,6 +15,8 @@ import Aufklapper from '../../core/ui/Aufklapper'
 import { Balken, Haken, Leer, LoeschKnopf, PlusKnopf, SchnellEingabe } from '../../core/ui/Formular'
 import { ZielFormular } from './Formulare'
 import ProjektListe from './ProjektListe'
+import { ZIEL_FILTER, zielPasst, type ZielFilter } from './projekte'
+import { useEinstellung } from '../../core/einstellungen'
 import { schalteErinnerung } from '../../core/apple'
 import { istSchulListe } from '../../core/aufgaben'
 
@@ -67,6 +69,10 @@ export default function ZieleSeite() {
 
   const naechste14 = termine.filter((t) => tagVon(t.start) <= tagPlus(heute(), 14))
 
+  // Filter für die Ziele (gespeichert): Erreicht = 100 %, Offen = alles darunter
+  const [zielFilter, setZielFilter] = useEinstellung<ZielFilter>('zielFilter', 'Alle')
+  const sichtbareZiele = ziele.filter((z) => zielPasst(prozent(z), zielFilter))
+
   return (
     <Seite titel="Ziele" farbe={FARBE}>
       {/* ---------- Projekte (Filter, Sortierung, Liste) ---------- */}
@@ -74,11 +80,27 @@ export default function ZieleSeite() {
 
       {/* ---------- Ziele ---------- */}
       <Karte titel="Langfristige Ziele" akzent={FARBE} rechts={<PlusKnopf farbe={FARBE} onClick={() => setZielFormular(true)} label="Ziel" />}>
+        {ziele.length > 0 && (
+          <div className="mb-3 flex gap-2">
+            {ZIEL_FILTER.map((x) => (
+              <button
+                key={x}
+                onClick={() => setZielFilter(x)}
+                className="tippbar min-h-9 shrink-0 rounded-full px-3.5 text-[14px] font-medium"
+                style={{ background: zielFilter === x ? FARBE : '#2c2c2e', color: zielFilter === x ? '#000' : '#fff' }}
+              >
+                {x}
+              </button>
+            ))}
+          </div>
+        )}
         {ziele.length === 0 ? (
           <Leer>Noch keine Ziele. Was willst du in diesem Jahr erreichen?</Leer>
+        ) : sichtbareZiele.length === 0 ? (
+          <Leer>Keine Ziele für diesen Filter.</Leer>
         ) : (
           <ul className="space-y-2">
-            {ziele.map((z) => {
+            {sichtbareZiele.map((z) => {
               const p = prozent(z)
               const istOffen = offen === z.id
               const liste = unterziele.filter((u) => u.zielId === z.id)
@@ -180,8 +202,9 @@ export default function ZieleSeite() {
         )}
       </Karte>
 
-      {/* ---------- Termine zuordnen ---------- */}
-      <Karte titel="Termine zuordnen" akzent="#ff9f0a">
+      {/* ---------- Termine zuordnen (eingeklappt, bei jedem Öffnen der Seite wieder zu) ---------- */}
+      <Karte>
+        <Aufklapper titel="Termine zuordnen" anzahl={naechste14.length} farbe="#ff9f0a">
         {naechste14.length === 0 ? (
           <Leer>Keine Termine in den nächsten 14 Tagen. Importiere deinen Kalender über „Mehr → Daten importieren“.</Leer>
         ) : (
@@ -224,10 +247,12 @@ export default function ZieleSeite() {
             ))}
           </ul>
         )}
+        </Aufklapper>
       </Karte>
 
       {/* ---------- Erinnerungen zuordnen ---------- */}
-      <Karte titel="Erinnerungen zuordnen" akzent="#0a84ff">
+      <Karte>
+        <Aufklapper titel="Erinnerungen zuordnen" anzahl={offeneErinnerungen.length} farbe="#0a84ff">
         {offeneErinnerungen.length === 0 ? (
           <Leer>Keine offenen Aufgaben aus Erinnerungen (außer Schule). Hol sie mit „Life Sync einfügen“ unter „Mehr → Daten importieren“.</Leer>
         ) : projekte.length === 0 ? (
@@ -263,6 +288,7 @@ export default function ZieleSeite() {
             ))}
           </ul>
         )}
+        </Aufklapper>
       </Karte>
 
 

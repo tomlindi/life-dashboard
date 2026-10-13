@@ -8,7 +8,7 @@ import { importiere, leseImportText, zusammenfassung } from '../../src/core/impo
 import { inStandardEinheit, leseZahl, naechte, schlafIndex } from '../../src/core/health'
 import { heute, tagPlus } from '../../src/core/datum'
 import type { Projekt } from '../../src/core/db'
-import { fortschritt, loescheAufgabe, neueAufgabe, passt, schalteAufgabe, sortiere, speichereReihenfolge } from '../../src/modules/ziele/projekte'
+import { fortschritt, loescheAufgabe, neueAufgabe, passt, schalteAufgabe, sortiere, speichereReihenfolge, zielPasst } from '../../src/modules/ziele/projekte'
 
 // ---------- Mini-Testwerkzeug ----------
 let fehler = 0
@@ -198,6 +198,7 @@ pruefe('Fortschritt zählt Aufgaben + Unteraufgaben (1 von 3)', [fA.erledigt, fA
 pruefe('Bearbeiten setzt "Zuletzt bearbeitet"', ((await db.projekte.get('a'))?.geaendert ?? '') > '2026-10-01T10:00:00Z', true)
 await loescheAufgabe(design)
 pruefe('Aufgabe löschen löscht Unteraufgaben mit', await db.projektAufgaben.where('projektId').equals('a').count(), 0)
+pruefe('Ziel-Filter: 100 % = Erreicht, 80 % = Offen', [zielPasst(100, 'Erreicht'), zielPasst(80, 'Erreicht'), zielPasst(80, 'Offen'), zielPasst(100, 'Offen'), zielPasst(50, 'Alle')], [true, false, true, false, true])
 
 console.log(fehler ? `\n✗ ${fehler} Prüfung(en) fehlgeschlagen` : '\n✓ Alle Prüfungen bestanden')
 process.exit(fehler ? 1 : 0)

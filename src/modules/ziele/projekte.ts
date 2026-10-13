@@ -128,3 +128,11 @@ export const nachErstellt = (a: ProjektAufgabe, b: ProjektAufgabe) => (a.erstell
 
 /** Farbe je Status (für die kleinen Status-Kapseln). */
 export const STATUS_FARBE: Record<string, string> = { Idee: '#8e8e93', Aktiv: '#30d158', Pausiert: '#ffd60a', Fertig: '#0a84ff' }
+
+// ---------- Filter für langfristige Ziele ----------
+
+export const ZIEL_FILTER = ['Alle', 'Offen', 'Erreicht'] as const
+export type ZielFilter = (typeof ZIEL_FILTER)[number]
+
+/** Passt ein Ziel mit diesem Fortschritt (0–100) zum Filter? Erreicht = 100 %. */
+export const zielPasst = (prozent: number, filter: ZielFilter) => filter === 'Alle' || (filter === 'Erreicht' ? prozent >= 100 : prozent < 100)

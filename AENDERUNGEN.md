@@ -8,6 +8,14 @@ Die aktuelle Version steht in der App ganz unten unter Mehr → Einstellungen.
 - Nur anschauen (am PC): `git checkout v1.0.0`, danach `npm run dev`. Zurück zur neuesten mit `git checkout main`.
 - Online wirklich zurücksetzen: `git revert --no-edit v1.0.0..HEAD` und `git push`. Dabei entstehen neue Commits, die alles seit v1.0.0 rückgängig machen. Der Verlauf bleibt erhalten, und GitHub Pages baut automatisch die alte Version.
 
+## 1.5.0 – 13.10.2026
+
+**Filter für langfristige Ziele.** Über den Zielen stehen die Chips Alle, Offen und Erreicht (Erreicht = 100 %). Die Auswahl bleibt gespeichert.
+
+**Zuordnen eingeklappt.** „Termine zuordnen“ und „Erinnerungen zuordnen“ sind beim Öffnen der Seite eingeklappt und zeigen nur die Anzahl. Antippen klappt sie auf.
+
+**Aufgaben wie in Apple Erinnerungen.** Auf der Projektseite haben Aufgaben jetzt kleine Kreise, lange Namen brechen sauber unter dem Text um, und die Trennlinien beginnen erst beim Text. Papierkorb und „+“ in jeder Zeile sind weg: Nach links wischen zeigt „Unteraufgabe“ und „Löschen“. Neue Aufgaben tippst du direkt in die leere Zeile am Ende der Liste, Enter springt zur nächsten.
+
 ## 1.4.0 – 13.10.2026
 
 **Projekte filtern und sortieren.** Oben auf der Ziele-Seite stehen die Projekte mit Filter-Chips (Alle, Aktiv, Pausiert, Erledigt, Deadline diese Woche), einer Auswahl „Ziel“ und einem Sortieren-Knopf (Deadline, Fortschritt, Name, Zuletzt bearbeitet, Eigene Reihenfolge). Bei „Eigene Reihenfolge“ hältst du ein Projekt gedrückt und ziehst es. Filter und Sortierung bleiben gespeichert. Jede Zeile zeigt nur Farbe, Name, Fortschrittsring, Deadline und offene Aufgaben.

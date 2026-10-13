@@ -1,68 +1,21 @@
 // Eigene Seite für ein Projekt (Adresse #/ziele/projekt/<id>, dadurch funktioniert "Zurück").
 // Oben: Zurück, Bearbeiten, Name, großer Fortschrittsring, Status, Deadline, Ziel.
 // Darunter aufklappbare Abschnitte: Aufgaben (mit Unteraufgaben), Termine, Erinnerungen, Notizen.
-// Erledigtes ist eingeklappt ("3 erledigt ›"), neue Aufgaben kommen unten direkt in die Liste (wie in Apple Erinnerungen).
+// Aufgaben im Stil von Apple Erinnerungen (AufgabenListe.tsx): Erledigtes eingeklappt, neue Aufgaben unten in der Liste.
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Flag, Plus } from 'lucide-react'
-import { db, type ProjektAufgabe } from '../../core/db'
+import { db } from '../../core/db'
 import { heute, tagVon, uhrzeit } from '../../core/datum'
 import { kurzDatum, relativ } from '../../core/format'
-import { schalteErinnerung } from '../../core/apple'
 import Karte from '../../core/ui/Karte'
 import Ring from '../../core/ui/Ring'
 import Aufklapper from '../../core/ui/Aufklapper'
 import { ZurueckKnopf } from '../../core/ui/Dock'
-import { Haken, Leer, LoeschKnopf, SchnellEingabe } from '../../core/ui/Formular'
+import { Leer } from '../../core/ui/Formular'
 import { ProjektFormular } from './Formulare'
-import { STATUS_FARBE, aendereProjekt, farbeVon, fortschritt, loescheAufgabe, nachErstellt, neueAufgabe, schalteAufgabe } from './projekte'
-
-/** Eine Aufgabe mit ihren Unteraufgaben. Erledigte Unteraufgaben sind als "n erledigt ›" eingeklappt. */
-function AufgabeZeile({ a, unter, farbe }: { a: ProjektAufgabe; unter: ProjektAufgabe[]; farbe: string }) {
-  const [neueUnter, setNeueUnter] = useState(false)
-  const offen = unter.filter((u) => !u.erledigt)
-  const erledigt = unter.filter((u) => u.erledigt)
-  return (
-    <li className="border-b border-linie last:border-b-0">
-      <div className="flex items-center">
-        <Haken an={a.erledigt} farbe={farbe} onClick={() => schalteAufgabe(a)} />
-        <span className={`min-w-0 flex-1 text-[16px] ${a.erledigt ? 'text-grau line-through' : ''}`}>{a.titel}</span>
-        {!a.erledigt && (
-          <button onClick={() => setNeueUnter(!neueUnter)} className="tippbar flex h-9 w-9 items-center justify-center text-grau" aria-label={`Unteraufgabe zu „${a.titel}“`}>
-            <Plus size={18} />
-          </button>
-        )}
-        <LoeschKnopf frage={unter.length ? 'Aufgabe samt Unteraufgaben löschen?' : 'Aufgabe löschen?'} onLoeschen={() => loescheAufgabe(a)} />
-      </div>
-
-      {/* Unteraufgaben, eingerückt */}
-      {(unter.length > 0 || neueUnter) && (
-        <div className="mb-1 ml-9">
-          {offen.map((u) => (
-            <div key={u.id} className="flex items-center">
-              <Haken an={false} farbe={farbe} onClick={() => schalteAufgabe(u)} />
-              <span className="min-w-0 flex-1 text-[15px]">{u.titel}</span>
-              <LoeschKnopf frage="Unteraufgabe löschen?" onLoeschen={() => loescheAufgabe(u)} />
-            </div>
-          ))}
-          {erledigt.length > 0 && (
-            <Aufklapper titel={`${erledigt.length} erledigt`} klein>
-              {erledigt.map((u) => (
-                <div key={u.id} className="flex items-center">
-                  <Haken an farbe={farbe} onClick={() => schalteAufgabe(u)} />
-                  <span className="min-w-0 flex-1 text-[15px] text-grau line-through">{u.titel}</span>
-                  <LoeschKnopf frage="Unteraufgabe löschen?" onLoeschen={() => loescheAufgabe(u)} />
-                </div>
-              ))}
-            </Aufklapper>
-          )}
-          {neueUnter && <SchnellEingabe platzhalter="Unteraufgabe …" farbe={farbe} onNeu={(titel) => neueAufgabe(a.projektId, titel, a.id)} />}
-        </div>
-      )}
-    </li>
-  )
-}
+import { STATUS_FARBE, aendereProjekt, farbeVon, fortschritt } from './projekte'
+import AufgabenListe, { ErinnerungEintrag } from './AufgabenListe'
 
 /** Notizfeld: speichert beim Tippen (kurz verzögert) und beim Verlassen des Feldes. */
 function Notizen({ projektId, start }: { projektId: string; start: string }) {
@@ -104,10 +57,7 @@ export default function ProjektSeite() {
   if (projekt === undefined) return <div className="px-4 pt-3"><ZurueckKnopf ersatz="/ziele" label="Ziele" /></div>
   const farbe = farbeVon(projekt)
   const f = fortschritt(projekt, aufgaben, erinnerungen)
-  const hauptAufgaben = aufgaben.filter((a) => !a.elternId).sort(nachErstellt)
-  const unterVon = (a: ProjektAufgabe) => aufgaben.filter((u) => u.elternId === a.id).sort(nachErstellt)
-  const offen = hauptAufgaben.filter((a) => !a.erledigt)
-  const erledigt = hauptAufgaben.filter((a) => a.erledigt)
+  const offeneAufgaben = aufgaben.filter((a) => !a.elternId && !a.erledigt).length
   const kommendeTermine = termine.filter((t) => tagVon(t.start) >= heute())
   const ueberfaellig = projekt.deadline && projekt.deadline < heute() && projekt.status !== 'Fertig'
 
@@ -151,23 +101,9 @@ export default function ProjektSeite() {
 
       <div className="flex flex-col gap-3">
         <Karte>
-          <Aufklapper titel="Aufgaben" anzahl={offen.length} standardOffen farbe={farbe}>
-            <ul>
-              {offen.map((a) => (
-                <AufgabeZeile key={a.id} a={a} unter={unterVon(a)} farbe={farbe} />
-              ))}
-            </ul>
-            {/* Neue Aufgabe direkt unten in der Liste */}
-            <SchnellEingabe platzhalter="Neue Aufgabe …" farbe={farbe} onNeu={(titel) => neueAufgabe(projekt.id, titel)} />
-            {erledigt.length > 0 && (
-              <Aufklapper titel={`${erledigt.length} erledigt`} klein>
-                <ul>
-                  {erledigt.map((a) => (
-                    <AufgabeZeile key={a.id} a={a} unter={unterVon(a)} farbe={farbe} />
-                  ))}
-                </ul>
-              </Aufklapper>
-            )}
+          <Aufklapper titel="Aufgaben" anzahl={offeneAufgaben} standardOffen farbe={farbe}>
+            {/* Im Stil von Apple Erinnerungen, siehe AufgabenListe.tsx */}
+            <AufgabenListe projektId={projekt.id} aufgaben={aufgaben} farbe={farbe} />
           </Aufklapper>
         </Karte>
 
@@ -196,15 +132,11 @@ export default function ProjektSeite() {
             {erinnerungen.length === 0 ? (
               <Leer>Keine Erinnerungen zugeordnet. Das geht auf der Ziele-Seite unter „Erinnerungen zuordnen“.</Leer>
             ) : (
-              erinnerungen.map((a) => (
-                <div key={a.id} className="flex items-center">
-                  {/* Abhaken wird beim nächsten Abgleich an Apple geschickt */}
-                  <Haken an={a.erledigt} farbe={farbe} onClick={() => schalteErinnerung(a)} />
-                  <span className={`min-w-0 flex-1 truncate text-[15px] ${a.erledigt ? 'text-grau line-through' : ''}`}>{a.titel}</span>
-                  {a.markiert && <Flag size={14} color="#ff9f0a" fill="#ff9f0a" className="mr-2 shrink-0" />}
-                  <span className="shrink-0 text-[12px] text-grau">{a.faellig ? relativ(a.faellig) : (a.liste ?? '')}</span>
-                </div>
-              ))
+              <div className="-ml-2">
+                {erinnerungen.map((a, i) => (
+                  <ErinnerungEintrag key={a.id} a={a} farbe={farbe} linie={i < erinnerungen.length - 1} />
+                ))}
+              </div>
             )}
           </Aufklapper>
         </Karte>
