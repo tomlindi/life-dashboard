@@ -7,7 +7,7 @@ import { heute, tagPlus, tagVon, uhrzeit } from '../../core/datum'
 import { ROT, useKalenderFarben } from './farben'
 
 export function KalenderWidget() {
-  const { farbe } = useKalenderFarben() // Farbstreifen links wie in Apple Kalender
+  const { farbe, sichtbar } = useKalenderFarben() // Farbstreifen links wie in Apple Kalender; ausgeblendete Kalender weglassen
   const h = heute()
   // Termine von heute (noch nicht vorbei) und morgen
   const termine =
@@ -20,8 +20,8 @@ export function KalenderWidget() {
       [h],
     ) ?? []
   const jetzt = new Date().toISOString()
-  const heutige = termine.filter((t) => tagVon(t.start) === h && (t.ganztaegig || (t.ende ?? t.start) >= jetzt))
-  const morgen = termine.filter((t) => tagVon(t.start) === tagPlus(h, 1))
+  const heutige = termine.filter((t) => sichtbar(t.kalender) && tagVon(t.start) === h && (t.ganztaegig || (t.ende ?? t.start) >= jetzt))
+  const morgen = termine.filter((t) => sichtbar(t.kalender) && tagVon(t.start) === tagPlus(h, 1))
   const liste = heutige.length ? heutige : morgen
   const d = new Date()
 

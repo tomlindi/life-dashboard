@@ -8,6 +8,10 @@ Die aktuelle Version steht in der App ganz unten unter Mehr → Einstellungen.
 - Nur anschauen (am PC): `git checkout v1.0.0`, danach `npm run dev`. Zurück zur neuesten mit `git checkout main`.
 - Online wirklich zurücksetzen: `git revert --no-edit v1.0.0..HEAD` und `git push`. Dabei entstehen neue Commits, die alles seit v1.0.0 rückgängig machen. Der Verlauf bleibt erhalten, und GitHub Pages baut automatisch die alte Version.
 
+## 1.1.0 – 13.10.2026
+
+**Kalender ein- und ausblenden.** Auf der Kalender-Seite gibt es oben den Knopf „Kalender“. Er öffnet ein Blatt mit allen Kalendern: Zeile antippen blendet den Kalender ein oder aus, der farbige Kreis öffnet die 12 Apple-Farben. Ausgeblendete Kalender verschwinden aus Monatsansicht, Punkten, Tagesliste, Legende, dem Kalender-Widget auf Heute und den geplanten Trainings bei Fitness. Ihre Termine bleiben gespeichert und werden weiter mit Apple abgeglichen. Neue Kalender aus Life Sync sind automatisch eingeblendet, und unter dem Knopf steht, wie viele ausgeblendet sind.
+
 ## 1.0.0 – 13.10.2026
 
 **Versionsnummern.** Ab jetzt hat die App Versionen. Die Nummer steht klein unten in den Einstellungen, jede Version bekommt einen Git-Tag. Dieser Stand ist 1.0.0 und umfasst alles bis hierher.

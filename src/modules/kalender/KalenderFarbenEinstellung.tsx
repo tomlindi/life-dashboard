@@ -1,10 +1,10 @@
 // Einstellungen → "Kalenderfarben": pro Kalender eine der 12 Apple-Farben wählen.
 // Antippen klappt eine Zeile mit allen Farben auf, ein Tap auf eine Farbe speichert sofort.
 import { useState } from 'react'
-import { Check } from 'lucide-react'
 import Karte from '../../core/ui/Karte'
 import { Leer } from '../../core/ui/Formular'
-import { APPLE_FARBEN, setzeKalenderFarbe, useKalenderFarben } from './farben'
+import { APPLE_FARBEN, useKalenderFarben } from './farben'
+import FarbAuswahl from './FarbAuswahl'
 
 export default function KalenderFarbenEinstellung() {
   const { namen, farbe } = useKalenderFarben()
@@ -23,25 +23,7 @@ export default function KalenderFarbenEinstellung() {
                 <span className="flex-1 truncate text-[16px]">{name}</span>
                 <span className="text-[13px] text-grau">{APPLE_FARBEN.find((f) => f.hex === farbe(name))?.name ?? ''}</span>
               </button>
-              {offen === name && (
-                // 12 Farben in zwei Reihen à 6
-                <div className="grid grid-cols-6 gap-2 pb-3">
-                  {APPLE_FARBEN.map((f) => (
-                    <button
-                      key={f.hex}
-                      onClick={() => {
-                        void setzeKalenderFarbe(name, f.hex)
-                        setOffen(null)
-                      }}
-                      aria-label={f.name}
-                      className="tippbar flex aspect-square items-center justify-center rounded-full"
-                      style={{ background: f.hex }}
-                    >
-                      {farbe(name) === f.hex && <Check size={18} color="#000" strokeWidth={3} />}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {offen === name && <FarbAuswahl name={name} aktuell={farbe(name)} onFertig={() => setOffen(null)} />}
             </li>
           ))}
         </ul>

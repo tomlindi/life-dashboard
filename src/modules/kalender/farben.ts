@@ -61,19 +61,35 @@ export function vergibKalenderFarben(namen: Iterable<string>): Promise<KalenderF
 export const setzeKalenderFarbe = async (name: string, hex: string) =>
   setzeEinstellung(SCHLUESSEL, { ...(await holeEinstellung<KalenderFarben>(SCHLUESSEL, {})), [name]: hex })
 
+// ---------- Kalender ein- und ausblenden ----------
+// Gespeichert wird die Liste der AUSGEBLENDETEN Kalender (Einstellung "ausgeblendeteKalender").
+// So sind neue Kalender, die durch Life Sync dazukommen, automatisch eingeblendet.
+// Ausgeblendete Termine bleiben in der Datenbank und werden weiter abgeglichen, nur nicht angezeigt.
+const AUSGEBLENDET = 'ausgeblendeteKalender'
+
+export const setzeAusgeblendeteKalender = (namen: string[]) => setzeEinstellung(AUSGEBLENDET, namen)
+
 /**
- * Hook für Seiten: liefert die Farb-Zuordnung und eine Funktion farbe(kalender).
+ * Hook für Seiten: liefert die Farb-Zuordnung, alle Kalendernamen, farbe(kalender) und sichtbar(kalender).
  * Kalender aus älteren Importen, die noch keine Farbe haben, bekommen hier automatisch eine.
  */
 export function useKalenderFarben() {
   const farben = useLiveQuery(() => holeEinstellung<KalenderFarben>(SCHLUESSEL, {}), []) ?? {}
+  const ausgeblendetRoh = useLiveQuery(() => holeEinstellung<string[]>(AUSGEBLENDET, []), []) ?? []
   // Alle Kalendernamen, die in den Terminen vorkommen
   const namen = useLiveQuery(async () => [...new Set((await db.termine.toArray()).map((t) => kalenderName(t.kalender)))].sort((a, b) => a.localeCompare(b, 'de')), []) ?? []
   const fehlend = namen.filter((n) => !farben[n])
   useEffect(() => {
     if (fehlend.length) void vergibKalenderFarben(fehlend)
   }, [fehlend.join('|')]) // eslint-disable-line react-hooks/exhaustive-deps -- nur bei neuen Namen
-  return { farben, namen, farbe: (kalender?: string) => farben[kalenderName(kalender)] ?? GRAU }
+  return {
+    farben,
+    namen,
+    // nur Kalender, die es noch gibt (für die Anzeige "2 ausgeblendet")
+    ausgeblendet: ausgeblendetRoh.filter((n) => namen.includes(n)),
+    farbe: (kalender?: string) => farben[kalenderName(kalender)] ?? GRAU,
+    sichtbar: (kalender?: string) => !ausgeblendetRoh.includes(kalenderName(kalender)),
+  }
 }
 
 // ---------- Erinnerungen-Listen: Farbe aus dem Namen "berechnet" (immer dieselbe) ----------

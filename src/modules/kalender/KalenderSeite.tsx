@@ -1,5 +1,6 @@
 // Kalender wie in Apples Kalender-App: Monatsansicht oben, Termine des gewählten Tages darunter.
 // Unter jedem Datum ein farbiger Punkt pro Kalender mit Terminen (höchstens 3, sonst "+"), darunter eine Legende.
+// Oben der Knopf "Kalender": Kalender ein-/ausblenden und ihre Farbe ändern (KalenderAuswahl.tsx).
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -8,6 +9,7 @@ import { zeigeLeiste } from '../../core/ui/TabLeiste'
 import { db, type Termin } from '../../core/db'
 import { heute, langesDatum, tagVon, uhrzeit } from '../../core/datum'
 import TerminSheet from './TerminSheet'
+import KalenderAuswahl from './KalenderAuswahl'
 import SyncKnopf from './SyncKnopf'
 import { ROT, kalenderName, useKalenderFarben } from './farben'
 
@@ -27,13 +29,15 @@ function Punkte({ kalender, farbe }: { kalender: string[]; farbe: (k: string) =>
 }
 
 export default function KalenderSeite() {
-  const termine = useLiveQuery(() => db.termine.orderBy('start').toArray(), []) ?? []
+  const alleTermine = useLiveQuery(() => db.termine.orderBy('start').toArray(), []) ?? []
+  const { farbe, sichtbar, ausgeblendet } = useKalenderFarben()
+  // Ausgeblendete Kalender (Knopf "Kalender") verschwinden überall auf dieser Seite
+  const termine = alleTermine.filter((t) => sichtbar(t.kalender))
   const [gewaehlt, setGewaehlt] = useState(heute())
   const [monat, setMonat] = useState(() => ({ jahr: new Date().getFullYear(), monat: new Date().getMonth() }))
   const [sheet, setSheet] = useState<{ offen: boolean; termin?: Termin }>({ offen: false })
+  const [auswahlOffen, setAuswahlOffen] = useState(false) // Blatt "Kalender"
 
-  // Welche Tage haben Termine? (für die Punkte im Monatsraster)
-  const { farbe } = useKalenderFarben()
   // Pro Tag: welche Kalender haben dort Termine? (für die farbigen Punkte im Monatsraster)
   const kalenderProTag = new Map<string, Set<string>>()
   for (const t of termine) {
@@ -64,12 +68,16 @@ export default function KalenderSeite() {
 
   return (
     <div className="px-4 pb-10 pt-3">
-      {/* Kopfzeile wie bei Apple: zurück, Heute, + */}
+      {/* Kopfzeile wie bei Apple: zurück, Kalender (ein-/ausblenden), Heute, + */}
       <div className="mb-1 flex items-center justify-between">
         <Link to="/" onClick={zeigeLeiste} className="tippbar inline-flex min-h-10 items-center text-[17px]" style={{ color: ROT }}>
           <ChevronLeft size={22} /> Heute
         </Link>
         <div className="flex items-center gap-1">
+          <button onClick={() => setAuswahlOffen(true)} className="tippbar flex min-h-10 flex-col items-center justify-center px-2 leading-tight" style={{ color: ROT }}>
+            <span className="text-[17px]">Kalender</span>
+            {ausgeblendet.length > 0 && <span className="text-[11px] text-grau">{ausgeblendet.length} ausgeblendet</span>}
+          </button>
           <button onClick={zuHeute} className="tippbar min-h-10 px-3 text-[17px]" style={{ color: ROT }}>
             Heute
           </button>
@@ -183,6 +191,7 @@ export default function KalenderSeite() {
       <SyncKnopf />
       <p className="mt-2 text-center text-[12px] text-grau">⏳ = in Life geändert, beim nächsten Abgleich wird es in Apple Kalender übernommen.</p>
 
+      <KalenderAuswahl offen={auswahlOffen} onZu={() => setAuswahlOffen(false)} />
       <TerminSheet offen={sheet.offen} termin={sheet.termin} tag={gewaehlt} onZu={() => setSheet({ offen: false })} />
     </div>
   )

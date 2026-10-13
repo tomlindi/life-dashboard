@@ -15,6 +15,7 @@ import { Balken } from '../../core/ui/Formular'
 import { kmh, pace, sportart } from './arten'
 import WorkoutFormular from './WorkoutFormular'
 import WorkoutListe from './WorkoutListe'
+import { useKalenderFarben } from '../kalender/farben'
 
 const WOCHENTAGE = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 
@@ -44,6 +45,7 @@ export default function SportSeite() {
   const { art = 'Laufen' } = useParams()
   const sp = sportart(art)
   const alle = useLiveQuery(() => db.workouts.where('art').equals(art).reverse().sortBy('start'), [art]) ?? []
+  const { sichtbar } = useKalenderFarben()
   const termine = useLiveQuery(() => db.termine.where('start').aboveOrEqual(new Date().toISOString()).sortBy('start'), []) ?? []
   const [plan, setPlan] = useEinstellung<SportPlan>(`sportplan:${art}`, { einheiten: [] })
   const [formular, setFormular] = useState(false)
@@ -70,7 +72,7 @@ export default function SportSeite() {
   const schnittPace = letzte5.length ? pace(summe(letzte5, 'dauerMin'), summe(letzte5, 'distanzKm')) : null
   const spiele = alle.filter((w) => w.typ === 'Spiel')
   const tore = alle.reduce((s, w) => s + (w.tore ?? 0), 0)
-  const kommende = termine.filter((t) => new RegExp(art, 'i').test(t.titel)).slice(0, 5)
+  const kommende = termine.filter((t) => sichtbar(t.kalender) && new RegExp(art, 'i').test(t.titel)).slice(0, 5) // ohne ausgeblendete Kalender
 
   // Wochenplan: Ist an diesem Wochentag diese Woche schon etwas gemacht worden?
   const erledigtAm = (tag: number) => dieseWoche.find((w) => wochentag(w.start) === tag)

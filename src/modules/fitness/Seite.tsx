@@ -16,6 +16,7 @@ import Jahresansicht from './Jahresansicht'
 import WorkoutFormular from './WorkoutFormular'
 import WorkoutListe from './WorkoutListe'
 import { ohneDoppelte } from './workouts'
+import { useKalenderFarben } from '../kalender/farben'
 
 const FARBE = '#ff375f'
 /** Diese Sportarten haben immer eine Kachel, die anderen erst, wenn es Einträge gibt. */
@@ -37,7 +38,8 @@ export default function FitnessSeite() {
   const dieseWoche = workouts.filter((w) => tagVon(w.start) >= ws)
   const minutenWoche = dieseWoche.reduce((s, w) => s + w.dauerMin, 0)
   const kmWoche = dieseWoche.reduce((s, w) => s + (w.distanzKm ?? 0), 0)
-  const geplant = (termine ?? []).filter((t) => istWorkoutTermin(t.titel))
+  const { sichtbar } = useKalenderFarben()
+  const geplant = (termine ?? []).filter((t) => sichtbar(t.kalender) && istWorkoutTermin(t.titel)) // ohne ausgeblendete Kalender
 
   // Kacheln: feste Sportarten + alle, die in deinen Daten vorkommen (auch unbekannte aus Health)
   const artenMitDaten = [...new Set(workouts.map((w) => w.art))]
