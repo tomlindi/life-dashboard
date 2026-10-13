@@ -219,5 +219,13 @@ pruefe('Fahrt: Uhrzeiten pro Tag', [zeitAm(fahrt, T1).von, zeitAm(fahrt, tagPlus
 pruefe('Normaler Termin: von–bis', zeitAm(normal, T1), { von: '08:00', bis: '09:30' })
 pruefe('Tag 2 von 3', tagNummer(urlaub, tagPlus(T1, 1)), 'Tag 2 von 3')
 
+// ---------- 10. Klausuren pro Fach ----------
+console.log('\n10. Klausuren pro Fach')
+const fachMathe = { id: 'm', name: 'Mathematik', farbe: '#0A84FF' }
+const fachBio = { id: 'b', name: 'Biologie', farbe: '#30D158' }
+pruefe('"Mathe-Klausur" gehört zu Mathematik', [istKlausurTermin('Mathe-Klausur'), passtZuFach(fachMathe, 'Mathe-Klausur')], [true, true])
+pruefe('"Bio Test" gehört zu Biologie, nicht zu Mathe', [passtZuFach(fachBio, 'Bio Test'), passtZuFach(fachMathe, 'Bio Test')], [true, false])
+pruefe('"Training" ist keine Klausur', istKlausurTermin('Training'), false)
+
 console.log(fehler ? `\n✗ ${fehler} Prüfung(en) fehlgeschlagen` : '\n✓ Alle Prüfungen bestanden')
 process.exit(fehler ? 1 : 0)
