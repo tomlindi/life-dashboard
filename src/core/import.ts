@@ -128,8 +128,9 @@ export const STANDARD_TERMINE_TAGE = 14
 
 export async function importiere(o: Record<string, unknown>): Promise<ImportErgebnis> {
   const leer = (): Zaehler => ({ neu: 0, aktualisiert: 0 })
-  // Zeitraum: Schickt der Kurzbefehl "termineTage" mit, gilt das, sonst die Einstellung
-  const termineTage = Math.min(366, Math.max(1, Math.round(zahl(o.termineTage)) || (await holeEinstellung<number>('termineTage', STANDARD_TERMINE_TAGE))))
+  // Zeitraum für den Termin-Abgleich: NUR die Einstellung zählt. Ein "termineTage" aus einem älteren
+  // Kurzbefehl wird absichtlich ignoriert: Passt er nicht zur echten Abfrage, würden Termine fälschlich gelöscht.
+  const termineTage = Math.min(366, Math.max(1, Math.round(await holeEinstellung<number>('termineTage', STANDARD_TERMINE_TAGE))))
   const erg: ImportErgebnis = { schritte: leer(), workouts: leer(), schlaf: leer(), gewicht: leer(), termine: { ...leer(), geloescht: 0 }, aufgaben: leer(), hinweise: [], termineTage, health: leer(), healthArten: {} }
   const kalenderNamen = new Set<string>()
   let termineUebersprungen = 0

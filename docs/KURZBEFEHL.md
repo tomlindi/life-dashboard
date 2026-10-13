@@ -44,7 +44,7 @@ Was die App dabei automatisch erledigt:
 | **Schlaf** | Einzelne Phasen werden pro Nacht zusammengerechnet. Überlappungen (Uhr + iPhone) zählen nur einmal, „Im Bett“ und „Wach“ zählen nicht. Die Nacht zählt für den Tag, an dem du aufwachst. Alternativ geht auch `{ "datum": "...", "stunden": "7,5" }`. |
 | **Workouts** | Englische und deutsche Namen werden übersetzt (z. B. „Traditional Strength Training“ wird „Gym“, „Running“ wird „Laufen“). Die Dauer wird aus Start und Ende berechnet. Strava-Aktivitäten, die Strava an Health schickt, sind automatisch dabei. |
 | **Duplikate** | Jeder Eintrag bekommt eine feste ID (Workout: Startzeit, Termin: Titel + Startzeit, Aufgabe: Titel, Schritte/Schlaf/Gewicht: Datum). Beim erneuten Import wird **aktualisiert statt doppelt angelegt**. |
-| **Abgleich** | Termine der nächsten 14 Tage, die nicht mehr im Kalender stehen, werden entfernt. Aufgaben, die in Erinnerungen nicht mehr offen sind, werden in der App abgehakt. |
+| **Abgleich** | Jeder Import gilt als **vollständiger Stand** für heute 00:00 bis heute + N Tage (N stellst du unter **Mehr → Einstellungen → Life Sync: Termine** ein, Standard 14). Importierte Termine in diesem Zeitraum, die fehlen, werden gelöscht (auch verschobene: Erkennung = Titel + Start + Kalender). Selbst angelegte und vergangene Termine bleiben. Enthält der Import keinen Termin oder eine unlesbare Zeile, wird zur Sicherheit nichts gelöscht. Aufgaben, die in Erinnerungen nicht mehr offen sind, werden in der App abgehakt. |
 
 ---
 
@@ -108,10 +108,11 @@ Im Textfeld innerhalb der Wiederholung tippst du auf **„Variable auswählen“
    ```
 3. **„Text kombinieren“** mit `,` → umbenennen in `Gewicht`
 
-### Block E: Termine (nächste 60 Tage, alle Kalender)
+### Block E: Termine (ab heute 00:00, so viele Tage wie in der App eingestellt)
 
 1. **„Kalenderereignisse suchen“**
-   - Filter: **Startdatum** *ist in den nächsten* **60 Tagen** (so ist die Monatsansicht in Life gefüllt)
+   - Wichtig: Der Zeitraum muss **um 00:00 heute** beginnen, nicht „ab jetzt“. Sonst fehlen Termine, die heute schon angefangen haben, und die App würde sie löschen. So geht es: Vorher **„Datum anpassen“** → **„Anfang von Tag“** auf **Aktuelles Datum** anwenden, und hier filtern: **Startdatum** *ist nach* [angepasstes Datum] und **Startdatum** *ist vor* [angepasstes Datum + 14 Tage].
+   - Die Anzahl Tage muss zur Einstellung in der App passen (**Mehr → Einstellungen → Life Sync: Termine**).
    - Keinen Kalender-Filter setzen, dann werden **alle Kalender** genommen
    - Sortieren nach: Startdatum
 2. **„Wiederholen mit jedem“** → zuerst Aktion **„Text ersetzen“**: in **Wiederholungsobjekt › Titel** ersetze `"` durch `'`. Damit gehen Anführungszeichen im Titel nicht kaputt. Dann **„Text“**:
@@ -130,13 +131,41 @@ Im Textfeld innerhalb der Wiederholung tippst du auf **„Variable auswählen“
    Falls es „Liste“ oder „Priorität“ bei dir nicht gibt, lass den Teil einfach weg.
 3. **„Text kombinieren“** mit `,` → umbenennen in `Aufgaben`
 
+### Block G: Apple Health als Zeilen mit `"typ":"health"` (empfohlen)
+
+Alle Health-Werte haben **dasselbe Format**. Du baust den Text also nur einmal und kopierst den Block für jede Art:
+```
+{"typ":"health","art":"schritte","start":"[… › Startdatum, ISO 8601]","ende":"[… › Enddatum, ISO 8601]","wert":"[… › Wert]","einheit":"[… › Einheit]"}
+```
+
+| `art` | Health-Typ in „Gesundheitsproben suchen“ | Tipp |
+|---|---|---|
+| `schritte` | Schritte | **Gruppieren nach: Tag** (Tagessumme) |
+| `schlaf` | Schlafanalyse | ein Eintrag pro Phase, `wert` = Phase („Kern“, „Tief“, „REM“, „Wach“, „Im Bett“, „Schlafend“; Englisch geht auch) |
+| `gewicht` | Gewicht | kg |
+| `groesse` | Größe | cm oder m, beides wird erkannt |
+| `kfa` | Körperfettanteil | „0,18“ oder „18 %“, beides wird erkannt |
+| `wasser` | Wasser | Gruppieren nach Tag; ml oder l |
+| `alkohol` | Alkoholische Getränke | Gruppieren nach Tag |
+| `kalorien` | Nahrungsenergie | Gruppieren nach Tag; kcal |
+| `protein`, `kohlenhydrate`, `fett` | Protein, Kohlenhydrate, Fett gesamt | Gruppieren nach Tag; g |
+
+So reagiert die App:
+- `wert` darf Einheit und Komma enthalten (`"72,4 kg"`, `"1,5 l"`). Die Zahl wird herausgelesen.
+- Gleiche `art` + gleicher `start` = derselbe Wert, er wird **ersetzt** statt doppelt gespeichert. Bei Schlaf zählt zusätzlich die Phase, weil iPhone und Uhr oft Phasen mit derselben Startzeit melden.
+- Ein Health-Wert für einen Tag **ersetzt** die eigene Eingabe in der App für diesen Tag (z. B. Wasser-Gläser, Schlaf, Gewicht). Solche Werte zeigt die App mit einem kleinen Herz ❤️ an.
+- Eine unbekannte `art` wird trotzdem gespeichert und beim Import gemeldet.
+- Kaputte Zeilen werden übersprungen und mit Zeilennummer gemeldet, der Rest wird importiert.
+
+Diese Zeilen kannst du einfach mit allen anderen Zeilen (Termine mit `"typ":"termin"`, Aufgaben mit `"typ":"aufgabe"`) per **„Text kombinieren“ (Neue Zeile)** zu einem Text zusammenfügen.
+
 ### Zum Schluss: alles zusammensetzen
 
 1. Aktion **„Text“** mit diesem Inhalt (die Namen in [ ] sind die umbenannten Variablen):
    ```
-   {"version":1,"termineTage":60,"schritte":[[Schritte]],"workouts":[[Workouts]],"schlaf":[[Schlaf]],"gewicht":[[Gewicht]],"termine":[[Termine]],"aufgaben":[[Aufgaben]]}
+   {"version":1,"schritte":[[Schritte]],"workouts":[[Workouts]],"schlaf":[[Schlaf]],"gewicht":[[Gewicht]],"termine":[[Termine]],"aufgaben":[[Aufgaben]]}
    ```
-   `"termineTage":60` sagt der App, dass du 60 Tage abfragst. Termine in diesem Zeitraum, die nicht mehr in Apple stehen, entfernt die App.
+   Den Zeitraum für Termine stellst du in der App ein (ein früher hier mitgeschicktes `"termineTage"` wird nicht mehr beachtet).
    Achtung: Jede Variable steht **innerhalb** von eckigen Klammern `[ ]`. Das sind die JSON-Listen.
 2. Aktion **„In Zwischenablage kopieren“**
 3. Optional: Aktion **„Mitteilung anzeigen“**: „Daten kopiert – jetzt Life öffnen und importieren“
