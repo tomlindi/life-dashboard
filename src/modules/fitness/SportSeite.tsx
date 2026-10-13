@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check, ChevronLeft, Plus, Trash2 } from 'lucide-react'
+import { zeigeLeiste } from '../../core/ui/TabLeiste'
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import { db, type Workout } from '../../core/db'
 import { heute, neueId, tagPlus, tagVon, uhrzeit, wochenStart } from '../../core/datum'
@@ -82,7 +83,7 @@ export default function SportSeite() {
 
   return (
     <div className="px-4 pb-10 pt-3">
-      <Link to="/fitness" className="tippbar mb-2 inline-flex min-h-10 items-center text-[17px]" style={{ color: sp.farbe }}>
+      <Link to="/fitness" onClick={zeigeLeiste} className="tippbar mb-2 inline-flex min-h-10 items-center text-[17px]" style={{ color: sp.farbe }}>
         <ChevronLeft size={22} /> Fitness
       </Link>
       <h1 className="mb-4 flex items-center gap-3 text-[34px] font-bold" style={{ color: sp.farbe }}>

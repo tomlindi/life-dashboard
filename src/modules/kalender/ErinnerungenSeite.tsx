@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { CalendarDays, Check, ChevronLeft, ChevronRight, Clock, Inbox, List, ListChecks, type LucideIcon } from 'lucide-react'
+import { zeigeLeiste } from '../../core/ui/TabLeiste'
 import { db, type Aufgabe } from '../../core/db'
 import { heute } from '../../core/datum'
 import { kurzDatum, relativ } from '../../core/format'
@@ -41,7 +42,7 @@ export default function ErinnerungenSeite() {
     ]
     return (
       <div className="px-4 pb-10 pt-3">
-        <Link to="/" className="tippbar mb-2 inline-flex min-h-10 items-center text-[17px] text-[#0a84ff]">
+        <Link to="/" onClick={zeigeLeiste} className="tippbar mb-2 inline-flex min-h-10 items-center text-[17px] text-[#0a84ff]">
           <ChevronLeft size={22} /> Heute
         </Link>
         <h1 className="mb-4 text-[34px] font-bold">Erinnerungen</h1>
@@ -97,7 +98,7 @@ export default function ErinnerungenSeite() {
 
   return (
     <div className="px-4 pb-10 pt-3">
-      <button onClick={() => setAnsicht(null)} className="tippbar mb-2 inline-flex min-h-10 items-center text-[17px] text-[#0a84ff]">
+      <button onClick={() => { zeigeLeiste(); setAnsicht(null) }} className="tippbar mb-2 inline-flex min-h-10 items-center text-[17px] text-[#0a84ff]">
         <ChevronLeft size={22} /> Listen
       </button>
       <h1 className="mb-3 text-[34px] font-bold" style={{ color: farbe }}>

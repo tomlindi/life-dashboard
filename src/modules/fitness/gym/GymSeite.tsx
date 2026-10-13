@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronLeft, ChevronRight, ClipboardCopy, ClipboardPaste, FileDown, FileUp, Play } from 'lucide-react'
+import { zeigeLeiste } from '../../../core/ui/TabLeiste'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { db, type GymEinheit } from '../../../core/db'
 import { neueId } from '../../../core/datum'
@@ -105,7 +106,7 @@ export default function GymSeite() {
 
   return (
     <div className="px-4 pb-10 pt-3">
-      <Link to="/fitness" className="tippbar mb-2 inline-flex min-h-10 items-center text-[17px]" style={{ color: FARBE }}>
+      <Link to="/fitness" onClick={zeigeLeiste} className="tippbar mb-2 inline-flex min-h-10 items-center text-[17px]" style={{ color: FARBE }}>
         <ChevronLeft size={22} /> Fitness
       </Link>
       <h1 className="mb-4 text-[34px] font-bold" style={{ color: FARBE }}>
