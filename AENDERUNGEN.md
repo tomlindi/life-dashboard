@@ -8,6 +8,12 @@ Die aktuelle Version steht in der App ganz unten unter Mehr → Einstellungen.
 - Nur anschauen (am PC): `git checkout v1.0.0`, danach `npm run dev`. Zurück zur neuesten mit `git checkout main`.
 - Online wirklich zurücksetzen: `git revert --no-edit v1.0.0..HEAD` und `git push`. Dabei entstehen neue Commits, die alles seit v1.0.0 rückgängig machen. Der Verlauf bleibt erhalten, und GitHub Pages baut automatisch die alte Version.
 
+## 1.7.0 – 13.10.2026
+
+**Klausuren bearbeiten.** Unter Schule → „Anstehende Klausuren“ öffnet ein Tipp die Klausur. Thema, Fach, Datum, Uhrzeit, Raum und Lernstoff lassen sich ändern, löschen geht im selben Formular. Uhrzeit, Raum und Lernstoff sind neu und stehen auch in der Liste. Klausuren aus dem Apple Kalender öffnen das Termin-Blatt, Änderungen gehen per Life Sync an Apple.
+
+**Eigene Seite pro Fach.** Über ein aufgeklapptes Fach → „Fachseite & Notizen ›“ kommst du auf die Seite des Fachs: Schnitt im aktuellen Halbjahr, ein Notizfeld (speichert beim Tippen) und aufklappbar Klausuren, Hausaufgaben und Noten. Klausuren aus dem Kalender werden dem Fach anhand des Titels zugeordnet („Mathe-Klausur“ → Mathematik).
+
 ## 1.6.0 – 13.10.2026
 
 **Fokus-Timer.** Neuer Bereich „Fokus“ (unter Mehr, auch als Dock-Seite wählbar) mit Pomodoro (Standard 25 min Fokus, 5 min Pause, nach 4 Runden 15 min lange Pause, alles einstellbar) und einer freien Stoppuhr. Der Timer läuft weiter, wenn die App zu ist. Beim Öffnen wird eine abgelaufene Runde mit ihrer geplanten Länge gespeichert. Die Statistik zeigt heute, diese Woche, den Schnitt pro Tag und die letzten 7 Tage als Balken. Läuft ein Timer, steht oben auf Heute ein Banner.
