@@ -29,5 +29,9 @@ export const module: Modul[] = [
   stimmung,
 ]
 
-/** Die vier Bereiche, die in der unteren Tab-Leiste stehen. Alle anderen sind unter "Mehr". */
-export const TAB_IDS = ['fitness', 'schule', 'ziele']
+/**
+ * Standard-Tabs im Dock (unten). Wählbar sind "heute" und alle Bereiche, höchstens 4.
+ * Der 5. Tab ist immer "Mehr". Ändern: Mehr → Einstellungen → Tabs anpassen.
+ */
+export const STANDARD_TABS = ['heute', 'fitness', 'schule', 'ziele']
+export const MAX_TABS = 4

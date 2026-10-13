@@ -1,4 +1,4 @@
-// Seite "Einstellungen": Kalenderfarben und Schlüssel für die Foto-Analyse in "Ernährung".
+// Seite "Einstellungen": Tabs im Dock, Kalenderfarben, Life-Sync-Zeitraum und Schlüssel für die Foto-Analyse in "Ernährung".
 // Standard ist Google Gemini (kostenlos). Claude (Anthropic) wird nur benutzt, wenn KEIN Gemini-Schlüssel da ist.
 // Alle Schlüssel liegen nur im localStorage dieses Geräts: nicht in der Datenbank, nicht im Backup, nicht im Code.
 import { useEffect, useState } from 'react'
@@ -8,6 +8,7 @@ import { kiAnbieter, kiSchluessel, setzeKiSchluessel } from '../../core/ki'
 import Seite from '../../core/ui/Seite'
 import Karte from '../../core/ui/Karte'
 import KalenderFarbenEinstellung from '../kalender/KalenderFarbenEinstellung'
+import TabsAnpassen from './TabsAnpassen'
 import { useEinstellung } from '../../core/einstellungen'
 import { STANDARD_TERMINE_TAGE } from '../../core/import'
 
@@ -99,6 +100,7 @@ export default function EinstellungenSeite() {
 
   return (
     <Seite titel="Einstellungen">
+      <TabsAnpassen />
       <KalenderFarbenEinstellung />
       <TermineZeitraum />
 

@@ -2,13 +2,10 @@
 // Wann das Dock ein- und ausfährt, steht in core/ui/TabLeiste.tsx.
 import { Suspense, lazy, useRef } from 'react'
 import { HashRouter, Route, Routes, useLocation } from 'react-router-dom'
-import { House, LayoutGrid } from 'lucide-react'
-import { module, TAB_IDS } from './modules'
+import { module } from './modules'
 import HeuteSeite from './modules/heute/Seite'
-import { useAusgeblendet } from './core/einstellungen'
 import Sicherheitsnetz from './core/ui/Sicherheitsnetz'
-import { AppIcon } from './core/ui/AppIcons'
-import { LeistenIcon, TabLeiste, abstandUnten, useLeisteSichtbar, useLeistenSteuerung } from './core/ui/TabLeiste'
+import { Dock, abstandUnten, useDockZustand, useLeistenSteuerung } from './core/ui/TabLeiste'
 
 // "lazy": Die Mehr-Seite wird erst geladen, wenn man sie öffnet (hält den Start schnell)
 const MehrSeite = lazy(() => import('./modules/mehr/Seite'))
@@ -47,39 +44,25 @@ function Seiten() {
 
 /** Inhalt + Dock. Eigene Komponente, weil die Steuerung den Router (aktuelle Seite) braucht. */
 function Rahmen() {
-  const [ausgeblendet] = useAusgeblendet()
-  const tabModule = TAB_IDS.map((id) => module.find((m) => m.id === id)!).filter((m) => m && !ausgeblendet.includes(m.id))
   const inhalt = useRef<HTMLElement>(null)
   useLeistenSteuerung(inhalt)
-  const leisteDa = useLeisteSichtbar()
+  const zustand = useDockZustand()
 
   return (
     <div className="h-full">
       {/* Scrollbarer Inhalt. Oben Platz für Notch/Statusleiste, unten für das schwebende Dock.
-          Der Inhalt läuft UNTER dem Dock durch, deshalb sieht man den Milchglas-Effekt.
-          Ist das Dock weg, wird der Abstand unten kleiner (sanft, im selben Takt wie das Dock). */}
+          Der Inhalt läuft UNTER dem Dock durch, deshalb sieht man den Glas-Effekt.
+          Ist das Dock weg, wird der Abstand unten kleiner. */}
       <main
         ref={inhalt}
         className="h-full overflow-y-auto overscroll-contain"
-        style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: abstandUnten(leisteDa), transition: 'padding-bottom 250ms ease-out' }}
+        style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: abstandUnten(zustand), transition: 'padding-bottom 250ms ease-out' }}
       >
         <Seiten />
       </main>
 
-      {/* Dock unten: schwebender Milchglas-Kasten, tief am Rand wie auf dem iPhone. */}
-      <TabLeiste>
-        <LeistenIcon to="/" label="Heute">
-          <AppIcon id="heute" farbe="#0a84ff" icon={House} />
-        </LeistenIcon>
-        {tabModule.map((m) => (
-          <LeistenIcon key={m.id} to={`/${m.id}`} label={m.name}>
-            <AppIcon id={m.id} farbe={m.farbe} icon={m.icon} />
-          </LeistenIcon>
-        ))}
-        <LeistenIcon to="/mehr" label="Mehr">
-          <AppIcon id="mehr" farbe="#636366" icon={LayoutGrid} />
-        </LeistenIcon>
-      </TabLeiste>
+      {/* Dock unten im Stil von iOS 26 (Tabs wählbar unter Einstellungen → Tabs anpassen) */}
+      <Dock />
     </div>
   )
 }

@@ -1,7 +1,8 @@
 // "Mehr": Daten importieren, Backup, alle weiteren Bereiche und Bereiche ein-/ausblenden.
 import { Link } from 'react-router-dom'
 import { CalendarDays, ChevronRight, ClipboardPaste, HardDrive, ListChecks, Settings, type LucideIcon } from 'lucide-react'
-import { module, TAB_IDS } from '..'
+import { module } from '..'
+import { useDockTabs } from '../../core/ui/TabLeiste'
 import { useAusgeblendet } from '../../core/einstellungen'
 import Seite from '../../core/ui/Seite'
 
@@ -20,7 +21,9 @@ function Zeile({ to, icon: Icon, farbe, name, oben }: { to: string; icon: Lucide
 
 export default function MehrSeite() {
   const [ausgeblendet, setAusgeblendet] = useAusgeblendet()
-  const weitere = module.filter((m) => !TAB_IDS.includes(m.id) && !ausgeblendet.includes(m.id))
+  const dock = useDockTabs().map((t) => t.id)
+  // Alle Bereiche, die nicht schon im Dock stehen
+  const weitere = module.filter((m) => !dock.includes(m.id) && !ausgeblendet.includes(m.id))
 
   const umschalten = (id: string) => setAusgeblendet(ausgeblendet.includes(id) ? ausgeblendet.filter((x) => x !== id) : [...ausgeblendet, id])
 

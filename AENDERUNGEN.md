@@ -8,6 +8,12 @@ Die aktuelle Version steht in der App ganz unten unter Mehr → Einstellungen.
 - Nur anschauen (am PC): `git checkout v1.0.0`, danach `npm run dev`. Zurück zur neuesten mit `git checkout main`.
 - Online wirklich zurücksetzen: `git revert --no-edit v1.0.0..HEAD` und `git push`. Dabei entstehen neue Commits, die alles seit v1.0.0 rückgängig machen. Der Verlauf bleibt erhalten, und GitHub Pages baut automatisch die alte Version.
 
+## 1.2.0 – 13.10.2026
+
+**Neues Dock im Stil von iOS 26.** Die Tab-Leiste ist jetzt eine schwebende Glas-Kapsel mit Symbolen und kleiner Beschriftung. Der aktive Tab hat eine helle Kapsel und die Farbe seines Bereichs. Auf den Übersichtsseiten schrumpft das Dock beim Runterscrollen zu einer kleinen runden Kapsel unten links und wird beim Hochscrollen oder Antippen wieder groß, mit leichtem Federeffekt. Auf allen anderen Seiten bleibt es weg und kommt nur über „Zurück“ oder einen Wisch knapp über dem Home-Balken zurück. Scrollen holt es dort nicht mehr hervor.
+
+**Tabs anpassen.** Unter Mehr → Einstellungen → Tabs anpassen wählst du bis zu 4 Einträge fürs Dock (auch „Heute“) und änderst die Reihenfolge. Der 5. Tab ist immer „Mehr“. Bereiche, die nicht im Dock stehen, findest du unter „Mehr“.
+
 ## 1.1.0 – 13.10.2026
 
 **Kalender ein- und ausblenden.** Auf der Kalender-Seite gibt es oben den Knopf „Kalender“. Er öffnet ein Blatt mit allen Kalendern: Zeile antippen blendet den Kalender ein oder aus, der farbige Kreis öffnet die 12 Apple-Farben. Ausgeblendete Kalender verschwinden aus Monatsansicht, Punkten, Tagesliste, Legende, dem Kalender-Widget auf Heute und den geplanten Trainings bei Fitness. Ihre Termine bleiben gespeichert und werden weiter mit Apple abgeglichen. Neue Kalender aus Life Sync sind automatisch eingeblendet, und unter dem Knopf steht, wie viele ausgeblendet sind.
