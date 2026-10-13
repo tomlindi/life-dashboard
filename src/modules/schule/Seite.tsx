@@ -1,9 +1,11 @@
 // Bereich "Schule": Halbjahr wählen, Gesamtschnitt, Fächer mit Noten und Gewichtung (wie Notan),
-// Halbjahres-Übersicht, Klausuren, Hausaufgaben, CSV-Import.
+// Halbjahres-Übersicht, Klausuren (antippen = bearbeiten), Hausaufgaben, CSV-Import.
+// Jedes Fach hat zusätzlich eine eigene Seite mit Notizen (FachSeite.tsx).
 import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ChevronDown, FileUp, Flag } from 'lucide-react'
-import { db, type Fach, type NotenArt } from '../../core/db'
+import { ChevronDown, ChevronRight, FileUp, Flag } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { db, type Fach, type Klausur, type NotenArt, type Termin } from '../../core/db'
 import { heute, tagVon } from '../../core/datum'
 import { kurzDatum, relativ } from '../../core/format'
 import { useEinstellung } from '../../core/einstellungen'
@@ -11,7 +13,9 @@ import Seite from '../../core/ui/Seite'
 import Karte from '../../core/ui/Karte'
 import Ring from '../../core/ui/Ring'
 import { Haken, Leer, LoeschKnopf, PlusKnopf } from '../../core/ui/Formular'
-import { FachFormular, NoteFormular, TerminFormular } from './Formulare'
+import { FachFormular, KlausurFormular, NoteFormular, TerminFormular } from './Formulare'
+import TerminSheet from '../kalender/TerminSheet'
+import { istKlausurTermin } from './klausuren'
 import { NOTEN_ARTEN, berechneHalbjahr, formatGenau, formatNote, notenText, punkteFarbe, punkteZuNote } from './noten'
 import { importiereNotenCsv } from './csv'
 import { abiPrognose } from './abi'
@@ -23,8 +27,6 @@ const FARBE = '#ff9f0a'
 const HALBJAHRE = [1, 2, 3, 4]
 const KUERZEL: Record<NotenArt, string> = { Klausur: 'SC', Mündlich: 'MÜ', Praktisch: 'PR', Prüfung: 'Prüf.', Test: 'Test', Sonstiges: 'Sonst.' }
 
-/** Erkennt Klausuren in importierten Kalenderterminen. */
-const istKlausurTermin = (titel: string) => /klausur|test|pr(ü|ue)fung|schulaufgabe|arbeit\b|abi/i.test(titel)
 
 /** Einstellungen eines Fachs: doppelt zählen und Anteile der Notenarten. */
 function FachEinstellungen({ fach, hj }: { fach: Fach; hj: number }) {
@@ -113,6 +115,7 @@ export default function SchuleSeite() {
   const [formular, setFormular] = useState<null | 'fach' | 'note' | 'klausur' | 'hausaufgabe'>(null)
   const [noteFuerFach, setNoteFuerFach] = useState<string | undefined>()
   const [aufgeklappt, setAufgeklappt] = useState<string | null>(null)
+  const [bearbeite, setBearbeite] = useState<{ klausur?: Klausur; termin?: Termin } | null>(null) // Klausur zum Bearbeiten
   const [csvMeldung, setCsvMeldung] = useState('')
   const dateiFeld = useRef<HTMLInputElement>(null)
 
@@ -123,9 +126,10 @@ export default function SchuleSeite() {
   const fachName = (id?: string) => faecher.find((f) => f.id === id)?.name
 
   // Anstehende Klausuren: eigene Einträge + Kalendertermine, die nach Klausur aussehen
-  const anstehend = [
-    ...klausuren.map((k) => ({ id: k.id, titel: `${fachName(k.fachId) ? fachName(k.fachId) + ': ' : ''}${k.titel}`, datum: k.datum, eigen: true })),
-    ...kalenderKlausuren.filter((t) => istKlausurTermin(t.titel)).map((t) => ({ id: t.id, titel: t.titel, datum: tagVon(t.start), eigen: false })),
+  // Antippen öffnet zum Bearbeiten: eigene im Klausur-Formular, Kalender-Klausuren im Termin-Blatt (geht per Life Sync an Apple)
+  const anstehend: { id: string; titel: string; datum: string; klausur?: Klausur; termin?: Termin }[] = [
+    ...klausuren.map((k) => ({ id: k.id, titel: `${fachName(k.fachId) ? fachName(k.fachId) + ': ' : ''}${k.titel}`, datum: k.datum, klausur: k })),
+    ...kalenderKlausuren.filter((t) => istKlausurTermin(t.titel)).map((t) => ({ id: t.id, titel: t.titel, datum: tagVon(t.start), termin: t })),
   ].sort((a, b) => a.datum.localeCompare(b.datum))
 
   const offeneHA = hausaufgaben.filter((h) => !h.erledigt || h.faellig >= heute())
@@ -254,6 +258,11 @@ export default function SchuleSeite() {
                           </div>
                         )
                       })}
+                      {/* Eigene Seite des Fachs: Notizen, Klausuren, Hausaufgaben, Noten */}
+                      <Link to={`/schule/fach/${fach.id}`} className="tippbar mb-2 mt-1 flex min-h-11 items-center justify-between rounded-xl bg-karte2 px-4 text-[15px] font-semibold" style={{ color: fach.farbe }}>
+                        Fachseite & Notizen
+                        <ChevronRight size={18} />
+                      </Link>
                       <div className="mt-1 flex gap-2">
                         <button
                           onClick={() => {
@@ -358,15 +367,21 @@ export default function SchuleSeite() {
         ) : (
           <ul className="space-y-1">
             {anstehend.map((k) => (
-              <li key={k.id} className="flex min-h-11 items-center gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[16px]">{k.titel}</p>
-                  <p className="text-[13px] text-grau">
-                    {kurzDatum(k.datum)} · {relativ(k.datum)}
-                    {!k.eigen && ' · aus Kalender'}
-                  </p>
-                </div>
-                {k.eigen && <LoeschKnopf frage="Klausur löschen?" onLoeschen={() => db.klausuren.delete(k.id)} />}
+              <li key={k.id}>
+                {/* Antippen = bearbeiten (Löschen geht im Formular) */}
+                <button onClick={() => setBearbeite({ klausur: k.klausur, termin: k.termin })} className="tippbar flex min-h-11 w-full items-center gap-3 py-1 text-left">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[16px]">{k.titel}</p>
+                    <p className="text-[13px] text-grau">
+                      {kurzDatum(k.datum)} · {relativ(k.datum)}
+                      {k.klausur?.uhrzeit && ` · ${k.klausur.uhrzeit}`}
+                      {k.klausur?.raum && ` · Raum ${k.klausur.raum}`}
+                      {k.termin && ' · aus Kalender'}
+                    </p>
+                    {k.klausur?.stoff && <p className="truncate text-[12px] text-grau">📚 {k.klausur.stoff}</p>}
+                  </div>
+                  <ChevronRight size={18} className="shrink-0 text-grau" />
+                </button>
               </li>
             ))}
           </ul>
@@ -430,7 +445,10 @@ export default function SchuleSeite() {
 
       <FachFormular offen={formular === 'fach'} onZu={() => setFormular(null)} />
       <NoteFormular offen={formular === 'note'} onZu={() => setFormular(null)} faecher={faecher} startFach={noteFuerFach} halbjahr={hj} />
-      <TerminFormular offen={formular === 'klausur'} onZu={() => setFormular(null)} faecher={faecher} typ="klausur" />
+      <KlausurFormular offen={formular === 'klausur'} onZu={() => setFormular(null)} faecher={faecher} />
+      {/* Bearbeiten: eigene Klausur im Klausur-Formular, Kalender-Klausur im Termin-Blatt */}
+      <KlausurFormular offen={!!bearbeite?.klausur} onZu={() => setBearbeite(null)} faecher={faecher} klausur={bearbeite?.klausur} />
+      <TerminSheet offen={!!bearbeite?.termin} onZu={() => setBearbeite(null)} termin={bearbeite?.termin} tag={bearbeite?.termin ? tagVon(bearbeite.termin.start) : heute()} />
       <TerminFormular offen={formular === 'hausaufgabe'} onZu={() => setFormular(null)} faecher={faecher} typ="hausaufgabe" />
     </Seite>
   )

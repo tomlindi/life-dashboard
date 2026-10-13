@@ -1,6 +1,6 @@
 // Die Eingabe-Fenster für den Bereich Schule: Fach, Note, Klausur, Hausaufgabe.
 import { useEffect, useState } from 'react'
-import { db, type Fach, type NotenArt } from '../../core/db'
+import { db, type Fach, type Klausur, type NotenArt } from '../../core/db'
 import { heute, neueId, tagPlus } from '../../core/datum'
 import Sheet from '../../core/ui/Sheet'
 import { Chips, Eingabe, Knopf, Label } from '../../core/ui/Formular'
@@ -161,7 +161,7 @@ export function NoteFormular({
   )
 }
 
-/** Gemeinsames Formular für Klausur-Termine und Hausaufgaben (beide: Titel, Fach, Datum). */
+/** Gemeinsames Formular für Klausur-Termine und Hausaufgaben (beide: Titel, Fach, Datum). Klausuren mit allen Feldern: KlausurFormular. */
 export function TerminFormular({ offen, onZu, faecher, typ }: FormProps & { faecher: Fach[]; typ: 'klausur' | 'hausaufgabe' }) {
   const [titel, setTitel] = useState('')
   const [fachId, setFachId] = useState<string | undefined>(undefined)
@@ -209,6 +209,94 @@ export function TerminFormular({ offen, onZu, faecher, typ }: FormProps & { faec
       <Knopf farbe={FARBE} onClick={speichern} deaktiviert={!titel.trim()}>
         Speichern
       </Knopf>
+    </Sheet>
+  )
+}
+
+/**
+ * Klausur eintragen (ohne `klausur`) oder bearbeiten (mit `klausur`):
+ * Thema, Fach, Datum, Uhrzeit, Raum und Lernstoff. Beim Bearbeiten auch löschen.
+ * `fachVorgabe`: auf einer Fachseite ist das Fach schon ausgewählt.
+ */
+export function KlausurFormular({ offen, onZu, faecher, klausur, fachVorgabe }: FormProps & { faecher: Fach[]; klausur?: Klausur; fachVorgabe?: string }) {
+  const [titel, setTitel] = useState('')
+  const [fachId, setFachId] = useState<string | undefined>(undefined)
+  const [datum, setDatum] = useState(tagPlus(heute(), 1))
+  const [uhrzeit, setUhrzeit] = useState('')
+  const [raum, setRaum] = useState('')
+  const [stoff, setStoff] = useState('')
+
+  // Beim Öffnen: Werte der Klausur übernehmen (oder leer für eine neue)
+  useEffect(() => {
+    if (!offen) return
+    setTitel(klausur?.titel ?? '')
+    setFachId(klausur ? klausur.fachId : fachVorgabe)
+    setDatum(klausur?.datum ?? tagPlus(heute(), 1))
+    setUhrzeit(klausur?.uhrzeit ?? '')
+    setRaum(klausur?.raum ?? '')
+    setStoff(klausur?.stoff ?? '')
+  }, [offen, klausur, fachVorgabe])
+
+  async function speichern() {
+    if (!titel.trim()) return
+    const werte = { titel: titel.trim(), fachId, datum, uhrzeit: uhrzeit || undefined, raum: raum.trim() || undefined, stoff: stoff.trim() || undefined }
+    if (klausur) await db.klausuren.put({ id: klausur.id, ...werte })
+    else await db.klausuren.add({ id: neueId(), ...werte })
+    onZu()
+  }
+
+  return (
+    <Sheet titel={klausur ? 'Klausur bearbeiten' : 'Klausur eintragen'} offen={offen} onZu={onZu}>
+      <div className="mb-4">
+        <Eingabe label="Thema" value={titel} onChange={(e) => setTitel(e.target.value)} placeholder="z. B. Analysis" autoFocus={!klausur} />
+      </div>
+      {faecher.length > 0 && (
+        <>
+          <Label>Fach (optional)</Label>
+          <div className="mb-4 flex flex-wrap gap-2">
+            {faecher.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setFachId(fachId === f.id ? undefined : f.id)}
+                className="tippbar min-h-11 rounded-full px-4 text-[15px] font-medium"
+                style={{ background: fachId === f.id ? f.farbe : '#2c2c2e', color: fachId === f.id ? '#000' : '#fff' }}
+              >
+                {f.name}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      <div className="mb-4 grid grid-cols-2 gap-2">
+        <Eingabe label="Datum" type="date" value={datum} onChange={(e) => setDatum(e.target.value)} />
+        <Eingabe label="Uhrzeit (optional)" type="time" value={uhrzeit} onChange={(e) => setUhrzeit(e.target.value)} />
+      </div>
+      <div className="mb-4">
+        <Eingabe label="Raum (optional)" value={raum} onChange={(e) => setRaum(e.target.value)} placeholder="z. B. 204" />
+      </div>
+      <Label>Lernstoff (optional)</Label>
+      <textarea
+        value={stoff}
+        onChange={(e) => setStoff(e.target.value)}
+        rows={3}
+        placeholder="z. B. Kapitel 3–5, Ableitungen, Kurvendiskussion"
+        className="mb-5 w-full resize-y rounded-2xl bg-karte2 p-3 text-[16px] leading-snug outline-none placeholder:text-grau"
+      />
+      <Knopf farbe={FARBE} onClick={speichern} deaktiviert={!titel.trim()}>
+        Speichern
+      </Knopf>
+      {klausur && (
+        <button
+          onClick={async () => {
+            if (!confirm(`Klausur „${klausur.titel}“ löschen?`)) return
+            await db.klausuren.delete(klausur.id)
+            onZu()
+          }}
+          className="tippbar mt-3 min-h-11 w-full text-[15px] text-[#ff453a]"
+        >
+          Klausur löschen
+        </button>
+      )}
     </Sheet>
   )
 }

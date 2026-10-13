@@ -9,6 +9,7 @@ import { inStandardEinheit, leseZahl, naechte, schlafIndex } from '../../src/cor
 import { heute, tagPlus } from '../../src/core/datum'
 import type { Projekt } from '../../src/core/db'
 import { STANDARD_ZEITEN, anhalten, beenden, naechstePhase, phaseFertig, restMs, startePomodoro, starteStoppuhr, uhrText, weiter } from '../../src/modules/fokus/timer'
+import { istKlausurTermin, passtZuFach } from '../../src/modules/schule/klausuren'
 import { ganztaegigAm, liegtAm, tageDesTermins, tagNummer, zeitAm } from '../../src/modules/kalender/mehrtaegig'
 import { fortschritt, loescheAufgabe, neueAufgabe, passt, schalteAufgabe, sortiere, speichereReihenfolge, zielPasst } from '../../src/modules/ziele/projekte'
 
@@ -246,6 +247,14 @@ s = anhalten(s, t0 + 12 * minute)
 s = weiter(s, t0 + 60 * minute)
 pruefe('Stoppuhr zählt nur laufende Zeit (12 + 8 = 20 min)', beenden(s, Z, t0 + 68 * minute)?.minuten, 20)
 pruefe('Uhr-Text', [uhrText(25 * minute), uhrText(3_723_000)], ['25:00', '1:02:03'])
+
+// ---------- 11. Klausuren pro Fach ----------
+console.log('\n11. Klausuren pro Fach')
+const fachMathe = { id: 'm', name: 'Mathematik', farbe: '#0A84FF' }
+const fachBio = { id: 'b', name: 'Biologie', farbe: '#30D158' }
+pruefe('"Mathe-Klausur" gehört zu Mathematik', [istKlausurTermin('Mathe-Klausur'), passtZuFach(fachMathe, 'Mathe-Klausur')], [true, true])
+pruefe('"Bio Test" gehört zu Biologie, nicht zu Mathe', [passtZuFach(fachBio, 'Bio Test'), passtZuFach(fachMathe, 'Bio Test')], [true, false])
+pruefe('"Training" ist keine Klausur', istKlausurTermin('Training'), false)
 
 console.log(fehler ? `\n✗ ${fehler} Prüfung(en) fehlgeschlagen` : '\n✓ Alle Prüfungen bestanden')
 process.exit(fehler ? 1 : 0)
