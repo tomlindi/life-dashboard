@@ -9,6 +9,7 @@ import gewohnheiten from './gewohnheiten'
 import geld from './geld'
 import schlaf from './schlaf'
 import ernaehrung from './ernaehrung'
+import koerper from './koerper'
 import freunde from './freunde'
 import hobbys from './hobbys'
 import stimmung from './stimmung'
@@ -22,6 +23,7 @@ export const module: Modul[] = [
   geld,
   schlaf,
   ernaehrung,
+  koerper,
   freunde,
   hobbys,
   stimmung,

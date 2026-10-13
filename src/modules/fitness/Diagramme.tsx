@@ -9,6 +9,8 @@ import Karte from '../../core/ui/Karte'
 import { SchnellEingabe } from '../../core/ui/Formular'
 import { ZeitraumWahl, zeitraumAb, type ZeitraumLabel } from '../../core/ui/Zeitraum'
 import { useSchrittziel } from '../../core/einstellungen'
+import { useHealthTage } from '../../core/healthDaten'
+import HealthSymbol from '../../core/ui/HealthSymbol'
 
 /** Gemeinsames Aussehen der Diagramme: dezente Achse, dunkler Tooltip. */
 const achse = { tick: { fill: '#8e8e93', fontSize: 12 }, axisLine: false, tickLine: false } as const
@@ -57,7 +59,18 @@ export function GewichtKarte() {
   const kgs = imZeitraum.map((g) => g.kg)
 
   return (
-    <Karte titel="Gewicht" akzent="#64d2ff" rechts={aktuell && <span className="text-[17px] font-bold">{zahl(aktuell.kg)} kg</span>}>
+    <Karte
+      titel="Gewicht"
+      akzent="#64d2ff"
+      rechts={
+        aktuell && (
+          <span className="flex items-center gap-1.5 text-[17px] font-bold">
+            {aktuell.quelle === 'health' && <HealthSymbol />}
+            {zahl(aktuell.kg)} kg
+          </span>
+        )
+      }
+    >
       <ZeitraumWahl wert={zeitraum} onWahl={setZeitraum} />
 
       {daten.length >= 2 ? (
@@ -120,6 +133,7 @@ export function SchritteDiagramm() {
   const tage = letzteTage(7)
   const schritte = useLiveQuery(() => db.schritte.toArray(), [])
   const [schrittziel, setZiel] = useSchrittziel()
+  const ausHealth = (useHealthTage(['schritte'], 7).schritte?.size ?? 0) > 0 // Schritte kommen aus Apple Health
   const daten = tage.map((tag) => ({
     tag,
     name: kurzerWochentag(tag),
@@ -148,7 +162,9 @@ export function SchritteDiagramm() {
         </span>
       }
     >
-      <p className="-mt-1 mb-1 text-[13px] text-grau">Ø {schnitt.toLocaleString('de-DE')} pro Tag (7 Tage)</p>
+      <p className="-mt-1 mb-1 flex items-center gap-1.5 text-[13px] text-grau">
+        {ausHealth && <HealthSymbol />}Ø {schnitt.toLocaleString('de-DE')} pro Tag (7 Tage)
+      </p>
       <div className="h-40">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={daten} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>

@@ -5,10 +5,9 @@ import { Star } from 'lucide-react'
 import { Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { Schlaf } from '../../core/db'
 import { tagPlus } from '../../core/datum'
-import { kurzDatum, mittel, zahl } from '../../core/format'
+import { kurzDatum, mittel, stundenText, zahl } from '../../core/format'
 import Karte from '../../core/ui/Karte'
 import { ZeitraumWahl, zeitraumAb, type ZeitraumLabel } from '../../core/ui/Zeitraum'
-import { stundenText } from './Seite'
 
 const FARBE = '#5e5ce6'
 const achse = { tick: { fill: '#8e8e93', fontSize: 11 }, axisLine: false, tickLine: false } as const

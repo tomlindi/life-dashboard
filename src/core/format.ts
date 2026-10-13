@@ -37,3 +37,10 @@ export function streak(tage: Set<string>): number {
   }
   return anzahl
 }
+
+/** Stunden als Text: 7,5 -> "7 h 30 min" */
+export const stundenText = (h: number) => {
+  const std = Math.floor(h)
+  const min = Math.round((h - std) * 60)
+  return min ? `${std} h ${min} min` : `${std} h`
+}

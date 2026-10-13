@@ -1,19 +1,22 @@
 // Karte "Nährwerte heute": vier Ringe wie in Apples Fitness-App – Kalorien, Protein, Kohlenhydrate, Fett.
-// Jeder Ring zeigt, wie viel vom Tagesziel schon gegessen ist. Mahlzeiten ohne Nährwerte zählen als 0.
+// Jeder Ring zeigt, wie viel vom Tagesziel schon gegessen ist.
+// Hat Apple Health Werte für heute, zeigen die Ringe NUR diese (mit Herz-Symbol). Sonst die Summe der
+// geschätzten Nährwerte deiner Mahlzeiten (Mahlzeiten ohne Nährwerte zählen als 0).
 // Die Tagesziele lassen sich über "Ziele" ändern (gespeichert als Einstellung "ernaehrungZiele").
 import { useState } from 'react'
 import type { Mahlzeit } from '../../core/db'
 import { zahl } from '../../core/format'
 import Karte from '../../core/ui/Karte'
 import Ring from '../../core/ui/Ring'
+import HealthSymbol from '../../core/ui/HealthSymbol'
 import Sheet from '../../core/ui/Sheet'
 import { Knopf } from '../../core/ui/Formular'
 import { FARBE, NAEHRWERTE, alsText, alsZahl, hatNaehrwerte, summe, useErnaehrungsZiele, type Naehrwert, type Naehrwerte } from './naehrwerte'
 
-export default function NaehrwertRinge({ mahlzeiten }: { mahlzeiten: Mahlzeit[] }) {
+export default function NaehrwertRinge({ mahlzeiten, health }: { mahlzeiten: Mahlzeit[]; health?: Naehrwerte }) {
   const [ziele, setZiele] = useErnaehrungsZiele()
   const [zieleOffen, setZieleOffen] = useState(false)
-  const gegessen = summe(mahlzeiten)
+  const gegessen = health ?? summe(mahlzeiten)
   const ohne = mahlzeiten.filter((m) => !hatNaehrwerte(m)).length
 
   return (
@@ -43,7 +46,14 @@ export default function NaehrwertRinge({ mahlzeiten }: { mahlzeiten: Mahlzeit[] 
           </div>
         ))}
       </div>
-      {ohne > 0 && (
+      {health ? (
+        <p className="mt-3 flex items-center gap-1.5 text-[13px] text-grau">
+          <HealthSymbol /> Aus Apple Health. Die Schätzungen der Foto-Analyse zählen heute nicht dazu.
+        </p>
+      ) : (
+        mahlzeiten.some(hatNaehrwerte) && <p className="mt-3 text-[13px] text-grau">Geschätzt aus deinen Mahlzeiten (noch keine Werte aus Apple Health).</p>
+      )}
+      {!health && ohne > 0 && (
         <p className="mt-3 text-[13px] text-grau">{ohne === 1 ? '1 Mahlzeit' : `${ohne} Mahlzeiten`} ohne Nährwerte</p>
       )}
 

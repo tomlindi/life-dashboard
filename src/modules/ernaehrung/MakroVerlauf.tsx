@@ -2,7 +2,8 @@
 // Oben: pro Nährwert ein Balken mit dem Durchschnitt pro Tag im Vergleich zum Ziel
 //        und an wie vielen Tagen das Ziel getroffen wurde.
 // Unten: Säulendiagramm für einen Nährwert – im Monat jeder Tag, im Jahr der Schnitt jedes Monats.
-// Gezählt werden nur Tage, an denen mindestens eine Mahlzeit mit Nährwerten eingetragen ist.
+// Gezählt werden Tage mit Werten aus Apple Health oder mit mindestens einer Mahlzeit mit Nährwerten.
+// Hat ein Tag Health-Werte, gelten nur diese (die Schätzungen der Foto-Analyse werden nicht addiert).
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Bar, BarChart, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
@@ -23,19 +24,19 @@ const SKALA = 1.5
 const achse = { tick: { fill: '#8e8e93', fontSize: 11 }, axisLine: false, tickLine: false } as const
 const tooltipStil = { background: '#2c2c2e', border: 'none', borderRadius: 12, color: '#fff', fontSize: 13 }
 
-/** Nährwerte pro Tag ("2026-10-06" -> Summe), nur Tage mit Nährwerten. */
-function tagesSummen(mahlzeiten: Mahlzeit[]): Map<string, Naehrwerte> {
+/** Nährwerte pro Tag ("2026-10-06" -> Summe), nur Tage mit Nährwerten. Health ersetzt die Mahlzeiten des Tages. */
+function tagesSummen(mahlzeiten: Mahlzeit[], health: Map<string, Naehrwerte>): Map<string, Naehrwerte> {
   const proTag = new Map<string, Mahlzeit[]>()
   for (const m of mahlzeiten) {
     if (!hatNaehrwerte(m)) continue
     proTag.set(m.datum, [...(proTag.get(m.datum) ?? []), m])
   }
-  return new Map([...proTag].map(([tag, liste]) => [tag, summe(liste)]))
+  return new Map([...[...proTag].map(([tag, liste]) => [tag, summe(liste)] as const), ...health])
 }
 
 const schnitt = (werte: number[]) => (werte.length ? werte.reduce((a, b) => a + b, 0) / werte.length : 0)
 
-export default function MakroVerlauf({ mahlzeiten }: { mahlzeiten: Mahlzeit[] }) {
+export default function MakroVerlauf({ mahlzeiten, health }: { mahlzeiten: Mahlzeit[]; health: Map<string, Naehrwerte> }) {
   const [ziele] = useErnaehrungsZiele()
   const [ansicht, setAnsicht] = useState<Ansicht>('Monat')
   const [gewaehlt, setGewaehlt] = useState<Naehrwert>('kcal')
@@ -44,7 +45,7 @@ export default function MakroVerlauf({ mahlzeiten }: { mahlzeiten: Mahlzeit[] })
   const [monat, setMonat] = useState(Number(heute().slice(5, 7))) // 1–12
 
   const praefix = ansicht === 'Monat' ? `${jahr}-${String(monat).padStart(2, '0')}` : String(jahr)
-  const summen = tagesSummen(mahlzeiten)
+  const summen = tagesSummen(mahlzeiten, health)
   const tage = [...summen.keys()].filter((t) => t.startsWith(praefix)).sort()
 
   // Weiter-Pfeil nur, solange der Zeitraum nicht in der Zukunft liegt

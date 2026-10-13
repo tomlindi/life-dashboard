@@ -3,10 +3,10 @@
 // 2. Essenskalender (Monat, aufklappbar zum Jahr; pro Mahlzeit ein Farbstreifen)
 // 3. Mahlzeit eintragen: per Foto (die KI schätzt die Nährwerte), von Hand oder schnell nur mit Bewertung
 // 4. Heute: die Mahlzeiten von heute (antippen zum Bearbeiten / Nährwerte ergänzen)
-// 5. Wasser-Zähler
+// 5. Wasser (Tag + Woche, Health ersetzt den Zähler) und Alkohol (nur aus Health)
+// Kalorien und Makros kommen aus Apple Health, falls vorhanden; sonst aus den geschätzten Mahlzeiten.
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { GlassWater, Minus, Plus } from 'lucide-react'
 import { db, type Bewertung } from '../../core/db'
 import { heute, neueId } from '../../core/datum'
 import Seite from '../../core/ui/Seite'
@@ -18,13 +18,12 @@ import MakroVerlauf from './MakroVerlauf'
 import FotoErfassung from './FotoErfassung'
 import NaehrwertSheet, { entwurfVon, type Entwurf } from './NaehrwertSheet'
 import { BEWERTUNG, FARBE, hatNaehrwerte, kurzText } from './naehrwerte'
+import { WASSER_ZIEL_GLAESER, WasserUndAlkohol, useHealthNaehrwerte } from './health'
 
-const WASSER_ZIEL = 8
 const VORSCHLAEGE = ['Frühstück', 'Mittagessen', 'Abendessen', 'Snack']
 
 export default function ErnaehrungSeite() {
   const tag = heute()
-  const wasser = useLiveQuery(() => db.wasser.get(tag), [tag])
   const mahlzeiten = useLiveQuery(() => db.mahlzeiten.toArray(), []) ?? []
   const [name, setName] = useState('')
   // Prüf-/Bearbeiten-Fenster als Warteschlange: das erste ist offen, leer = zu.
@@ -33,8 +32,8 @@ export default function ErnaehrungSeite() {
   const [fenster, setFenster] = useState<Entwurf[]>([])
   const oeffne = (e: Entwurf) => setFenster((f) => [...f, { ...e, nr: neueId() }])
 
-  const glaeser = wasser?.glaeser ?? 0
   const heutige = mahlzeiten.filter((m) => m.datum === tag)
+  const healthNaehrwerte = useHealthNaehrwerte() // Kalorien + Makros aus Apple Health, pro Tag
 
   /** Ein Tap auf eine Bewertung speichert die Mahlzeit sofort (ohne Nährwerte). */
   async function speichere(bewertung: Bewertung) {
@@ -44,9 +43,9 @@ export default function ErnaehrungSeite() {
 
   return (
     <Seite titel="Ernährung" farbe={FARBE}>
-      <NaehrwertRinge mahlzeiten={heutige} />
+      <NaehrwertRinge mahlzeiten={heutige} health={healthNaehrwerte.get(tag)} />
 
-      <MakroVerlauf mahlzeiten={mahlzeiten} />
+      <MakroVerlauf mahlzeiten={mahlzeiten} health={healthNaehrwerte} />
 
       <ErnaehrungKalender mahlzeiten={mahlzeiten} />
 
@@ -129,22 +128,8 @@ export default function ErnaehrungSeite() {
         )}
       </Karte>
 
-      {/* Wasser */}
-      <Karte titel="Wasser" akzent="#64d2ff" rechts={<span className="text-[13px] text-grau">{glaeser} / {WASSER_ZIEL} Gläser</span>}>
-        <div className="mb-3 flex justify-between">
-          {Array.from({ length: WASSER_ZIEL }, (_, i) => (
-            <GlassWater key={i} size={30} color={i < glaeser ? '#64d2ff' : '#3a3a3c'} fill={i < glaeser ? '#64d2ff55' : 'transparent'} />
-          ))}
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => db.wasser.put({ datum: tag, glaeser: Math.max(0, glaeser - 1) })} className="tippbar flex h-12 w-14 items-center justify-center rounded-2xl bg-karte2" aria-label="Ein Glas weniger">
-            <Minus size={20} />
-          </button>
-          <button onClick={() => db.wasser.put({ datum: tag, glaeser: glaeser + 1 })} className="tippbar flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#64d2ff] text-[16px] font-semibold text-black">
-            <Plus size={20} /> Glas Wasser
-          </button>
-        </div>
-      </Karte>
+      {/* Wasser und Alkohol (Health ersetzt die gezählten Gläser für den Tag) */}
+      <WasserUndAlkohol zielGlaeser={WASSER_ZIEL_GLAESER} />
 
       <NaehrwertSheet entwurf={fenster[0] ?? null} onZu={() => setFenster((f) => f.slice(1))} />
     </Seite>

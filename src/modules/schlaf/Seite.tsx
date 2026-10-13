@@ -1,11 +1,12 @@
-// Bereich "Schlaf": letzte Nacht, Ziel, Diagramm, Verlauf, Wochendurchschnitte, Qualität 1–5.
+// Bereich "Schlaf": letzte Nacht, Schlafindex und Phasen (aus Apple Health), Ziel, Diagramm, Verlauf,
+// Wochendurchschnitte, Qualität 1–5. Kommt eine Nacht aus Health, ersetzt sie die eigene Eingabe für diesen Tag.
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Minus, Plus, Star } from 'lucide-react'
 import { Bar, BarChart, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import { db, type Schlaf } from '../../core/db'
-import { heute, kurzerWochentag, letzteTage, tagPlus } from '../../core/datum'
-import { kurzDatum, mittel, zahl } from '../../core/format'
+import { heute, kurzerWochentag, letzteTage, tagPlus, uhrzeit } from '../../core/datum'
+import { kurzDatum, mittel, stundenText, zahl } from '../../core/format'
 import { useEinstellung } from '../../core/einstellungen'
 import Seite from '../../core/ui/Seite'
 import Karte from '../../core/ui/Karte'
@@ -13,15 +14,11 @@ import Ring from '../../core/ui/Ring'
 import Sheet from '../../core/ui/Sheet'
 import { Eingabe, Knopf, Label, Leer } from '../../core/ui/Formular'
 import SchlafVerlauf from './Verlauf'
+import { PhasenKarte, SchlafIndexKarte } from './HealthSchlaf'
+import { useHealthNaechte } from '../../core/healthDaten'
+import HealthSymbol from '../../core/ui/HealthSymbol'
 
 const FARBE = '#5e5ce6'
-
-/** 7,5 -> "7 h 30 min" */
-export const stundenText = (h: number) => {
-  const std = Math.floor(h)
-  const min = Math.round((h - std) * 60)
-  return min ? `${std} h ${min} min` : `${std} h`
-}
 
 /** Fünf Sterne zum Antippen. */
 function Sterne({ wert, onWahl, groesse = 22 }: { wert?: number; onWahl: (w: number) => void; groesse?: number }) {
@@ -91,6 +88,9 @@ export default function SchlafSeite() {
   const [formularOffen, setFormularOffen] = useState(false)
 
   const letzteNacht = schlaf.find((s) => s.datum === heute()) ?? schlaf.find((s) => s.datum === tagPlus(heute(), -1))
+  // Nächte aus den Health-Schlafphasen (für Schlafindex und Phasen-Balken)
+  const healthNaechte = useHealthNaechte(60)
+  const healthLetzte = letzteNacht ? healthNaechte.find((n) => n.datum === letzteNacht.datum) : undefined
   const nach = new Map(schlaf.map((s) => [s.datum, s]))
 
   // Diagramm: letzte 14 Nächte
@@ -106,7 +106,7 @@ export default function SchlafSeite() {
 
   return (
     <Seite titel="Schlaf" farbe={FARBE}>
-      <Karte titel="Letzte Nacht" akzent={FARBE}>
+      <Karte titel="Letzte Nacht" akzent={FARBE} rechts={letzteNacht?.quelle === 'health' && <HealthSymbol />}>
         {letzteNacht ? (
           <div className="flex items-center gap-5">
             <Ring fortschritt={letzteNacht.stunden / ziel} farbe={FARBE} groesse={112} dicke={14}>
@@ -117,6 +117,11 @@ export default function SchlafSeite() {
             </Ring>
             <div>
               <p className="text-[15px]">{stundenText(letzteNacht.stunden)}</p>
+              {healthLetzte && (
+                <p className="text-[13px] text-grau">
+                  {uhrzeit(healthLetzte.einschlafen)}–{uhrzeit(healthLetzte.aufwachen)}
+                </p>
+              )}
               <p className="mb-1 text-[13px] text-grau">Ziel: {stundenText(ziel)}</p>
               <Sterne wert={letzteNacht.qualitaet} onWahl={(q) => db.schlaf.update(letzteNacht.datum, { qualitaet: q })} />
             </div>
@@ -125,6 +130,10 @@ export default function SchlafSeite() {
           <Leer>Noch kein Eintrag für letzte Nacht.</Leer>
         )}
       </Karte>
+
+      {/* Nur mit Daten aus Apple Health (dort gibt es Einschlafzeit und Phasen) */}
+      {healthLetzte && <SchlafIndexKarte nacht={healthLetzte} alle={healthNaechte} ziel={ziel} />}
+      {healthNaechte.length > 0 && <PhasenKarte naechte={healthNaechte} />}
 
       <button onClick={() => setFormularOffen(true)} className="tippbar flex h-14 items-center justify-center gap-2 rounded-2xl text-[17px] font-semibold" style={{ background: FARBE }}>
         <Plus size={22} /> Schlaf eintragen

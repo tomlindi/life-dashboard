@@ -268,3 +268,6 @@ export function schlafIndex(nacht: Nacht, zielStunden: number, vorher: Nacht[]):
       ]
   return { wert: Math.round(teile.reduce((s, t) => s + t.punkte, 0)), teile: teile.map((t) => ({ ...t, punkte: Math.round(t.punkte) })) }
 }
+
+/** Farbe für einen Schlafindex: grün ab 80, gelb ab 60, sonst orange. */
+export const indexFarbe = (wert: number) => (wert >= 80 ? '#30D158' : wert >= 60 ? '#FFD60A' : '#FF9F0A')
