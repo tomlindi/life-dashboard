@@ -169,6 +169,11 @@ export interface Projekt {
   titel: string
   status: ProjektStatus
   deadline?: string
+  farbe?: string // eine der 12 Apple-Farben (ohne Angabe: Blau)
+  zielId?: string // gehört zu diesem Ziel
+  notiz?: string // freies Notizfeld auf der Projektseite
+  sortierung?: number // "Eigene Reihenfolge" in der Liste (kleiner = weiter oben)
+  geaendert?: string // ISO-Zeitpunkt der letzten Änderung (für "Zuletzt bearbeitet")
 }
 
 export interface ProjektAufgabe {
@@ -176,6 +181,8 @@ export interface ProjektAufgabe {
   projektId: string
   titel: string
   erledigt: boolean
+  elternId?: string // gesetzt = Unteraufgabe dieser Aufgabe (eine Ebene, wie in Apple Erinnerungen)
+  erstellt?: string // ISO-Zeitpunkt, bestimmt die Reihenfolge in der Liste
 }
 
 // ---------- Geld ----------
@@ -420,6 +427,11 @@ class LifeDB extends Dexie {
     // Version 4: Rohwerte aus Apple Health. "[art+tag]" = schnell alle Werte einer Art für einen Zeitraum finden
     this.version(4).stores({
       health: 'id, art, tag, [art+tag]',
+    })
+    // Version 5: Unteraufgaben in Projekten ("elternId"). Neue Projekt-Felder (Farbe, Ziel, Notiz …)
+    // brauchen keinen Eintrag hier, weil nicht nach ihnen gesucht wird.
+    this.version(5).stores({
+      projektAufgaben: 'id, projektId, elternId',
     })
   }
 }

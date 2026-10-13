@@ -6,7 +6,7 @@
 //   <SortierListe eintraege={projekte} schluessel={(p) => p.id} onNeueReihenfolge={speichere}>
 //     {(p, zieht) => <MeineZeile projekt={p} hervorgehoben={zieht} />}
 //   </SortierListe>
-import type { ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -50,16 +50,27 @@ export default function SortierListe<T>({ eintraege, schluessel, onNeueReihenfol
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
   const ids = eintraege.map(schluessel)
+  // Nach dem Loslassen kommt manchmal noch ein "Klick" an (würde z. B. das Projekt öffnen) -> kurz abfangen
+  const geradeGezogen = useRef(0)
 
   function beimLoslassen({ active, over }: DragEndEvent) {
+    geradeGezogen.current = Date.now()
     if (!over || active.id === over.id) return
     onNeueReihenfolge(arrayMove(eintraege, ids.indexOf(String(active.id)), ids.indexOf(String(over.id))))
   }
 
   return (
-    <DndContext sensors={sensoren} collisionDetection={closestCenter} onDragEnd={beimLoslassen}>
+    <DndContext sensors={sensoren} collisionDetection={closestCenter} onDragEnd={beimLoslassen} onDragCancel={() => (geradeGezogen.current = Date.now())}>
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-        <ul className={className}>
+        <ul
+          className={className}
+          onClickCapture={(e) => {
+            if (Date.now() - geradeGezogen.current < 400) {
+              e.preventDefault()
+              e.stopPropagation()
+            }
+          }}
+        >
           {eintraege.map((e) => (
             <Zeile key={schluessel(e)} id={schluessel(e)}>
               {(zieht) => children(e, zieht)}

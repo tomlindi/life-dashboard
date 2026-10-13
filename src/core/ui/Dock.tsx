@@ -13,6 +13,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { CalendarDays, ChevronLeft, ClipboardPaste, HardDrive, House, LayoutGrid, ListChecks, Settings, type LucideIcon } from 'lucide-react'
 import { MAX_TABS, STANDARD_TABS, module } from '../../modules'
 import { useAusgeblendet, useEinstellung } from '../einstellungen'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../db'
 
 // ---------- Welche Seiten gibt es? ----------
 
@@ -117,7 +119,10 @@ export function Dock({ inhalt, farbe: farbeVonSeite }: { inhalt: RefObject<HTMLE
   const [scrollt, setScrollt] = useState(false)
 
   const aktuell = seiteZu(pathname)
-  const farbe = farbeVonSeite ?? aktuell.farbe
+  // Auf einer Projektseite (/ziele/projekt/<id>) hat der Knopf die Farbe des Projekts
+  const projektId = pathname.match(/^\/ziele\/projekt\/([^/]+)/)?.[1]
+  const projektFarbe = useLiveQuery(async () => (projektId ? (await db.projekte.get(projektId))?.farbe : undefined), [projektId])
+  const farbe = farbeVonSeite ?? projektFarbe ?? aktuell.farbe
   // Aktuelle Seite gehört nicht zu den festen? Dann zusätzlich ganz außen anzeigen.
   const eintraege = tabs.some((t) => t.id === aktuell.id) ? tabs : [...tabs, aktuell]
   // Für Linkshänder spiegeln: dann steht "außen" rechts, und die Kapsel klappt nach rechts auf

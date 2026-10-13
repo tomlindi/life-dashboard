@@ -1,4 +1,5 @@
-// TEST FÜR DEN LIFE-SYNC-IMPORT (Termine, Aufgaben, Apple Health) mit Beispieldaten.
+// TEST FÜR DEN LIFE-SYNC-IMPORT (Termine, Aufgaben, Apple Health) mit Beispieldaten,
+// dazu Filter, Sortierung und Unteraufgaben bei Projekten.
 // Läuft in Node mit einer nachgebauten Datenbank (fake-indexeddb), deine echten Daten bleiben unberührt.
 // Start: npm run test:import
 import 'fake-indexeddb/auto' // muss als Erstes kommen: stellt "indexedDB" in Node bereit
@@ -6,6 +7,8 @@ import { db, holeEinstellung } from '../../src/core/db'
 import { importiere, leseImportText, zusammenfassung } from '../../src/core/import'
 import { inStandardEinheit, leseZahl, naechte, schlafIndex } from '../../src/core/health'
 import { heute, tagPlus } from '../../src/core/datum'
+import type { Projekt } from '../../src/core/db'
+import { fortschritt, loescheAufgabe, neueAufgabe, passt, schalteAufgabe, sortiere, speichereReihenfolge } from '../../src/modules/ziele/projekte'
 
 // ---------- Mini-Testwerkzeug ----------
 let fehler = 0
@@ -161,6 +164,40 @@ try {
 } catch (e) {
   pruefe('ImportFehler mit Zeilennummer', [(e as Error).name, (e as { zeile?: number }).zeile], ['ImportFehler', 1])
 }
+
+// ---------- 8. Projekte: Filter, Sortierung, eigene Reihenfolge, Unteraufgaben ----------
+console.log('\n8. Projekte')
+const projekt = (id: string, titel: string, status: Projekt['status'], extra: Partial<Projekt> = {}): Projekt => ({ id, titel, status, ...extra })
+const pA = projekt('a', 'Website', 'Aktiv', { deadline: tagPlus(H, 20), geaendert: '2026-10-01T10:00:00Z', zielId: 'z1' })
+const pB = projekt('b', 'Bewerbung', 'Aktiv', { deadline: H, geaendert: '2026-10-05T10:00:00Z' })
+const pC = projekt('c', 'Gitarre', 'Pausiert')
+const pD = projekt('d', 'Alte Idee', 'Idee')
+const pE = projekt('e', 'Umzug', 'Fertig', { deadline: H })
+const alleP = [pA, pB, pC, pD, pE]
+const titelVon = (l: Projekt[]) => l.map((p) => p.titel)
+pruefe('Filter Aktiv', titelVon(alleP.filter((p) => passt(p, 'Aktiv', ''))), ['Website', 'Bewerbung'])
+pruefe('Filter Erledigt = Status Fertig', titelVon(alleP.filter((p) => passt(p, 'Erledigt', ''))), ['Umzug'])
+pruefe('Deadline diese Woche (ohne Erledigte)', titelVon(alleP.filter((p) => passt(p, 'Deadline diese Woche', ''))), ['Bewerbung'])
+pruefe('Filter nach Ziel', titelVon(alleP.filter((p) => passt(p, 'Alle', 'z1'))), ['Website'])
+pruefe('Sortierung Deadline (ohne Deadline ans Ende)', titelVon(sortiere(alleP, 'deadline', () => 0)), ['Bewerbung', 'Umzug', 'Website', 'Alte Idee', 'Gitarre'])
+pruefe('Sortierung Zuletzt bearbeitet', titelVon(sortiere(alleP, 'zuletzt', () => 0)).slice(0, 2), ['Bewerbung', 'Website'])
+await db.projekte.bulkPut(alleP)
+// Eigene Reihenfolge (anfangs nach Name), während nur "Aktiv" sichtbar ist: Website vor Bewerbung ziehen
+await speichereReihenfolge(alleP, [pA, pB])
+const geordnet = sortiere(await db.projekte.toArray(), 'eigene', () => 0)
+pruefe('Eigene Reihenfolge: nur die sichtbaren tauschen ihre Plätze', titelVon(geordnet), ['Alte Idee', 'Website', 'Gitarre', 'Umzug', 'Bewerbung'])
+// Unteraufgaben: Löschen einer Aufgabe löscht ihre Unteraufgaben mit, Fortschritt zählt alle
+await neueAufgabe('a', 'Design')
+const design = (await db.projektAufgaben.where('projektId').equals('a').toArray())[0]
+await neueAufgabe('a', 'Farben wählen', design.id)
+await neueAufgabe('a', 'Logo', design.id)
+const unter = await db.projektAufgaben.where('elternId').equals(design.id).toArray()
+await schalteAufgabe(unter[0])
+const fA = fortschritt(pA, await db.projektAufgaben.toArray(), [])
+pruefe('Fortschritt zählt Aufgaben + Unteraufgaben (1 von 3)', [fA.erledigt, fA.alle], [1, 3])
+pruefe('Bearbeiten setzt "Zuletzt bearbeitet"', ((await db.projekte.get('a'))?.geaendert ?? '') > '2026-10-01T10:00:00Z', true)
+await loescheAufgabe(design)
+pruefe('Aufgabe löschen löscht Unteraufgaben mit', await db.projektAufgaben.where('projektId').equals('a').count(), 0)
 
 console.log(fehler ? `\n✗ ${fehler} Prüfung(en) fehlgeschlagen` : '\n✓ Alle Prüfungen bestanden')
 process.exit(fehler ? 1 : 0)

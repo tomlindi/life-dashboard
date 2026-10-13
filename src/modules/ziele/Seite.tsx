@@ -1,47 +1,35 @@
-// Bereich "Ziele & Projekte": langfristige Ziele mit Unterzielen, Projekte mit Aufgaben,
-// und Kalendertermine, die man einem Ziel oder Projekt zuordnen kann.
+// Bereich "Ziele & Projekte":
+//   • oben die Projekte mit Filter und Sortierung (ProjektListe.tsx); jedes Projekt hat eine eigene Seite (ProjektSeite.tsx)
+//   • langfristige Ziele mit Unterzielen; zugeordnete Termine und Erinnerungen sind eingeklappt
+//   • unten: Kalendertermine einem Ziel/Projekt zuordnen, Erinnerungen einem Projekt zuordnen
 // Aufgaben aus Apple Erinnerungen (außer Liste "Schule", die gehört zu Schule) lassen sich einem Projekt zuordnen.
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronDown, Flag } from 'lucide-react'
-import { db, type Aufgabe, type Projekt, type Termin, type Ziel } from '../../core/db'
+import { db, type Aufgabe, type Termin, type Ziel } from '../../core/db'
 import { heute, neueId, tagPlus, tagVon, uhrzeit } from '../../core/datum'
 import { kurzDatum, relativ } from '../../core/format'
 import Seite from '../../core/ui/Seite'
 import Karte from '../../core/ui/Karte'
+import Aufklapper from '../../core/ui/Aufklapper'
 import { Balken, Haken, Leer, LoeschKnopf, PlusKnopf, SchnellEingabe } from '../../core/ui/Formular'
-import { ProjektFormular, STATUS, ZielFormular } from './Formulare'
+import { ZielFormular } from './Formulare'
+import ProjektListe from './ProjektListe'
 import { schalteErinnerung } from '../../core/apple'
 import { istSchulListe } from '../../core/aufgaben'
 
 const FARBE = '#bf5af2'
-const STATUS_FARBE: Record<string, string> = { Idee: '#8e8e93', Aktiv: '#30d158', Pausiert: '#ffd60a', Fertig: '#0a84ff' }
-
-/** Kleine Liste der Termine, die zu einem Ziel/Projekt gehören. */
-function ZugeordneteTermine({ termine }: { termine: Termin[] }) {
-  if (termine.length === 0) return null
-  return (
-    <div className="mt-2 space-y-1">
-      {termine.map((t) => (
-        <p key={t.id} className="text-[13px] text-grau">
-          📅 {t.titel} · {kurzDatum(tagVon(t.start))}, {uhrzeit(t.start)}
-        </p>
-      ))}
-    </div>
-  )
-}
 
 export default function ZieleSeite() {
   const ziele = useLiveQuery(() => db.ziele.toArray(), []) ?? []
   const unterziele = useLiveQuery(() => db.unterziele.toArray(), []) ?? []
   const projekte = useLiveQuery(() => db.projekte.toArray(), []) ?? []
-  const aufgaben = useLiveQuery(() => db.projektAufgaben.toArray(), []) ?? []
   // Termine ab heute (für Zuordnung und Anzeige)
   const termine = useLiveQuery(() => db.termine.where('start').aboveOrEqual(new Date(`${heute()}T00:00:00`).toISOString()).sortBy('start'), []) ?? []
   // Aufgaben aus Erinnerungen, die zu einem Projekt passen könnten (Schule-Liste gehört zu Schule)
   const erinnerungen = useLiveQuery(() => db.aufgaben.filter((a) => a.quelle === 'erinnerungen' && !istSchulListe(a.liste)).toArray(), []) ?? []
 
-  const [formular, setFormular] = useState<null | 'ziel' | 'projekt'>(null)
+  const [zielFormular, setZielFormular] = useState(false)
   const [offen, setOffen] = useState<string | null>(null)
 
   /** Fortschritt eines Ziels in Prozent: Anteil erledigter Unterziele, sonst der Wert von Hand. */
@@ -51,10 +39,17 @@ export default function ZieleSeite() {
     return Math.round((liste.filter((u) => u.erledigt).length / liste.length) * 100)
   }
 
-  function projektFortschritt(p: Projekt) {
-    // eigene Projekt-Aufgaben + zugeordnete Erinnerungen
-    const liste = [...aufgaben.filter((a) => a.projektId === p.id), ...erinnerungen.filter((a) => a.projektId === p.id)]
-    return { erledigt: liste.filter((a) => a.erledigt).length, alle: liste.length }
+  /** Projekt-IDs, die zu einem Ziel gehören. */
+  const projekteVon = (z: Ziel) => new Set(projekte.filter((p) => p.zielId === z.id).map((p) => p.id))
+  /** Termine eines Ziels: direkt zugeordnete und die seiner Projekte. */
+  function termineVon(z: Ziel) {
+    const ids = projekteVon(z)
+    return termine.filter((t) => t.zielId === z.id || (t.projektId && ids.has(t.projektId)))
+  }
+  /** Erinnerungen eines Ziels: die offenen Erinnerungen seiner Projekte. */
+  function erinnerungenVon(z: Ziel) {
+    const ids = projekteVon(z)
+    return erinnerungen.filter((a) => !a.erledigt && a.projektId && ids.has(a.projektId))
   }
 
   /** Erinnerung einem Projekt zuordnen ("" = keinem). */
@@ -63,9 +58,6 @@ export default function ZieleSeite() {
   const offeneErinnerungen = erinnerungen
     .filter((a) => !a.erledigt)
     .sort((a, b) => (a.liste ?? '').localeCompare(b.liste ?? '', 'de') || (a.faellig ?? '9999').localeCompare(b.faellig ?? '9999'))
-
-  /** Nächster Status beim Antippen: Idee → Aktiv → Pausiert → Fertig → Idee */
-  const naechsterStatus = (p: Projekt) => STATUS[(STATUS.indexOf(p.status) + 1) % STATUS.length]
 
   /** Termin zuordnen. Der Wert aus der Auswahl sieht so aus: "ziel:<id>", "projekt:<id>" oder "". */
   function ordneZu(termin: Termin, wert: string) {
@@ -77,8 +69,11 @@ export default function ZieleSeite() {
 
   return (
     <Seite titel="Ziele" farbe={FARBE}>
+      {/* ---------- Projekte (Filter, Sortierung, Liste) ---------- */}
+      <ProjektListe />
+
       {/* ---------- Ziele ---------- */}
-      <Karte titel="Langfristige Ziele" akzent={FARBE} rechts={<PlusKnopf farbe={FARBE} onClick={() => setFormular('ziel')} label="Ziel" />}>
+      <Karte titel="Langfristige Ziele" akzent={FARBE} rechts={<PlusKnopf farbe={FARBE} onClick={() => setZielFormular(true)} label="Ziel" />}>
         {ziele.length === 0 ? (
           <Leer>Noch keine Ziele. Was willst du in diesem Jahr erreichen?</Leer>
         ) : (
@@ -87,6 +82,8 @@ export default function ZieleSeite() {
               const p = prozent(z)
               const istOffen = offen === z.id
               const liste = unterziele.filter((u) => u.zielId === z.id)
+              const zielTermine = termineVon(z)
+              const zielErinnerungen = erinnerungenVon(z)
               return (
                 <li key={z.id} className="rounded-2xl bg-karte2 p-3">
                   <button onClick={() => setOffen(istOffen ? null : z.id)} className="tippbar w-full text-left">
@@ -100,6 +97,36 @@ export default function ZieleSeite() {
                     </div>
                     <Balken wert={p / 100} farbe={FARBE} />
                   </button>
+
+                  {/* Termine und Erinnerungen: standardmäßig eingeklappt, nur mit Anzahl */}
+                  {(zielTermine.length > 0 || zielErinnerungen.length > 0) && (
+                    <div className="mt-2">
+                      {zielTermine.length > 0 && (
+                        <Aufklapper titel="Termine" anzahl={zielTermine.length} klein>
+                          {zielTermine.map((t) => (
+                            <p key={t.id} className="py-1 text-[13px]">
+                              📅 {t.titel}{' '}
+                              <span className="text-grau">
+                                · {kurzDatum(tagVon(t.start))}, {uhrzeit(t.start)}
+                              </span>
+                            </p>
+                          ))}
+                        </Aufklapper>
+                      )}
+                      {zielErinnerungen.length > 0 && (
+                        <Aufklapper titel="Erinnerungen" anzahl={zielErinnerungen.length} klein>
+                          {zielErinnerungen.map((a) => (
+                            <div key={a.id} className="flex items-center">
+                              {/* Abhaken wird beim nächsten Abgleich an Apple geschickt */}
+                              <Haken an={a.erledigt} farbe={FARBE} onClick={() => schalteErinnerung(a)} />
+                              <span className="min-w-0 flex-1 truncate text-[14px]">{a.titel}</span>
+                              {a.faellig && <span className="shrink-0 text-[12px] text-grau">{relativ(a.faellig)}</span>}
+                            </div>
+                          ))}
+                        </Aufklapper>
+                      )}
+                    </div>
+                  )}
 
                   {istOffen && (
                     <div className="mt-3">
@@ -131,112 +158,18 @@ export default function ZieleSeite() {
                         farbe={FARBE}
                         onNeu={(titel) => db.unterziele.add({ id: neueId(), zielId: z.id, titel, erledigt: false })}
                       />
-                      <ZugeordneteTermine termine={termine.filter((t) => t.zielId === z.id)} />
                       <button
                         onClick={() =>
                           confirm(`Ziel „${z.titel}“ löschen?`) &&
-                          db.transaction('rw', db.ziele, db.unterziele, async () => {
+                          db.transaction('rw', db.ziele, db.unterziele, db.projekte, async () => {
                             await db.unterziele.where('zielId').equals(z.id).delete()
+                            await db.projekte.filter((p) => p.zielId === z.id).modify({ zielId: undefined }) // Projekte bleiben, nur ohne Ziel
                             await db.ziele.delete(z.id)
                           })
                         }
                         className="tippbar mt-2 min-h-10 text-[14px] text-[#ff453a]"
                       >
                         Ziel löschen
-                      </button>
-                    </div>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </Karte>
-
-      {/* ---------- Projekte ---------- */}
-      <Karte titel="Projekte" akzent="#0a84ff" rechts={<PlusKnopf farbe="#0a84ff" onClick={() => setFormular('projekt')} label="Projekt" />}>
-        {projekte.length === 0 ? (
-          <Leer>Noch keine Projekte.</Leer>
-        ) : (
-          <ul className="space-y-2">
-            {projekte.map((p) => {
-              const { erledigt, alle } = projektFortschritt(p)
-              const istOffen = offen === p.id
-              const ueberfaellig = p.deadline && p.deadline < heute() && p.status !== 'Fertig'
-              return (
-                <li key={p.id} className="rounded-2xl bg-karte2 p-3">
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setOffen(istOffen ? null : p.id)} className="tippbar min-w-0 flex-1 text-left">
-                      <p className="truncate text-[16px] font-semibold">{p.titel}</p>
-                      <p className={`text-[13px] ${ueberfaellig ? 'text-[#ff453a]' : 'text-grau'}`}>
-                        {alle > 0 ? `${erledigt}/${alle} Aufgaben` : 'Keine Aufgaben'}
-                        {p.deadline ? ` · Deadline ${relativ(p.deadline)}` : ''}
-                      </p>
-                    </button>
-                    {/* Status antippen = nächster Status */}
-                    <button
-                      onClick={() => db.projekte.update(p.id, { status: naechsterStatus(p) })}
-                      className="tippbar min-h-9 rounded-full px-3 text-[13px] font-semibold text-black"
-                      style={{ background: STATUS_FARBE[p.status] }}
-                    >
-                      {p.status}
-                    </button>
-                  </div>
-                  {alle > 0 && (
-                    <div className="mt-2">
-                      <Balken wert={erledigt / alle} farbe="#0a84ff" />
-                    </div>
-                  )}
-
-                  {istOffen && (
-                    <div className="mt-3">
-                      {aufgaben
-                        .filter((a) => a.projektId === p.id)
-                        .map((a) => (
-                          <div key={a.id} className="flex items-center">
-                            <Haken an={a.erledigt} farbe="#0a84ff" onClick={() => db.projektAufgaben.update(a.id, { erledigt: !a.erledigt })} />
-                            <span className={`flex-1 text-[15px] ${a.erledigt ? 'text-grau line-through' : ''}`}>{a.titel}</span>
-                            <LoeschKnopf frage="Aufgabe löschen?" onLoeschen={() => db.projektAufgaben.delete(a.id)} />
-                          </div>
-                        ))}
-                      {/* Zugeordnete Erinnerungen: abhaken wird beim nächsten Abgleich an Apple geschickt */}
-                      {erinnerungen
-                        .filter((a) => a.projektId === p.id)
-                        .map((a) => (
-                          <div key={a.id} className="flex items-center">
-                            <Haken an={a.erledigt} farbe="#0a84ff" onClick={() => schalteErinnerung(a)} />
-                            <span className={`min-w-0 flex-1 truncate text-[15px] ${a.erledigt ? 'text-grau line-through' : ''}`}>{a.titel}</span>
-                            {a.markiert && <Flag size={14} color="#ff9f0a" fill="#ff9f0a" className="mr-2 shrink-0" />}
-                            <span className="shrink-0 text-[12px] text-grau">{a.liste ?? 'Erinnerungen'}</span>
-                          </div>
-                        ))}
-                      <SchnellEingabe
-                        platzhalter="Aufgabe hinzufügen …"
-                        farbe="#0a84ff"
-                        onNeu={(titel) => db.projektAufgaben.add({ id: neueId(), projektId: p.id, titel, erledigt: false })}
-                      />
-                      <label className="mt-3 flex items-center justify-between gap-3">
-                        <span className="text-[14px] text-grau">Deadline</span>
-                        <input
-                          type="date"
-                          value={p.deadline ?? ''}
-                          onChange={(e) => db.projekte.update(p.id, { deadline: e.target.value || undefined })}
-                          className="h-10 rounded-xl bg-black/40 px-3 outline-none"
-                        />
-                      </label>
-                      <ZugeordneteTermine termine={termine.filter((t) => t.projektId === p.id)} />
-                      <button
-                        onClick={() =>
-                          confirm(`Projekt „${p.titel}“ löschen?`) &&
-                          db.transaction('rw', db.projekte, db.projektAufgaben, db.aufgaben, async () => {
-                            await db.projektAufgaben.where('projektId').equals(p.id).delete()
-                            await db.aufgaben.filter((a) => a.projektId === p.id).modify({ projektId: undefined }) // Erinnerungen bleiben, nur ohne Projekt
-                            await db.projekte.delete(p.id)
-                          })
-                        }
-                        className="tippbar mt-2 min-h-10 text-[14px] text-[#ff453a]"
-                      >
-                        Projekt löschen
                       </button>
                     </div>
                   )}
@@ -332,8 +265,8 @@ export default function ZieleSeite() {
         )}
       </Karte>
 
-      <ZielFormular offen={formular === 'ziel'} onZu={() => setFormular(null)} />
-      <ProjektFormular offen={formular === 'projekt'} onZu={() => setFormular(null)} />
+
+      <ZielFormular offen={zielFormular} onZu={() => setZielFormular(false)} />
     </Seite>
   )
 }

@@ -8,6 +8,14 @@ Die aktuelle Version steht in der App ganz unten unter Mehr → Einstellungen.
 - Nur anschauen (am PC): `git checkout v1.0.0`, danach `npm run dev`. Zurück zur neuesten mit `git checkout main`.
 - Online wirklich zurücksetzen: `git revert --no-edit v1.0.0..HEAD` und `git push`. Dabei entstehen neue Commits, die alles seit v1.0.0 rückgängig machen. Der Verlauf bleibt erhalten, und GitHub Pages baut automatisch die alte Version.
 
+## 1.4.0 – 13.10.2026
+
+**Projekte filtern und sortieren.** Oben auf der Ziele-Seite stehen die Projekte mit Filter-Chips (Alle, Aktiv, Pausiert, Erledigt, Deadline diese Woche), einer Auswahl „Ziel“ und einem Sortieren-Knopf (Deadline, Fortschritt, Name, Zuletzt bearbeitet, Eigene Reihenfolge). Bei „Eigene Reihenfolge“ hältst du ein Projekt gedrückt und ziehst es. Filter und Sortierung bleiben gespeichert. Jede Zeile zeigt nur Farbe, Name, Fortschrittsring, Deadline und offene Aufgaben.
+
+**Eigene Seite pro Projekt.** Ein Tipp auf ein Projekt öffnet seine Seite mit großem Fortschrittsring, Status, Deadline und Ziel. Über „Bearbeiten“ änderst du Name, Farbe, Status, Deadline und Ziel. Darunter liegen aufklappbare Abschnitte: Aufgaben mit Unteraufgaben (Erledigtes eingeklappt als „3 erledigt ›“, neue Aufgaben direkt unten in der Liste), Termine und Erinnerungen (eingeklappt) und Notizen, die beim Tippen gespeichert werden.
+
+**Ziele aufgeräumt.** Bei jedem Ziel sind die zugeordneten Termine und Erinnerungen eingeklappt und zeigen nur die Anzahl. Antippen klappt sie weich auf, der Pfeil dreht sich mit. Zu einem Ziel zählen auch Termine und Erinnerungen seiner Projekte.
+
 ## 1.3.0 – 13.10.2026
 
 **Dock wird ein Knopf.** Statt der Leiste gibt es unten rechts einen runden Glas-Knopf mit dem Symbol der Seite, auf der du gerade bist. Antippen klappt ihn weich zu einer Kapsel mit deinen 4 Dock-Seiten und „Mehr“ auf. Eine Seite außerhalb davon steht zusätzlich ganz außen und ist markiert. Daneben tippen oder nach unten wischen klappt ihn zu. Beim Scrollen wird der Knopf kleiner und durchsichtiger. Das Ausblenden auf Detailseiten und der Griff fallen weg, weil der Knopf immer da ist.

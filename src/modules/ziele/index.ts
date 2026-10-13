@@ -9,5 +9,7 @@ const modul: Modul = {
   icon: Target,
   farbe: '#bf5af2',
   Seite: lazy(() => import('./Seite')),
+  // Eigene Seite pro Projekt, z. B. /ziele/projekt/abc123
+  unterseiten: [{ pfad: 'projekt/:id', Seite: lazy(() => import('./ProjektSeite')) }],
 }
 export default modul
