@@ -2,7 +2,7 @@
 // Halbjahres-Übersicht, Klausuren, Hausaufgaben, CSV-Import.
 import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ChevronDown, FileUp } from 'lucide-react'
+import { ChevronDown, FileUp, Flag } from 'lucide-react'
 import { db, type Fach, type NotenArt } from '../../core/db'
 import { heute, tagVon } from '../../core/datum'
 import { kurzDatum, relativ } from '../../core/format'
@@ -16,6 +16,8 @@ import { NOTEN_ARTEN, berechneHalbjahr, formatGenau, formatNote, notenText, punk
 import { importiereNotenCsv } from './csv'
 import { abiPrognose } from './abi'
 import AbiPrognose from './AbiPrognose'
+import { schalteErinnerung } from '../../core/apple'
+import { istSchulListe } from '../../core/aufgaben'
 
 const FARBE = '#ff9f0a'
 const HALBJAHRE = [1, 2, 3, 4]
@@ -100,6 +102,8 @@ export default function SchuleSeite() {
   const klausuren = useLiveQuery(() => db.klausuren.where('datum').aboveOrEqual(heute()).sortBy('datum'), []) ?? []
   const kalenderKlausuren = useLiveQuery(() => db.termine.where('start').aboveOrEqual(new Date().toISOString()).toArray(), []) ?? []
   const hausaufgaben = useLiveQuery(() => db.hausaufgaben.orderBy('faellig').toArray(), []) ?? []
+  // Offene Aufgaben aus der Erinnerungen-Liste "Schule" zählen auch als Hausaufgaben
+  const schulErinnerungen = useLiveQuery(() => db.aufgaben.filter((a) => !a.erledigt && istSchulListe(a.liste)).toArray(), []) ?? []
 
   // Aktuelles Halbjahr (gespeichert) und das gerade angezeigte Halbjahr
   const [aktuellesHJ, setAktuellesHJ] = useEinstellung<number>('aktuellesHalbjahr', 1)
@@ -125,6 +129,19 @@ export default function SchuleSeite() {
   ].sort((a, b) => a.datum.localeCompare(b.datum))
 
   const offeneHA = hausaufgaben.filter((h) => !h.erledigt || h.faellig >= heute())
+  /** Fach aus dem Titel erraten, nur für die Anzeige: "Bio-Referat" -> Biologie, "Mathe Seite 12" -> Mathematik. */
+  const fachAusTitel = (titel: string) => {
+    const woerter = titel.toLowerCase().split(/[^a-zäöüß]+/).filter((w) => w.length >= 3)
+    return faecher.find((f) => {
+      const name = f.name.toLowerCase()
+      return titel.toLowerCase().includes(name) || woerter.some((w) => name.startsWith(w))
+    })?.name
+  }
+  // Eigene Hausaufgaben und Schul-Erinnerungen in einer Liste, nach Fälligkeit (ohne Datum zuletzt)
+  const haListe = [
+    ...offeneHA.map((h) => ({ art: 'eigen' as const, id: h.id, faellig: h.faellig, h })),
+    ...schulErinnerungen.map((a) => ({ art: 'erinnerung' as const, id: a.id, faellig: a.faellig ?? '9999', a })),
+  ].sort((x, y) => x.faellig.localeCompare(y.faellig))
 
   async function csvGewaehlt(datei: File | undefined) {
     if (!datei) return
@@ -358,22 +375,43 @@ export default function SchuleSeite() {
 
       {/* Hausaufgaben */}
       <Karte titel="Hausaufgaben" akzent="#0a84ff" rechts={<PlusKnopf farbe="#0a84ff" onClick={() => setFormular('hausaufgabe')} />}>
-        {offeneHA.length === 0 ? (
+        {haListe.length === 0 ? (
           <Leer>Keine Hausaufgaben. 🎉</Leer>
         ) : (
           <ul>
-            {offeneHA.map((h) => (
-              <li key={h.id} className="flex min-h-12 items-center gap-1">
-                <Haken an={h.erledigt} farbe="#0a84ff" onClick={() => db.hausaufgaben.update(h.id, { erledigt: !h.erledigt })} />
-                <div className="min-w-0 flex-1">
-                  <p className={`truncate text-[16px] ${h.erledigt ? 'text-grau line-through' : ''}`}>{h.titel}</p>
-                  <p className={`text-[13px] ${h.faellig < heute() && !h.erledigt ? 'text-[#ff453a]' : 'text-grau'}`}>
-                    {fachName(h.fachId) ? `${fachName(h.fachId)} · ` : ''}fällig {relativ(h.faellig)}
-                  </p>
-                </div>
-                <LoeschKnopf frage="Hausaufgabe löschen?" onLoeschen={() => db.hausaufgaben.delete(h.id)} />
-              </li>
-            ))}
+            {haListe.map((eintrag) => {
+              if (eintrag.art === 'eigen') {
+                const h = eintrag.h
+                return (
+                  <li key={h.id} className="flex min-h-12 items-center gap-1">
+                    <Haken an={h.erledigt} farbe="#0a84ff" onClick={() => db.hausaufgaben.update(h.id, { erledigt: !h.erledigt })} />
+                    <div className="min-w-0 flex-1">
+                      <p className={`truncate text-[16px] ${h.erledigt ? 'text-grau line-through' : ''}`}>{h.titel}</p>
+                      <p className={`text-[13px] ${h.faellig < heute() && !h.erledigt ? 'text-[#ff453a]' : 'text-grau'}`}>
+                        {fachName(h.fachId) ? `${fachName(h.fachId)} · ` : ''}fällig {relativ(h.faellig)}
+                      </p>
+                    </div>
+                    <LoeschKnopf frage="Hausaufgabe löschen?" onLoeschen={() => db.hausaufgaben.delete(h.id)} />
+                  </li>
+                )
+              }
+              // Aus Erinnerungen (Liste "Schule"): Abhaken wird beim nächsten Abgleich an Apple geschickt
+              const a = eintrag.a
+              const fach = fachAusTitel(a.titel)
+              return (
+                <li key={a.id} className="flex min-h-12 items-center gap-1">
+                  <Haken an={false} farbe="#0a84ff" onClick={() => schalteErinnerung(a)} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[16px]">{a.titel}</p>
+                    <p className={`text-[13px] ${a.faellig && a.faellig < heute() ? 'text-[#ff453a]' : 'text-grau'}`}>
+                      {fach ? `${fach} · ` : ''}
+                      {a.faellig ? `fällig ${relativ(a.faellig)}` : 'ohne Datum'} · Erinnerungen
+                    </p>
+                  </div>
+                  {a.markiert && <Flag size={16} color="#ff9f0a" fill="#ff9f0a" className="mr-3 shrink-0" aria-label="markiert" />}
+                </li>
+              )
+            })}
           </ul>
         )}
       </Karte>

@@ -12,6 +12,7 @@ import { BackupHinweis, GeburtstagsHinweis } from './Hinweise'
 import { ErinnerungenWidget, KalenderWidget } from '../kalender/Widgets'
 import SyncKnopf from '../kalender/SyncKnopf'
 import HealthKacheln from './HealthKacheln'
+import FaelligeAufgaben from './FaelligeAufgaben'
 
 export default function HeuteSeite() {
   // Zeigt entweder "Beispieldaten laden" oder "löschen", je nachdem was gerade da ist.
@@ -28,6 +29,7 @@ export default function HeuteSeite() {
       <SyncKnopf />
       {/* Schritte, letzte Nacht, Wasser (aus Apple Health oder eigener Eingabe) */}
       <HealthKacheln />
+      <FaelligeAufgaben />
       <GeburtstagsHinweis />
       <BackupHinweis />
       <Aktivitaet />

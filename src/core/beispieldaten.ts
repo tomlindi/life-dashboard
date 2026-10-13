@@ -66,7 +66,8 @@ export async function ladeBeispieldaten() {
   // Aufgaben
   await db.aufgaben.bulkPut([
     { id: `${DEMO}a1`, quelle: 'erinnerungen', titel: 'Referat Geschichte vorbereiten', faellig: tagPlus(h, 2), erledigt: false, liste: 'Schule' },
-    { id: `${DEMO}a2`, quelle: 'erinnerungen', titel: 'Vokabeln Kapitel 5', faellig: h, erledigt: false, liste: 'Schule' },
+    { id: `${DEMO}a2`, quelle: 'erinnerungen', titel: 'Vokabeln Kapitel 5', faellig: h, erledigt: false, liste: 'Schule', markiert: true },
+    { id: `${DEMO}a4`, quelle: 'erinnerungen', titel: 'Fahrrad reparieren', faellig: tagPlus(h, -2), erledigt: false, liste: 'Privat', prioritaet: 2 },
     { id: `${DEMO}a3`, quelle: 'manuell', titel: 'Sporttasche packen', faellig: h, erledigt: true, liste: 'Privat' },
   ])
 
