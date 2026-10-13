@@ -5,7 +5,6 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronLeft, ChevronRight, Clock, MapPin, Plus } from 'lucide-react'
-import { zeigeLeiste } from '../../core/ui/TabLeiste'
 import { db, type Termin } from '../../core/db'
 import { heute, langesDatum, tagVon, uhrzeit } from '../../core/datum'
 import TerminSheet from './TerminSheet'
@@ -70,7 +69,7 @@ export default function KalenderSeite() {
     <div className="px-4 pb-10 pt-3">
       {/* Kopfzeile wie bei Apple: zurück, Kalender (ein-/ausblenden), Heute, + */}
       <div className="mb-1 flex items-center justify-between">
-        <Link to="/" onClick={zeigeLeiste} className="tippbar inline-flex min-h-10 items-center text-[17px]" style={{ color: ROT }}>
+        <Link to="/" className="tippbar inline-flex min-h-10 items-center text-[17px]" style={{ color: ROT }}>
           <ChevronLeft size={22} /> Heute
         </Link>
         <div className="flex items-center gap-1">

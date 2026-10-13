@@ -30,8 +30,8 @@ export const module: Modul[] = [
 ]
 
 /**
- * Standard-Tabs im Dock (unten). Wählbar sind "heute" und alle Bereiche, höchstens 4.
- * Der 5. Tab ist immer "Mehr". Ändern: Mehr → Einstellungen → Tabs anpassen.
+ * Standard-Seiten im Dock. Wählbar sind "heute", "kalender", "erinnerungen" und alle Bereiche, höchstens 4.
+ * Dazu kommt immer "Mehr". Ändern: Mehr → Einstellungen → Dock-Seiten.
  */
-export const STANDARD_TABS = ['heute', 'fitness', 'schule', 'ziele']
+export const STANDARD_TABS = ['heute', 'kalender', 'fitness', 'ziele']
 export const MAX_TABS = 4

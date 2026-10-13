@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ArrowDown, ArrowUp, ChevronLeft, Trophy, X } from 'lucide-react'
-import { zeigeLeiste } from '../../../core/ui/TabLeiste'
 import { db, type GymEinheit, type Satz, type SatzTyp } from '../../../core/db'
 import { neueId } from '../../../core/datum'
 import { zahl } from '../../../core/format'
@@ -138,7 +137,7 @@ export default function TrainingSeite() {
   return (
     <div className="px-4 pb-40 pt-3">
       {/* Kopf */}
-      <Link to="/fitness/gym" onClick={zeigeLeiste} className="tippbar mb-2 inline-flex min-h-10 items-center text-[17px]" style={{ color: FARBE }}>
+      <Link to="/fitness/gym" className="tippbar mb-2 inline-flex min-h-10 items-center text-[17px]" style={{ color: FARBE }}>
         <ChevronLeft size={22} /> Gym
       </Link>
       <input

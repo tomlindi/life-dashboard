@@ -8,6 +8,14 @@ Die aktuelle Version steht in der App ganz unten unter Mehr → Einstellungen.
 - Nur anschauen (am PC): `git checkout v1.0.0`, danach `npm run dev`. Zurück zur neuesten mit `git checkout main`.
 - Online wirklich zurücksetzen: `git revert --no-edit v1.0.0..HEAD` und `git push`. Dabei entstehen neue Commits, die alles seit v1.0.0 rückgängig machen. Der Verlauf bleibt erhalten, und GitHub Pages baut automatisch die alte Version.
 
+## 1.3.0 – 13.10.2026
+
+**Dock wird ein Knopf.** Statt der Leiste gibt es unten rechts einen runden Glas-Knopf mit dem Symbol der Seite, auf der du gerade bist. Antippen klappt ihn weich zu einer Kapsel mit deinen 4 Dock-Seiten und „Mehr“ auf. Eine Seite außerhalb davon steht zusätzlich ganz außen und ist markiert. Daneben tippen oder nach unten wischen klappt ihn zu. Beim Scrollen wird der Knopf kleiner und durchsichtiger. Das Ausblenden auf Detailseiten und der Griff fallen weg, weil der Knopf immer da ist.
+
+**Dock-Seiten und Knopf links.** Unter Einstellungen → Dock-Seiten wählst du die 4 festen Seiten (jetzt auch Kalender und Erinnerungen) und sortierst sie per Gedrückthalten und Ziehen. Der Schalter „Knopf links“ ist für Linkshänder.
+
+**Zurück-Wischen.** Auf allen Seiten mit Zurück-Knopf geht es jetzt auch zurück, wenn du vom linken Bildschirmrand nach rechts wischst. Das gilt in der Homescreen-App; in Safari macht iOS das schon selbst.
+
 ## 1.2.0 – 13.10.2026
 
 **Neues Dock im Stil von iOS 26.** Die Tab-Leiste ist jetzt eine schwebende Glas-Kapsel mit Symbolen und kleiner Beschriftung. Der aktive Tab hat eine helle Kapsel und die Farbe seines Bereichs. Auf den Übersichtsseiten schrumpft das Dock beim Runterscrollen zu einer kleinen runden Kapsel unten links und wird beim Hochscrollen oder Antippen wieder groß, mit leichtem Federeffekt. Auf allen anderen Seiten bleibt es weg und kommt nur über „Zurück“ oder einen Wisch knapp über dem Home-Balken zurück. Scrollen holt es dort nicht mehr hervor.

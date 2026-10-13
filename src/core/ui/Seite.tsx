@@ -1,11 +1,11 @@
 // Rahmen für jede Seite: große Überschrift (wie bei Apple) und Abstand.
 // Die Safe Area (Notch oben) behandelt App.tsx, hier geht es nur um den Inhalt.
 // Auf Seiten, die nicht im Dock stehen, gibt es oben links "‹ Zurück".
-// Das ist wichtig: Als Homescreen-App hat das iPhone keine Zurück-Wischgeste vom Rand,
-// und die Tab-Leiste ist auf diesen Seiten eingefahren.
+// Das ist wichtig: Als Homescreen-App hat das iPhone keine eigene Zurück-Wischgeste vom Rand.
+// Deshalb baut die App sie selbst nach: vom linken Rand nach rechts wischen (siehe core/ui/Dock.tsx).
 import type { ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
-import { ZurueckKnopf, useIstUebersicht } from './TabLeiste'
+import { ZurueckKnopf, useIstUebersicht } from './Dock'
 
 interface Props {
   titel: string

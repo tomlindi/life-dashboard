@@ -1,11 +1,11 @@
 // Das Grundgerüst der App: Seiten-Bereich und unten das Dock (wie auf dem iPhone-Homescreen).
-// Wann das Dock ein- und ausfährt, steht in core/ui/TabLeiste.tsx.
+// Wie das Dock funktioniert, steht in core/ui/Dock.tsx.
 import { Suspense, lazy, useRef } from 'react'
 import { HashRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { module } from './modules'
 import HeuteSeite from './modules/heute/Seite'
 import Sicherheitsnetz from './core/ui/Sicherheitsnetz'
-import { Dock, abstandUnten, useDockZustand, useLeistenSteuerung } from './core/ui/TabLeiste'
+import { DOCK_ABSTAND, Dock, useZurueckWischen } from './core/ui/Dock'
 
 // "lazy": Die Mehr-Seite wird erst geladen, wenn man sie öffnet (hält den Start schnell)
 const MehrSeite = lazy(() => import('./modules/mehr/Seite'))
@@ -42,27 +42,20 @@ function Seiten() {
   )
 }
 
-/** Inhalt + Dock. Eigene Komponente, weil die Steuerung den Router (aktuelle Seite) braucht. */
+/** Inhalt + Dock. Eigene Komponente, weil Dock und Zurück-Wischen den Router (aktuelle Seite) brauchen. */
 function Rahmen() {
   const inhalt = useRef<HTMLElement>(null)
-  useLeistenSteuerung(inhalt)
-  const zustand = useDockZustand()
+  useZurueckWischen() // vom linken Rand nach rechts wischen = zurück
 
   return (
     <div className="h-full">
-      {/* Scrollbarer Inhalt. Oben Platz für Notch/Statusleiste, unten für das schwebende Dock.
-          Der Inhalt läuft UNTER dem Dock durch, deshalb sieht man den Glas-Effekt.
-          Ist das Dock weg, wird der Abstand unten kleiner. */}
-      <main
-        ref={inhalt}
-        className="h-full overflow-y-auto overscroll-contain"
-        style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: abstandUnten(zustand), transition: 'padding-bottom 250ms ease-out' }}
-      >
+      {/* Scrollbarer Inhalt. Oben Platz für Notch/Statusleiste, unten genug Abstand für den Dock-Knopf. */}
+      <main ref={inhalt} className="h-full overflow-y-auto overscroll-contain" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: DOCK_ABSTAND }}>
         <Seiten />
       </main>
 
-      {/* Dock unten im Stil von iOS 26 (Tabs wählbar unter Einstellungen → Tabs anpassen) */}
-      <Dock />
+      {/* Dock: runder Knopf unten rechts, klappt zur Kapsel mit allen Seiten auf */}
+      <Dock inhalt={inhalt} />
     </div>
   )
 }

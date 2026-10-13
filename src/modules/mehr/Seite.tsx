@@ -2,7 +2,7 @@
 import { Link } from 'react-router-dom'
 import { CalendarDays, ChevronRight, ClipboardPaste, HardDrive, ListChecks, Settings, type LucideIcon } from 'lucide-react'
 import { module } from '..'
-import { useDockTabs } from '../../core/ui/TabLeiste'
+import { useDockTabs } from '../../core/ui/Dock'
 import { useAusgeblendet } from '../../core/einstellungen'
 import Seite from '../../core/ui/Seite'
 
