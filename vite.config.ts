@@ -18,7 +18,7 @@ export default defineConfig({
     // PWA: erzeugt Manifest + Service Worker (macht die App offlinefähig)
     VitePWA({
       registerType: 'autoUpdate', // neue Versionen laden sich von selbst
-      includeAssets: ['apple-touch-icon.png'],
+      includeAssets: ['apple-touch-icon.png', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'Life Dashboard',
         short_name: 'Life',

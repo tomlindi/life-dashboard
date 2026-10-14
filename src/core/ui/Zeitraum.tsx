@@ -29,7 +29,7 @@ export function ZeitraumWahl({ wert, onWahl }: { wert: ZeitraumLabel; onWahl: (z
           key={z.label}
           onClick={() => onWahl(z.label)}
           className="tippbar min-h-8 flex-1 rounded-lg text-[13px] font-semibold"
-          style={{ background: wert === z.label ? '#636366' : 'transparent' }}
+          style={{ background: wert === z.label ? 'var(--color-segment)' : 'transparent' }}
         >
           {z.label}
         </button>

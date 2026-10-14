@@ -14,7 +14,7 @@ export default function Karte({ titel, akzent, rechts, children, className = '' 
     <section className={`rounded-3xl bg-karte p-4 ${className}`}>
       {(titel || rechts) && (
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-[15px] font-semibold" style={{ color: akzent ?? '#fff' }}>
+          <h2 className="text-[15px] font-semibold" style={{ color: akzent ?? 'var(--color-text)' }}>
             {titel}
           </h2>
           {rechts}

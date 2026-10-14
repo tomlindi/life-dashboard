@@ -1,21 +1,67 @@
-// Bereich "Hobbys": investierte Zeit (schnell per +15/+30/+60 Min) und Ziele pro Hobby.
-import { useState } from 'react'
+// Bereich "Hobbys": investierte Zeit (per Timer, schnell per +15/+30/+60 Min oder nachgetragen) und Ziele pro Hobby.
+// Der Timer merkt sich nur den Startzeitpunkt (Einstellung "hobbyLaeuft"). Er läuft also weiter,
+// auch wenn die App geschlossen wird. Beim Stoppen wird ein Eintrag mit Beginn und Ende gespeichert.
+import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ChevronDown } from 'lucide-react'
-import { db } from '../../core/db'
-import { heute, neueId, wochenStart } from '../../core/datum'
+import { ChevronDown, Clock, Play, Square } from 'lucide-react'
+import { db, holeEinstellung, setzeEinstellung, type Hobby, type HobbyZeit } from '../../core/db'
+import { heute, neueId, tagVon, uhrzeit, wochenStart } from '../../core/datum'
 import { kurzDatum, zahl } from '../../core/format'
+import { useEinstellung } from '../../core/einstellungen'
 import Seite from '../../core/ui/Seite'
 import Karte from '../../core/ui/Karte'
 import Sheet from '../../core/ui/Sheet'
 import { Balken, Eingabe, Knopf, Label, Leer, LoeschKnopf, PlusKnopf } from '../../core/ui/Formular'
 
-const FARBE = '#ffd60a'
+const FARBE = 'var(--color-gelb)' // #ffd60a, im Light Mode dunkler (index.css)
 const EMOJIS = ['🎸', '🎮', '🎨', '📷', '⚽', '🏀', '🎹', '📖', '💻', '🧩', '🛹', '🎤']
 const ZIEL_OPTIONEN = [0, 60, 120, 180, 300, 420]
+const LAUF = 'hobbyLaeuft'
+
+/** Der laufende Hobby-Timer. */
+interface HobbyLauf {
+  hobbyId: string
+  start: string // ISO
+}
 
 /** 90 -> "1 h 30 min" */
 const minutenText = (m: number) => (m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ''}`)
+
+/** 1234 Sekunden -> "0:20:34" */
+function uhrText(sek: number) {
+  const zwei = (n: number) => String(n).padStart(2, '0')
+  return `${Math.floor(sek / 3600)}:${zwei(Math.floor(sek / 60) % 60)}:${zwei(sek % 60)}`
+}
+
+/**
+ * Den laufenden Timer beenden und als Eintrag speichern (mindestens 1 Minute).
+ * In einer Transaktion, damit ein doppeltes Antippen nicht zwei Einträge erzeugt.
+ */
+function stoppeTimer() {
+  return db.transaction('rw', db.einstellungen, db.hobbyZeiten, async () => {
+    const lauf = await holeEinstellung<HobbyLauf | null>(LAUF, null)
+    if (!lauf) return
+    const ende = new Date().toISOString()
+    const minuten = Math.max(1, Math.round((Date.parse(ende) - Date.parse(lauf.start)) / 60000))
+    await db.hobbyZeiten.add({ id: neueId(), hobbyId: lauf.hobbyId, datum: tagVon(lauf.start), minuten, start: lauf.start, ende })
+    await setzeEinstellung(LAUF, null)
+  })
+}
+
+/** Timer für ein Hobby starten. Läuft schon einer (für ein anderes Hobby), wird er vorher gespeichert. */
+async function starteTimer(hobbyId: string) {
+  await stoppeTimer()
+  await setzeEinstellung(LAUF, { hobbyId, start: new Date().toISOString() } satisfies HobbyLauf)
+}
+
+/** Eine Zeile im Protokoll: "Mo 13.10. · 14:05–15:20 · 1 h 15 min" */
+function eintragText(z: HobbyZeit) {
+  const zeit = z.start && z.ende ? ` · ${uhrzeit(z.start)}–${uhrzeit(z.ende)}` : ''
+  return `${kurzDatum(z.datum)}${zeit} · ${minutenText(z.minuten)}`
+}
+
+/** Neueste zuerst: nach Tag, innerhalb des Tages nach Beginn. */
+const neuesteZuerst = (a: HobbyZeit, b: HobbyZeit) => b.datum.localeCompare(a.datum) || (b.start ?? '').localeCompare(a.start ?? '')
 
 function HobbyFormular({ offen, onZu }: { offen: boolean; onZu: () => void }) {
   const [name, setName] = useState('')
@@ -39,7 +85,7 @@ function HobbyFormular({ offen, onZu }: { offen: boolean; onZu: () => void }) {
       <Label>Symbol</Label>
       <div className="mb-4 grid grid-cols-6 gap-2">
         {EMOJIS.map((e) => (
-          <button key={e} onClick={() => setEmoji(e)} className={`tippbar h-12 rounded-xl text-[24px] ${emoji === e ? 'bg-white/20 ring-2 ring-white/60' : 'bg-karte2'}`}>
+          <button key={e} onClick={() => setEmoji(e)} className={`tippbar h-12 rounded-xl text-[24px] ${emoji === e ? 'bg-text/20 ring-2 ring-text/60' : 'bg-karte2'}`}>
             {e}
           </button>
         ))}
@@ -51,7 +97,7 @@ function HobbyFormular({ offen, onZu }: { offen: boolean; onZu: () => void }) {
             key={m}
             onClick={() => setZielMin(m)}
             className="tippbar h-11 rounded-xl text-[13px] font-semibold"
-            style={{ background: zielMin === m ? FARBE : '#2c2c2e', color: zielMin === m ? '#000' : '#fff' }}
+            style={{ background: zielMin === m ? FARBE : 'var(--color-karte2)', color: zielMin === m ? '#000' : 'var(--color-text)' }}
           >
             {m === 0 ? 'keins' : `${m / 60} h`}
           </button>
@@ -67,17 +113,85 @@ function HobbyFormular({ offen, onZu }: { offen: boolean; onZu: () => void }) {
   )
 }
 
+/** "Zeit nachtragen": Tag, Beginn und Ende von Hand. Ende vor Beginn = über Mitternacht. */
+function NachtragenSheet({ hobby, onZu }: { hobby?: Hobby; onZu: () => void }) {
+  const [datum, setDatum] = useState(heute())
+  const [von, setVon] = useState('')
+  const [bis, setBis] = useState('')
+
+  const start = von ? new Date(`${datum}T${von}`) : null
+  let ende = bis ? new Date(`${datum}T${bis}`) : null
+  if (start && ende && ende <= start) ende = new Date(ende.getTime() + 24 * 3600 * 1000)
+  const minuten = start && ende ? Math.round((ende.getTime() - start.getTime()) / 60000) : 0
+
+  async function speichern() {
+    if (!hobby || !start || !ende || minuten < 1) return
+    await db.hobbyZeiten.add({ id: neueId(), hobbyId: hobby.id, datum, minuten, start: start.toISOString(), ende: ende.toISOString() })
+    setVon('')
+    setBis('')
+    onZu()
+  }
+
+  return (
+    <Sheet titel={hobby ? `${hobby.emoji} Zeit nachtragen` : ''} offen={!!hobby} onZu={onZu}>
+      <div className="mb-3">
+        <Eingabe label="Tag" type="date" value={datum} max={heute()} onChange={(e) => setDatum(e.target.value || heute())} />
+      </div>
+      <div className="mb-3 flex gap-3">
+        <Eingabe label="Beginn" type="time" value={von} onChange={(e) => setVon(e.target.value)} />
+        <Eingabe label="Ende" type="time" value={bis} onChange={(e) => setBis(e.target.value)} />
+      </div>
+      <p className="mb-4 text-[14px] text-grau">{minuten > 0 ? `Dauer: ${minutenText(minuten)}` : 'Beginn und Ende eintragen.'}</p>
+      <Knopf farbe={FARBE} onClick={speichern} deaktiviert={minuten < 1}>
+        Speichern
+      </Knopf>
+    </Sheet>
+  )
+}
+
+/** Große Karte oben, solange ein Timer läuft. */
+function LaufenderTimer({ lauf, hobby }: { lauf: HobbyLauf; hobby?: Hobby }) {
+  const [jetzt, setJetzt] = useState(Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setJetzt(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  const sek = Math.max(0, Math.floor((jetzt - Date.parse(lauf.start)) / 1000))
+
+  return (
+    <Karte>
+      <div className="flex items-center gap-3">
+        <span className="text-[34px]">{hobby?.emoji ?? '⏱️'}</span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[15px] font-semibold">{hobby?.name ?? 'Hobby'} läuft</p>
+          <p className="text-[13px] text-grau">seit {uhrzeit(lauf.start)} Uhr</p>
+        </div>
+        <button onClick={stoppeTimer} className="tippbar flex h-12 items-center gap-2 rounded-2xl bg-[#ff453a] px-4 text-[16px] font-semibold text-white" aria-label="Timer stoppen">
+          <Square size={16} fill="currentColor" /> Stopp
+        </button>
+      </div>
+      <p className="mt-2 text-center font-mono text-[44px] font-bold tabular-nums" style={{ color: FARBE }}>
+        {uhrText(sek)}
+      </p>
+    </Karte>
+  )
+}
+
 export default function HobbysSeite() {
   const hobbys = useLiveQuery(() => db.hobbys.toArray(), []) ?? []
-  const zeiten = useLiveQuery(() => db.hobbyZeiten.orderBy('datum').reverse().toArray(), []) ?? []
+  const zeiten = (useLiveQuery(() => db.hobbyZeiten.toArray(), []) ?? []).sort(neuesteZuerst)
+  const [lauf] = useEinstellung<HobbyLauf | null>(LAUF, null)
   const [neuOffen, setNeuOffen] = useState(false)
   const [offen, setOffen] = useState<string | null>(null)
+  const [nachtragen, setNachtragen] = useState<Hobby | undefined>()
 
   const start = wochenStart()
   const gesamtWoche = zeiten.filter((z) => z.datum >= start).reduce((s, z) => s + z.minuten, 0)
 
   return (
     <Seite titel="Hobbys" farbe={FARBE}>
+      {lauf && <LaufenderTimer lauf={lauf} hobby={hobbys.find((h) => h.id === lauf.hobbyId)} />}
+
       <Karte>
         <p className="text-[13px] text-grau">Diese Woche in Hobbys investiert</p>
         <p className="text-[36px] font-bold" style={{ color: FARBE }}>
@@ -95,6 +209,7 @@ export default function HobbysSeite() {
               const woche = eigene.filter((z) => z.datum >= start).reduce((s, z) => s + z.minuten, 0)
               const gesamt = eigene.reduce((s, z) => s + z.minuten, 0)
               const istOffen = offen === h.id
+              const laeuft = lauf?.hobbyId === h.id
               return (
                 <li key={h.id} className="rounded-2xl bg-karte2 p-3">
                   <button onClick={() => setOffen(istOffen ? null : h.id)} className="tippbar mb-2 flex w-full items-center gap-3 text-left">
@@ -111,16 +226,25 @@ export default function HobbysSeite() {
                   {h.zielMinWoche ? <Balken wert={woche / h.zielMinWoche} farbe={FARBE} /> : null}
                   {h.ziel && <p className="mt-2 text-[14px]">🎯 {h.ziel}</p>}
 
-                  {/* Schnell Zeit eintragen */}
+                  {/* Timer starten/stoppen und schnell Zeit eintragen */}
                   <div className="mt-3 flex gap-2">
+                    <button
+                      onClick={() => (laeuft ? stoppeTimer() : starteTimer(h.id))}
+                      className="tippbar flex h-11 flex-[1.4] items-center justify-center gap-1.5 rounded-xl text-[15px] font-semibold"
+                      style={laeuft ? { background: '#ff453a', color: '#fff' } : { background: FARBE, color: '#000' }}
+                      aria-label={laeuft ? `${h.name} stoppen` : `${h.name} starten`}
+                    >
+                      {laeuft ? <Square size={14} fill="currentColor" /> : <Play size={15} fill="currentColor" />}
+                      {laeuft ? 'Stopp' : 'Start'}
+                    </button>
                     {[15, 30, 60].map((m) => (
                       <button
                         key={m}
                         onClick={() => db.hobbyZeiten.add({ id: neueId(), hobbyId: h.id, datum: heute(), minuten: m })}
-                        className="tippbar h-11 flex-1 rounded-xl bg-black/40 text-[15px] font-semibold"
+                        className="tippbar h-11 flex-1 rounded-xl bg-mulde text-[15px] font-semibold"
                         style={{ color: FARBE }}
                       >
-                        +{m} min
+                        +{m}
                       </button>
                     ))}
                   </div>
@@ -133,22 +257,27 @@ export default function HobbysSeite() {
                           defaultValue={h.ziel ?? ''}
                           onBlur={(e) => db.hobbys.update(h.id, { ziel: e.target.value.trim() || undefined })}
                           placeholder="Was willst du erreichen?"
-                          className="mt-1 h-11 w-full rounded-xl bg-black/40 px-3 outline-none placeholder:text-grau"
+                          className="mt-1 h-11 w-full rounded-xl bg-mulde px-3 outline-none placeholder:text-grau"
                         />
                       </label>
-                      <p className="text-[13px] text-grau">Letzte Einträge</p>
-                      {eigene.slice(0, 8).map((z) => (
+                      <div className="flex items-center">
+                        <p className="flex-1 text-[13px] text-grau">Zeitprotokoll</p>
+                        <button onClick={() => setNachtragen(h)} className="tippbar flex min-h-10 items-center gap-1 text-[14px] font-semibold" style={{ color: FARBE }}>
+                          <Clock size={15} /> Zeit nachtragen
+                        </button>
+                      </div>
+                      {eigene.length === 0 && <Leer>Noch keine Einträge.</Leer>}
+                      {eigene.slice(0, 15).map((z) => (
                         <div key={z.id} className="flex items-center text-[14px]">
-                          <span className="flex-1">
-                            {kurzDatum(z.datum)} · {minutenText(z.minuten)}
-                          </span>
+                          <span className="flex-1 tabular-nums">{eintragText(z)}</span>
                           <LoeschKnopf frage="Eintrag löschen?" onLoeschen={() => db.hobbyZeiten.delete(z.id)} />
                         </div>
                       ))}
                       <button
                         onClick={() =>
                           confirm(`Hobby „${h.name}“ löschen?`) &&
-                          db.transaction('rw', db.hobbys, db.hobbyZeiten, async () => {
+                          db.transaction('rw', db.hobbys, db.hobbyZeiten, db.einstellungen, async () => {
+                            if (laeuft) await setzeEinstellung(LAUF, null)
                             await db.hobbyZeiten.where('hobbyId').equals(h.id).delete()
                             await db.hobbys.delete(h.id)
                           })
@@ -167,6 +296,7 @@ export default function HobbysSeite() {
       </Karte>
 
       <HobbyFormular offen={neuOffen} onZu={() => setNeuOffen(false)} />
+      <NachtragenSheet hobby={nachtragen} onZu={() => setNachtragen(undefined)} />
     </Seite>
   )
 }

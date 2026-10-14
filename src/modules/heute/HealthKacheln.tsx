@@ -6,11 +6,11 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../core/db'
 import { heute, tagPlus } from '../../core/datum'
 import { stundenText, zahl } from '../../core/format'
-import { useEinstellung, useSchrittziel } from '../../core/einstellungen'
+import { useEinstellung, useSchrittziel, useWasserziel } from '../../core/einstellungen'
 import { indexFarbe, schlafIndex } from '../../core/health'
 import { GLAS_ML, useHealthNaechte, useHealthTage } from '../../core/healthDaten'
 import HealthSymbol from '../../core/ui/HealthSymbol'
-import { WASSER_ZIEL_GLAESER, wasserMl } from '../ernaehrung/health'
+import { wasserMl } from '../ernaehrung/health'
 
 function Kachel({ to, titel, farbe, health, children, fortschritt }: { to: string; titel: string; farbe: string; health: boolean; children: ReactNode; fortschritt?: number }) {
   return (
@@ -33,6 +33,7 @@ export default function HealthKacheln() {
   const tag = heute()
   const [schrittziel] = useSchrittziel()
   const [schlafZiel] = useEinstellung<number>('schlafZiel', 8)
+  const [wasserziel] = useWasserziel()
   const health = useHealthTage(['schritte', 'wasser'], 1)
   const schritte = useLiveQuery(() => db.schritte.get(tag), [tag])?.anzahl ?? 0
   const glaeser = useLiveQuery(async () => new Map((await db.wasser.where('datum').equals(tag).toArray()).map((w) => [w.datum, w.glaeser])), [tag]) ?? new Map<string, number>()
@@ -55,7 +56,7 @@ export default function HealthKacheln() {
           </p>
         )}
       </Kachel>
-      <Kachel to="/ernaehrung" titel="Wasser" farbe="#64d2ff" health={health.wasser?.has(tag) ?? false} fortschritt={ml / (WASSER_ZIEL_GLAESER * GLAS_ML)}>
+      <Kachel to="/ernaehrung" titel="Wasser" farbe="#64d2ff" health={health.wasser?.has(tag) ?? false} fortschritt={ml / (wasserziel * GLAS_ML)}>
         <p className="text-[20px] font-bold leading-tight">
           {zahl(ml / 1000, 2)}
           <span className="ml-0.5 text-[13px] font-medium text-grau">l</span>

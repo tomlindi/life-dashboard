@@ -87,7 +87,7 @@ export default function ZieleSeite() {
                 key={x}
                 onClick={() => setZielFilter(x)}
                 className="tippbar min-h-9 shrink-0 rounded-full px-3.5 text-[14px] font-medium"
-                style={{ background: zielFilter === x ? FARBE : '#2c2c2e', color: zielFilter === x ? '#000' : '#fff' }}
+                style={{ background: zielFilter === x ? FARBE : 'var(--color-karte2)', color: zielFilter === x ? '#000' : 'var(--color-text)' }}
               >
                 {x}
               </button>

@@ -3,11 +3,13 @@
 // Regel: Gibt es für einen Tag Health-Werte, gelten NUR diese. Die geschätzten Nährwerte aus der
 // Foto-Analyse werden nicht dazugezählt (sonst wäre alles doppelt). Ohne Health-Werte zeigen
 // Ringe und Verlauf die Schätzung aus deinen Mahlzeiten.
+import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { GlassWater, Minus, Plus, Wine } from 'lucide-react'
+import { ChevronDown, GlassWater, Minus, Plus, Wine } from 'lucide-react'
 import { db } from '../../core/db'
 import { heute, letzteTage } from '../../core/datum'
 import { zahl } from '../../core/format'
+import { WASSERZIEL_MAX, WASSERZIEL_MIN, useWasserziel } from '../../core/einstellungen'
 import { GLAS_ML, tageswerte, useHealthTage } from '../../core/healthDaten'
 import type { HealthArt } from '../../core/health'
 import Karte from '../../core/ui/Karte'
@@ -34,17 +36,34 @@ export function useHealthNaehrwerte(): Map<string, Naehrwerte> {
   )
 }
 
-/** Tagesziel Wasser in Gläsern (à GLAS_ML ml). */
-export const WASSER_ZIEL_GLAESER = 8
-
 /** Wasser in ml für einen Tag: Health ersetzt die gezählten Gläser. */
 export const wasserMl = (tag: string, health: Map<string, number> | undefined, glaeser: Map<string, number>) =>
   health?.get(tag) ?? (glaeser.get(tag) ?? 0) * GLAS_ML
 
 const ml = (n: number) => (n >= 1000 ? `${zahl(n / 1000, 2)} l` : `${zahl(n, 0)} ml`)
 
+/** Plus/Minus für das Wasserziel (Gläser + Liter). Auch in den Einstellungen benutzt. */
+export function WasserzielStepper({ ziel, setZiel }: { ziel: number; setZiel: (n: number) => void }) {
+  return (
+    <div className="flex items-center gap-2">
+      <button onClick={() => setZiel(Math.max(WASSERZIEL_MIN, ziel - 1))} className="tippbar flex h-10 w-10 items-center justify-center rounded-full bg-text/10" aria-label="Ein Glas weniger als Ziel">
+        <Minus size={18} />
+      </button>
+      <span className="w-24 text-center text-[15px] font-semibold leading-tight">
+        {ziel} {ziel === 1 ? 'Glas' : 'Gläser'}
+        <span className="block text-[12px] font-normal text-grau">{ml(ziel * GLAS_ML)}</span>
+      </span>
+      <button onClick={() => setZiel(Math.min(WASSERZIEL_MAX, ziel + 1))} className="tippbar flex h-10 w-10 items-center justify-center rounded-full bg-text/10" aria-label="Ein Glas mehr als Ziel">
+        <Plus size={18} />
+      </button>
+    </div>
+  )
+}
+
 /** Wasser (Tag + Woche) mit Gläser-Zähler und Alkohol (Tag + Woche, nur aus Health). */
-export function WasserUndAlkohol({ zielGlaeser }: { zielGlaeser: number }) {
+export function WasserUndAlkohol() {
+  const [zielGlaeser, setZielGlaeser] = useWasserziel()
+  const [zielOffen, setZielOffen] = useState(false)
   const tag = heute()
   const woche = letzteTage(7)
   const health = useHealthTage(['wasser', 'alkohol'], 7)
@@ -67,15 +86,22 @@ export function WasserUndAlkohol({ zielGlaeser }: { zielGlaeser: number }) {
         titel="Wasser"
         akzent="#64d2ff"
         rechts={
-          <span className="flex items-center gap-1.5 text-[13px] text-grau">
+          <button onClick={() => setZielOffen(!zielOffen)} className="tippbar flex items-center gap-1.5 text-[13px] text-grau" aria-label="Wasserziel ändern">
             {ausHealth && <HealthSymbol />}
             {ml(heuteMl)} / {ml(zielMl)}
-          </span>
+            <ChevronDown size={14} className={`transition-transform ${zielOffen ? 'rotate-180' : ''}`} />
+          </button>
         }
       >
-        <div className="mb-3 flex justify-between">
+        {zielOffen && (
+          <div className="mb-3 flex items-center justify-between rounded-2xl bg-karte2 p-2 pl-3">
+            <span className="text-[15px]">Tagesziel</span>
+            <WasserzielStepper ziel={zielGlaeser} setZiel={setZielGlaeser} />
+          </div>
+        )}
+        <div className={`mb-3 flex flex-wrap ${zielGlaeser > 10 ? 'justify-start gap-x-1.5 gap-y-2' : 'justify-between'}`}>
           {Array.from({ length: zielGlaeser }, (_, i) => (
-            <GlassWater key={i} size={30} color={i < volleGlaeser ? '#64d2ff' : '#3a3a3c'} fill={i < volleGlaeser ? '#64d2ff55' : 'transparent'} />
+            <GlassWater key={i} size={zielGlaeser > 10 ? 26 : 30} color={i < volleGlaeser ? '#64d2ff' : 'var(--color-leer)'} fill={i < volleGlaeser ? '#64d2ff55' : 'transparent'} />
           ))}
         </div>
         {ausHealth ? (
@@ -92,7 +118,7 @@ export function WasserUndAlkohol({ zielGlaeser }: { zielGlaeser: number }) {
           </div>
         )}
         <p className="mt-3 border-t border-linie pt-3 text-[13px] text-grau">
-          Letzte 7 Tage: <b className="text-white">{ml(wocheMl)}</b> · Ø {ml(wocheMl / 7)} pro Tag
+          Letzte 7 Tage: <b className="text-text">{ml(wocheMl)}</b> · Ø {ml(wocheMl / 7)} pro Tag
         </p>
       </Karte>
 

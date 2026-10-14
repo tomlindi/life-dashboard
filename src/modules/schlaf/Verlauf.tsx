@@ -11,7 +11,7 @@ import { ZeitraumWahl, zeitraumAb, type ZeitraumLabel } from '../../core/ui/Zeit
 
 const FARBE = '#5e5ce6'
 const achse = { tick: { fill: '#8e8e93', fontSize: 11 }, axisLine: false, tickLine: false } as const
-const tooltipStil = { background: '#2c2c2e', border: 'none', borderRadius: 12, color: '#fff', fontSize: 13 }
+const tooltipStil = { background: 'var(--color-karte2)', border: 'none', borderRadius: 12, color: 'var(--color-text)', fontSize: 13 }
 
 /** Anzahl Tage von einem Tag bis zu einem anderen ("JJJJ-MM-TT"). */
 const tageZwischen = (von: string, bis: string) => Math.round((Date.parse(bis + 'T12:00:00') - Date.parse(von + 'T12:00:00')) / 86400000)
@@ -56,7 +56,7 @@ export default function SchlafVerlauf({ schlaf, ziel }: { schlaf: Schlaf[]; ziel
   const differenz = stunden.length >= 2 && vorher !== null && nachher !== null ? nachher - vorher : null
   // Mehr Schlaf = grün. Weniger nur orange, wenn du damit unter deinem Ziel liegst.
   const diffFarbe =
-    differenz === null || Math.abs(differenz) < 5 / 60 ? '#fff' : differenz > 0 ? '#30d158' : nachher! < ziel ? '#ff9f0a' : '#fff'
+    differenz === null || Math.abs(differenz) < 5 / 60 ? 'var(--color-text)' : differenz > 0 ? '#30d158' : nachher! < ziel ? '#ff9f0a' : 'var(--color-text)'
   const erreicht = stunden.filter((h) => h >= ziel).length
   const qualitaet = mittel(imZeitraum.map((s) => s.qualitaet).filter((q): q is number => q !== undefined))
 
@@ -97,17 +97,17 @@ export default function SchlafVerlauf({ schlaf, ziel }: { schlaf: Schlaf[]; ziel
         <>
           <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
             <span className="text-grau">
-              Ø <b className="text-white">{stundenText(aufMinuten(schnitt))}</b>
+              Ø <b className="text-text">{stundenText(aufMinuten(schnitt))}</b>
             </span>
             <span className="text-grau">
               Veränderung <b style={{ color: diffFarbe }}>{differenz === null ? '–' : differenzText(differenz)}</b>
             </span>
             <span className="text-grau">
-              Ziel erreicht <b className="text-white">{Math.round((100 * erreicht) / stunden.length)} %</b>
+              Ziel erreicht <b className="text-text">{Math.round((100 * erreicht) / stunden.length)} %</b>
             </span>
             {qualitaet !== null && (
               <span className="flex items-center gap-1 text-grau">
-                Qualität <b className="text-white">{zahl(qualitaet)}</b>
+                Qualität <b className="text-text">{zahl(qualitaet)}</b>
                 <Star size={12} color="#ffd60a" fill="#ffd60a" />
               </span>
             )}

@@ -40,7 +40,7 @@ export function ZielFormular({ offen, onZu }: FormProps) {
           <button
             key={e}
             onClick={() => setEmoji(e)}
-            className={`tippbar h-12 rounded-xl text-[24px] ${emoji === e ? 'bg-white/20 ring-2 ring-white/60' : 'bg-karte2'}`}
+            className={`tippbar h-12 rounded-xl text-[24px] ${emoji === e ? 'bg-text/20 ring-2 ring-text/60' : 'bg-karte2'}`}
           >
             {e}
           </button>

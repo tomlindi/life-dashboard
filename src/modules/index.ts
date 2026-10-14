@@ -5,6 +5,7 @@
 import fitness from './fitness'
 import schule from './schule'
 import ziele from './ziele'
+import notizen from './notizen'
 import gewohnheiten from './gewohnheiten'
 import geld from './geld'
 import schlaf from './schlaf'
@@ -20,6 +21,7 @@ export const module: Modul[] = [
   fitness,
   schule,
   ziele,
+  notizen,
   gewohnheiten,
   geld,
   schlaf,

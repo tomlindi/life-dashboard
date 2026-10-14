@@ -18,7 +18,7 @@ import MakroVerlauf from './MakroVerlauf'
 import FotoErfassung from './FotoErfassung'
 import NaehrwertSheet, { entwurfVon, type Entwurf } from './NaehrwertSheet'
 import { BEWERTUNG, FARBE, hatNaehrwerte, kurzText } from './naehrwerte'
-import { WASSER_ZIEL_GLAESER, WasserUndAlkohol, useHealthNaehrwerte } from './health'
+import { WasserUndAlkohol, useHealthNaehrwerte } from './health'
 
 const VORSCHLAEGE = ['Frühstück', 'Mittagessen', 'Abendessen', 'Snack']
 
@@ -62,7 +62,7 @@ export default function ErnaehrungSeite() {
         />
         <div className="mb-3 flex flex-wrap gap-2">
           {VORSCHLAEGE.map((v) => (
-            <button key={v} onClick={() => setName(v)} className="tippbar min-h-9 rounded-full bg-karte2 px-3 text-[14px]" style={{ color: name === v ? FARBE : '#fff' }}>
+            <button key={v} onClick={() => setName(v)} className="tippbar min-h-9 rounded-full bg-karte2 px-3 text-[14px]" style={{ color: name === v ? FARBE : 'var(--color-text)' }}>
               {v}
             </button>
           ))}
@@ -129,7 +129,7 @@ export default function ErnaehrungSeite() {
       </Karte>
 
       {/* Wasser und Alkohol (Health ersetzt die gezählten Gläser für den Tag) */}
-      <WasserUndAlkohol zielGlaeser={WASSER_ZIEL_GLAESER} />
+      <WasserUndAlkohol />
 
       <NaehrwertSheet entwurf={fenster[0] ?? null} onZu={() => setFenster((f) => f.slice(1))} />
     </Seite>

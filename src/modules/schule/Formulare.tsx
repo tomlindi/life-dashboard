@@ -94,7 +94,7 @@ export function NoteFormular({
             key={f.id}
             onClick={() => setFachId(f.id)}
             className="tippbar min-h-11 rounded-full px-4 text-[15px] font-medium"
-            style={{ background: fachId === f.id ? f.farbe : '#2c2c2e', color: fachId === f.id ? '#000' : '#fff' }}
+            style={{ background: fachId === f.id ? f.farbe : 'var(--color-karte2)', color: fachId === f.id ? '#000' : 'var(--color-text)' }}
           >
             {f.name}
           </button>
@@ -110,7 +110,7 @@ export function NoteFormular({
         <button
           onClick={() => setHalb(!halb)}
           className="tippbar mb-1.5 min-h-8 rounded-full px-3 text-[13px] font-semibold"
-          style={{ background: halb ? FARBE : '#2c2c2e', color: halb ? '#000' : '#fff' }}
+          style={{ background: halb ? FARBE : 'var(--color-karte2)', color: halb ? '#000' : 'var(--color-text)' }}
         >
           +0,5
         </button>
@@ -121,7 +121,7 @@ export function NoteFormular({
             key={p}
             onClick={() => setPunkte(p)}
             className="tippbar h-11 rounded-xl text-[16px] font-semibold"
-            style={{ background: punkte === p ? punkteFarbe(p) : '#2c2c2e', color: punkte === p ? '#000' : '#fff' }}
+            style={{ background: punkte === p ? punkteFarbe(p) : 'var(--color-karte2)', color: punkte === p ? '#000' : 'var(--color-text)' }}
           >
             {p}
           </button>
@@ -142,7 +142,7 @@ export function NoteFormular({
                 key={g}
                 onClick={() => setGewicht(g)}
                 className="tippbar h-12 flex-1 rounded-xl text-[15px] font-semibold"
-                style={{ background: gewicht === g ? FARBE : '#2c2c2e', color: gewicht === g ? '#000' : '#fff' }}
+                style={{ background: gewicht === g ? FARBE : 'var(--color-karte2)', color: gewicht === g ? '#000' : 'var(--color-text)' }}
               >
                 {String(g).replace('.', ',')}
               </button>
@@ -195,7 +195,7 @@ export function TerminFormular({ offen, onZu, faecher, typ }: FormProps & { faec
                 key={f.id}
                 onClick={() => setFachId(fachId === f.id ? undefined : f.id)}
                 className="tippbar min-h-11 rounded-full px-4 text-[15px] font-medium"
-                style={{ background: fachId === f.id ? f.farbe : '#2c2c2e', color: fachId === f.id ? '#000' : '#fff' }}
+                style={{ background: fachId === f.id ? f.farbe : 'var(--color-karte2)', color: fachId === f.id ? '#000' : 'var(--color-text)' }}
               >
                 {f.name}
               </button>
@@ -259,7 +259,7 @@ export function KlausurFormular({ offen, onZu, faecher, klausur, fachVorgabe }: 
                 key={f.id}
                 onClick={() => setFachId(fachId === f.id ? undefined : f.id)}
                 className="tippbar min-h-11 rounded-full px-4 text-[15px] font-medium"
-                style={{ background: fachId === f.id ? f.farbe : '#2c2c2e', color: fachId === f.id ? '#000' : '#fff' }}
+                style={{ background: fachId === f.id ? f.farbe : 'var(--color-karte2)', color: fachId === f.id ? '#000' : 'var(--color-text)' }}
               >
                 {f.name}
               </button>

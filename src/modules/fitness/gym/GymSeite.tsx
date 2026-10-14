@@ -45,7 +45,7 @@ function UebungDetail({ uebungId, name, einheiten, onZu }: { uebungId: string | 
             <LineChart data={proTraining} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
               <XAxis dataKey="name" tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis domain={['dataMin - 5', 'dataMax + 5']} tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: '#1c1c1e', border: 'none', borderRadius: 12, color: '#fff', fontSize: 13 }} formatter={(v) => [`${zahl(Number(v))} kg`, 'gesch. Max.']} />
+              <Tooltip contentStyle={{ background: 'var(--color-karte)', border: 'none', borderRadius: 12, color: 'var(--color-text)', fontSize: 13 }} formatter={(v) => [`${zahl(Number(v))} kg`, 'gesch. Max.']} />
               <Line type="monotone" dataKey="e1rm" stroke={FARBE} strokeWidth={3} dot={{ r: 3, fill: FARBE }} />
             </LineChart>
           </ResponsiveContainer>
@@ -196,7 +196,7 @@ export default function GymSeite() {
                     <span className="flex-1 text-[16px]">{t.name}</span>
                     <span className="text-right text-[12px] leading-snug">
                       <span className="block text-grau">
-                        letzter <b className="text-white">{satzText(t.letzter)}</b>
+                        letzter <b className="text-text">{satzText(t.letzter)}</b>
                       </span>
                       <span className="block text-grau">
                         schwerster <b className="text-[#ffd60a]">{satzText(t.bester)}</b>

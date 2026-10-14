@@ -20,7 +20,7 @@ import Karte from './Karte'
 const MONATE = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
 const WOCHENTAGE = ['M', 'D', 'M', 'D', 'F', 'S', 'S']
 /** Farbe eines Tages ohne Eintrag. */
-const LEER = '#2c2c2e'
+const LEER = 'var(--color-karte2)'
 
 /** Eine Zeile in den Details eines angetippten Tages, z. B. ein Workout oder eine Mahlzeit. */
 export interface TagesZeile {
@@ -86,7 +86,7 @@ function Monat({ jahr, monat, akzent, hintergrundAm, ariaAm, gewaehlt, onTag, ru
           background: hintergrundAm(t) ?? LEER,
           borderRadius: rund,
           opacity: t > h ? 0.35 : 1,
-          outline: t === gewaehlt ? '2px solid #fff' : t === h ? `1.5px solid ${akzent}` : undefined,
+          outline: t === gewaehlt ? '2px solid var(--color-text)' : t === h ? `1.5px solid ${akzent}` : undefined,
           outlineOffset: 1,
         }
         return onTag ? (

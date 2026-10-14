@@ -8,6 +8,20 @@ Die aktuelle Version steht in der App ganz unten unter Mehr → Einstellungen.
 - Nur anschauen (am PC): `git checkout v1.0.0`, danach `npm run dev`. Zurück zur neuesten mit `git checkout main`.
 - Online wirklich zurücksetzen: `git revert --no-edit v1.0.0..HEAD` und `git push`. Dabei entstehen neue Commits, die alles seit v1.0.0 rückgängig machen. Der Verlauf bleibt erhalten, und GitHub Pages baut automatisch die alte Version.
 
+## 1.8.0 – 14.10.2026
+
+**Hell, Dunkel oder Automatisch.** Unter Mehr → Einstellungen → „Darstellung“ lässt sich die App hell oder dunkel schalten, „Automatisch“ folgt der Einstellung des iPhones. Standard bleibt Dunkel. Die Wahl gilt pro Gerät.
+
+**Notizen.** Neuer Bereich „Notizen“ (unter Mehr, auch als Dock-Seite wählbar) wie in Apple Notizen: Ordner, Suche, Anpinnen, Gruppen nach Datum (Heute, Gestern, Letzte 7 Tage …). Die erste Zeile ist der Titel. Mit dem Checklisten-Knopf werden Zeilen zu abhakbaren Punkten, Enter macht den nächsten Punkt, Enter in einem leeren Punkt beendet die Checkliste. Speichert automatisch. Schnellnotizen von „Heute“ landen im Ordner „Notizen“ und öffnen sich per Tipp.
+
+**Hobby-Timer.** Jedes Hobby hat einen Start-Knopf. Der Timer läuft weiter, wenn die App zu ist, und speichert beim Stoppen Beginn und Ende („14:05–15:20 · 1 h 15 min“). Im aufgeklappten Hobby steht das Zeitprotokoll, und „Zeit nachtragen“ trägt Tag, Beginn und Ende von Hand ein.
+
+**Abschnitte in To-do-Listen.** Projekt-Aufgaben und Listen in Erinnerungen lassen sich mit „Abschnitt hinzufügen“ gliedern. Überschrift antippen = umbenennen, verschieben oder löschen (die Aufgaben bleiben). Aufgaben verschieben: im Projekt nach links wischen → „Abschnitt“, bei Erinnerungen im Detail-Fenster. Abschnitte gibt es nur in Life, Apple bekommt sie nicht. Beim Import bleiben sie erhalten.
+
+**Wasserziel einstellbar.** In Ernährung → Wasser auf „… / 2 l“ tippen (oder in den Einstellungen): 1 bis 20 Gläser à 250 ml. Heute-Kachel und Schnell-Eintrag nutzen dasselbe Ziel.
+
+**Neues App-Icon.** Farbige Segmente um einen Punkt auf hellem Grund. Auf dem iPhone erscheint es nach dem erneuten „Zum Home-Bildschirm“ hinzufügen. `npm run icons` erzeugt die Icons aus `icon.png`.
+
 ## 1.7.0 – 13.10.2026
 
 **Klausuren bearbeiten.** Unter Schule → „Anstehende Klausuren“ öffnet ein Tipp die Klausur. Thema, Fach, Datum, Uhrzeit, Raum und Lernstoff lassen sich ändern, löschen geht im selben Formular. Uhrzeit, Raum und Lernstoff sind neu und stehen auch in der Liste. Klausuren aus dem Apple Kalender öffnen das Termin-Blatt, Änderungen gehen per Life Sync an Apple.

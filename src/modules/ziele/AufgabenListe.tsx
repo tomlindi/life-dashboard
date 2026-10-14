@@ -9,7 +9,10 @@ import { Flag } from 'lucide-react'
 import type { Aufgabe, ProjektAufgabe } from '../../core/db'
 import { relativ } from '../../core/format'
 import { schalteErinnerung } from '../../core/apple'
+import { db } from '../../core/db'
+import { gruppiere, projektOrt, useAbschnitte } from '../../core/abschnitte'
 import Aufklapper from '../../core/ui/Aufklapper'
+import { AbschnittKopf, AbschnittWahl, NeuerAbschnitt } from '../../core/ui/Abschnitte'
 import { loescheAufgabe, nachErstellt, neueAufgabe, schalteAufgabe } from './projekte'
 
 // ---------- Kreis ----------
@@ -174,8 +177,8 @@ export function NeueZeile({ platzhalter, onNeu, onFertig, autoFocus = false, kle
   )
 }
 
-/** Eine Aufgabe mit ihren Unteraufgaben. */
-function AufgabeEintrag({ a, unter, farbe, linie }: { a: ProjektAufgabe; unter: ProjektAufgabe[]; farbe: string; linie: boolean }) {
+/** Eine Aufgabe mit ihren Unteraufgaben. `onVerschieben` (nur wenn es Abschnitte gibt) zeigt beim Wischen "Abschnitt". */
+function AufgabeEintrag({ a, unter, farbe, linie, onVerschieben }: { a: ProjektAufgabe; unter: ProjektAufgabe[]; farbe: string; linie: boolean; onVerschieben?: () => void }) {
   const [neueUnter, setNeueUnter] = useState(false)
   const offen = unter.filter((u) => !u.erledigt)
   const erledigt = unter.filter((u) => u.erledigt)
@@ -195,6 +198,7 @@ function AufgabeEintrag({ a, unter, farbe, linie }: { a: ProjektAufgabe; unter: 
       <WischZeile
         aktionen={[
           ...(a.erledigt ? [] : [{ name: 'Unteraufgabe', farbe: '#636366', onClick: () => setNeueUnter(true) }]),
+          ...(onVerschieben && !a.erledigt ? [{ name: 'Abschnitt', farbe: '#5e5ce6', onClick: onVerschieben }] : []),
           { name: 'Löschen', farbe: '#ff453a', onClick: () => loeschen(a, unter.length > 0) },
         ]}
       >
@@ -232,15 +236,25 @@ export default function AufgabenListe({ projektId, aufgaben, farbe }: { projektI
   const unterVon = (a: ProjektAufgabe) => aufgaben.filter((u) => u.elternId === a.id).sort(nachErstellt)
   const offen = haupt.filter((a) => !a.erledigt)
   const erledigt = haupt.filter((a) => a.erledigt)
+  const ort = projektOrt(projektId)
+  const abschnitte = useAbschnitte(ort)
+  const [verschieben, setVerschieben] = useState<ProjektAufgabe | undefined>()
+  const aufVerschieben = abschnitte.length > 0 ? (a: ProjektAufgabe) => () => setVerschieben(a) : undefined
 
   return (
     <div className="-ml-2">
-      <ul>
-        {offen.map((a) => (
-          <AufgabeEintrag key={a.id} a={a} unter={unterVon(a)} farbe={farbe} linie />
-        ))}
-      </ul>
-      <NeueZeile platzhalter="Neue Aufgabe" onNeu={(titel) => neueAufgabe(projektId, titel)} />
+      {gruppiere(offen, abschnitte).map(({ abschnitt, eintraege }) => (
+        <div key={abschnitt?.id ?? 'ohne'}>
+          {abschnitt && <AbschnittKopf abschnitt={abschnitt} alle={abschnitte} farbe={farbe} />}
+          <ul>
+            {eintraege.map((a) => (
+              <AufgabeEintrag key={a.id} a={a} unter={unterVon(a)} farbe={farbe} linie onVerschieben={aufVerschieben?.(a)} />
+            ))}
+          </ul>
+          <NeueZeile platzhalter="Neue Aufgabe" onNeu={(titel) => neueAufgabe(projektId, titel, undefined, abschnitt?.id)} />
+        </div>
+      ))}
+      <NeuerAbschnitt ort={ort} farbe={farbe} />
       {erledigt.length > 0 && (
         <div className="pl-2">
           <Aufklapper titel={`${erledigt.length} erledigt`} klein>
@@ -252,7 +266,17 @@ export default function AufgabenListe({ projektId, aufgaben, farbe }: { projektI
           </Aufklapper>
         </div>
       )}
-      <p className="pl-2 pt-1 text-[12px] text-grau">Tipp: Aufgabe nach links wischen für Unteraufgabe oder Löschen.</p>
+      <p className="pl-2 pt-1 text-[12px] text-grau">
+        Tipp: Aufgabe nach links wischen für Unteraufgabe{abschnitte.length > 0 ? ', Abschnitt' : ''} oder Löschen. Abschnitts-Überschrift antippen zum Umbenennen, Verschieben oder Löschen.
+      </p>
+      <AbschnittWahl
+        titel={verschieben?.titel}
+        abschnitte={abschnitte}
+        aktuell={verschieben?.abschnittId}
+        farbe={farbe}
+        onWahl={(id) => verschieben && db.projektAufgaben.update(verschieben.id, { abschnittId: id })}
+        onZu={() => setVerschieben(undefined)}
+      />
     </div>
   )
 }

@@ -408,6 +408,8 @@ export async function importiere(o: Record<string, unknown>): Promise<ImportErge
           prioritaet: prio,
           markiert: jaNein(feld(e, 'markiert', 'flagged', 'fahne')) || undefined,
           projektId: alt?.projektId, // Zuordnung zu einem Projekt bleibt erhalten
+          // Abschnitt (gibt es nur in Life) bleibt, solange die Erinnerung in derselben Liste ist
+          abschnittId: (listenName ?? alt?.liste) === alt?.liste ? alt?.abschnittId : undefined,
           // In Apple offen -> auch in Life offen. Ausnahme: in Life abgehakt, aber noch nicht an Apple gesendet.
           erledigt: alt?.sync === 'ausstehend' ? alt.erledigt : false,
           sync: alt?.sync === 'ausstehend' && alt.erledigt ? 'ausstehend' : undefined,

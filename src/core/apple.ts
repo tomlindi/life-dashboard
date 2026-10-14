@@ -84,7 +84,9 @@ export async function speichereErinnerung(neu: Omit<Aufgabe, 'id' | 'quelle' | '
   const id = aufgabeId(neu.titel, neu.liste)
   await db.transaction('rw', db.aufgaben, db.einstellungen, async () => {
     if (alt && alt.id !== id) await db.aufgaben.delete(alt.id)
-    await db.aufgaben.put({ ...alt, ...neu, id, quelle: alt?.quelle ?? 'manuell', erledigt: alt?.erledigt ?? false, sync: 'ausstehend' })
+    // In eine andere Liste verschoben: der Abschnitt gehörte zur alten Liste
+    const abschnitt = alt && alt.liste !== neu.liste ? { abschnittId: neu.abschnittId } : {}
+    await db.aufgaben.put({ ...alt, ...neu, ...abschnitt, id, quelle: alt?.quelle ?? 'manuell', erledigt: alt?.erledigt ?? false, sync: 'ausstehend' })
     await inWarteschlange({
       typ: 'erinnerung',
       loeschen: alt ? { titel: alt.titel } : undefined,

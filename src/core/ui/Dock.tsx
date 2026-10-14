@@ -33,7 +33,7 @@ export const WAEHLBARE_SEITEN: DockSeite[] = [
   { id: 'erinnerungen', pfad: '/erinnerungen', name: 'Erinnerungen', icon: ListChecks, farbe: '#0a84ff' },
   ...module.map((m) => ({ id: m.id, pfad: `/${m.id}`, name: m.name, icon: m.icon, farbe: m.farbe })),
 ]
-const MEHR: DockSeite = { id: 'mehr', pfad: '/mehr', name: 'Mehr', icon: LayoutGrid, farbe: '#ffffff' }
+const MEHR: DockSeite = { id: 'mehr', pfad: '/mehr', name: 'Mehr', icon: LayoutGrid, farbe: 'var(--color-text)' }
 /** Weitere Seiten (nur über "Mehr" erreichbar), damit der Knopf auch dort das passende Symbol zeigt. */
 const SONSTIGE: DockSeite[] = [
   MEHR,
@@ -85,11 +85,11 @@ export const DOCK_ABSTAND = `calc(env(safe-area-inset-bottom) + ${8 + KNOPF + 16
 
 /** Glas-Optik wie in iOS 26: halb durchsichtig, unscharfer Hintergrund, feiner heller Rand, weicher Schatten. */
 const GLAS = {
-  background: 'rgba(30,30,30,0.6)',
+  background: 'var(--glas)',
   backdropFilter: 'blur(20px) saturate(180%)',
   WebkitBackdropFilter: 'blur(20px) saturate(180%)', // Safari
-  border: '1px solid rgba(255,255,255,0.12)',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
+  border: '1px solid var(--glas-rand)',
+  boxShadow: 'var(--glas-schatten)',
 } as const
 
 /** Ein Eintrag in der aufgeklappten Kapsel. */
@@ -98,7 +98,7 @@ function Eintrag({ seite, aktiv, onWahl }: { seite: DockSeite; aktiv: boolean; o
     <Link to={seite.pfad} onClick={onWahl} aria-label={seite.name} aria-current={aktiv ? 'page' : undefined} className="tippbar flex h-full min-w-0 flex-1 items-center justify-center">
       <span
         className="flex w-full min-w-0 flex-col items-center gap-0.5 rounded-full px-1 py-1.5"
-        style={{ background: aktiv ? 'rgba(255,255,255,0.14)' : 'transparent', color: aktiv ? seite.farbe : '#8e8e93' }}
+        style={{ background: aktiv ? 'var(--glas-aktiv)' : 'transparent', color: aktiv ? seite.farbe : '#8e8e93' }}
       >
         <seite.icon size={21} strokeWidth={aktiv ? 2.4 : 2} />
         <span className="max-w-full truncate text-[10px] font-medium leading-none">{seite.name}</span>

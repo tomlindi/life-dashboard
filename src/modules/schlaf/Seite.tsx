@@ -61,13 +61,13 @@ function SchlafFormular({ offen, onZu, vorhanden }: { offen: boolean; onZu: () =
       </div>
       <Label>Dauer</Label>
       <div className="mb-4 flex items-center justify-between rounded-2xl bg-karte2 p-2">
-        <button onClick={() => setStunden((s) => Math.max(0, s - 0.25))} className="tippbar flex h-12 w-12 items-center justify-center rounded-full bg-black/40" aria-label="15 Minuten weniger">
+        <button onClick={() => setStunden((s) => Math.max(0, s - 0.25))} className="tippbar flex h-12 w-12 items-center justify-center rounded-full bg-mulde" aria-label="15 Minuten weniger">
           <Minus size={20} />
         </button>
         <span className="text-[24px] font-bold" style={{ color: FARBE }}>
           {stundenText(stunden)}
         </span>
-        <button onClick={() => setStunden((s) => Math.min(16, s + 0.25))} className="tippbar flex h-12 w-12 items-center justify-center rounded-full bg-black/40" aria-label="15 Minuten mehr">
+        <button onClick={() => setStunden((s) => Math.min(16, s + 0.25))} className="tippbar flex h-12 w-12 items-center justify-center rounded-full bg-mulde" aria-label="15 Minuten mehr">
           <Plus size={20} />
         </button>
       </div>
@@ -146,14 +146,14 @@ export default function SchlafSeite() {
               <XAxis dataKey="name" tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} interval={0} />
               <Tooltip
                 cursor={false}
-                contentStyle={{ background: '#2c2c2e', border: 'none', borderRadius: 12, color: '#fff', fontSize: 13 }}
+                contentStyle={{ background: 'var(--color-karte2)', border: 'none', borderRadius: 12, color: 'var(--color-text)', fontSize: 13 }}
                 formatter={(v) => [stundenText(Number(v)), 'Schlaf']}
                 labelFormatter={() => ''}
               />
               <ReferenceLine y={ziel} stroke="#8e8e93" strokeDasharray="4 4" />
               <Bar dataKey="stunden" radius={[5, 5, 5, 5]} minPointSize={3}>
                 {daten.map((d) => (
-                  <Cell key={d.tag} fill={d.stunden === 0 ? '#38383a' : d.stunden >= ziel ? FARBE : '#3a3990'} />
+                  <Cell key={d.tag} fill={d.stunden === 0 ? 'var(--color-linie)' : d.stunden >= ziel ? FARBE : '#3a3990'} />
                 ))}
               </Bar>
             </BarChart>
@@ -168,7 +168,7 @@ export default function SchlafSeite() {
           {wochen.map((w) => (
             <li key={w.label} className="flex items-center justify-between">
               <span className="text-[15px]">{w.label}</span>
-              <span className="text-[15px] font-semibold" style={{ color: w.schnitt !== null && w.schnitt >= ziel ? FARBE : '#fff' }}>
+              <span className="text-[15px] font-semibold" style={{ color: w.schnitt !== null && w.schnitt >= ziel ? FARBE : 'var(--color-text)' }}>
                 {w.schnitt === null ? '–' : stundenText(Math.round(w.schnitt * 4) / 4)}
                 <span className="ml-1 text-[12px] font-normal text-grau">({w.anzahl} Nächte)</span>
               </span>

@@ -64,7 +64,7 @@ export function PhasenKarte({ naechte }: { naechte: Nacht[] }) {
             <XAxis dataKey="name" tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} interval={0} />
             <Tooltip
               cursor={false}
-              contentStyle={{ background: '#2c2c2e', border: 'none', borderRadius: 12, color: '#fff', fontSize: 13 }}
+              contentStyle={{ background: 'var(--color-karte2)', border: 'none', borderRadius: 12, color: 'var(--color-text)', fontSize: 13 }}
               formatter={(v, name) => [stundenText(Math.round(Number(v) * 60) / 60), SCHLAF_PHASEN.find((p) => p.key === name)?.name ?? String(name)]}
               labelFormatter={() => ''}
             />

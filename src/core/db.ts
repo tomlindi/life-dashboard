@@ -57,6 +57,7 @@ export interface Aufgabe {
   prioritaet?: number // 0 = keine, 1 = niedrig, 2 = mittel, 3 = hoch
   markiert?: boolean // in Erinnerungen mit Fähnchen markiert
   projektId?: string // Zuordnung zu einem Projekt (Ziele & Projekte), bleibt beim Import erhalten
+  abschnittId?: string // Abschnitt innerhalb der Liste (nur in Life), bleibt beim Import erhalten
   sync?: 'ausstehend'
 }
 
@@ -89,8 +90,25 @@ export interface Wasser {
 export interface Notiz {
   id: string
   datum: string
-  text: string
+  text: string // erste Zeile = Titel. Checklisten-Zeilen: "- [ ] …" bzw. "- [x] …"
   erstellt: string
+  geaendert?: string // ISO-Zeitpunkt der letzten Änderung (ältere Notizen: "erstellt")
+  ordnerId?: string // ohne Angabe: Standardordner "Notizen"
+  angepinnt?: boolean
+}
+
+export interface NotizOrdner {
+  id: string
+  name: string
+  sortierung: number
+}
+
+/** Ein Abschnitt in einer To-do-Liste (wie in Apple Erinnerungen). */
+export interface Abschnitt {
+  id: string
+  ort: string // "projekt:<Projekt-ID>" oder "liste:<Name der Erinnerungen-Liste>"
+  titel: string
+  sortierung: number
 }
 
 /** Einfache Einstellungen als Schlüssel/Wert (z. B. Name, Wochenziel). */
@@ -188,6 +206,7 @@ export interface ProjektAufgabe {
   erledigt: boolean
   elternId?: string // gesetzt = Unteraufgabe dieser Aufgabe (eine Ebene, wie in Apple Erinnerungen)
   erstellt?: string // ISO-Zeitpunkt, bestimmt die Reihenfolge in der Liste
+  abschnittId?: string // Abschnitt im Projekt (Unteraufgaben folgen ihrer Elternaufgabe)
 }
 
 // ---------- Geld ----------
@@ -271,6 +290,8 @@ export interface HobbyZeit {
   hobbyId: string
   datum: string
   minuten: number
+  start?: string // ISO, nur bei Einträgen mit Timer oder "Zeit nachtragen"
+  ende?: string // ISO
 }
 
 // ---------- Gym (Krafttraining) ----------
@@ -402,6 +423,8 @@ class LifeDB extends Dexie {
   einstellungen!: Table<Einstellung, string>
   health!: Table<HealthWert, string>
   fokus!: Table<FokusEinheit, string>
+  notizOrdner!: Table<NotizOrdner, string>
+  abschnitte!: Table<Abschnitt, string>
 
   constructor() {
     super('life-dashboard')
@@ -455,6 +478,12 @@ class LifeDB extends Dexie {
     // Version 6: Fokus-Timer
     this.version(6).stores({
       fokus: 'id, datum',
+    })
+    // Version 7: Notizen mit Ordnern, Abschnitte in To-do-Listen (Projekte und Erinnerungen-Listen)
+    this.version(7).stores({
+      notizen: 'id, datum, geaendert, ordnerId',
+      notizOrdner: 'id, sortierung',
+      abschnitte: 'id, ort',
     })
   }
 }

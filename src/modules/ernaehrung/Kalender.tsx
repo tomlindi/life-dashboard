@@ -20,7 +20,7 @@ export const BEWERTUNG_FARBE: Record<Bewertung, string> = {
 const REIHENFOLGE: Bewertung[] = ['gesund', 'okay', 'ungesund']
 const NAME: Record<Bewertung, string> = { gesund: 'Gesund', okay: 'Okay', ungesund: 'Ungesund' }
 /** Farbe der feinen Fuge zwischen zwei Streifen (= Kartenhintergrund). */
-const FUGE = '#1c1c1e'
+const FUGE = 'var(--color-karte)'
 
 const rund = (n: number) => Math.round(n * 1000) / 1000
 

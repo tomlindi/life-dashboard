@@ -13,12 +13,12 @@ export default function ImportFehlerAnzeige({ fehler }: { fehler: unknown }) {
       {fehler.zeile && (
         <div>
           <p className="mb-1 text-[12px] text-grau">Zeile {fehler.zeile}:</p>
-          <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-xl bg-black p-2 font-mono text-[12px] text-[#ff9f0a]">{fehler.zeilenText || '(leer)'}</pre>
+          <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-xl bg-grund p-2 font-mono text-[12px] text-[#ff9f0a]">{fehler.zeilenText || '(leer)'}</pre>
         </div>
       )}
       <div>
         <p className="mb-1 text-[12px] text-grau">Anfang der Zwischenablage (200 Zeichen):</p>
-        <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-xl bg-black p-2 font-mono text-[12px] text-white/80">{fehler.vorschau || '(leer)'}</pre>
+        <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-xl bg-grund p-2 font-mono text-[12px] text-text/80">{fehler.vorschau || '(leer)'}</pre>
       </div>
     </div>
   )

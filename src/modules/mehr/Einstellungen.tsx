@@ -9,7 +9,9 @@ import Seite from '../../core/ui/Seite'
 import Karte from '../../core/ui/Karte'
 import KalenderFarbenEinstellung from '../kalender/KalenderFarbenEinstellung'
 import DockSeiten from './DockSeiten'
-import { useEinstellung } from '../../core/einstellungen'
+import { useEinstellung, useWasserziel } from '../../core/einstellungen'
+import { WasserzielStepper } from '../ernaehrung/health'
+import Darstellung from './Darstellung'
 import { STANDARD_TERMINE_TAGE } from '../../core/import'
 
 const GRUEN = '#a3e635'
@@ -34,6 +36,19 @@ function TermineZeitraum() {
       <p className="mt-3 text-[13px] leading-snug text-grau">
         Stell hier dieselbe Anzahl Tage ein, die dein Kurzbefehl abfragt (ab heute 00:00). Importierte Termine in diesem Zeitraum, die im Import fehlen, werden gelöscht. Selbst angelegte und vergangene Termine bleiben.
       </p>
+    </Karte>
+  )
+}
+
+/** Tagesziel Wasser (auch direkt in Ernährung → Wasser änderbar). */
+function Wasserziel() {
+  const [ziel, setZiel] = useWasserziel()
+  return (
+    <Karte titel="Wasserziel">
+      <div className="flex items-center justify-between">
+        <span className="text-[15px]">Pro Tag</span>
+        <WasserzielStepper ziel={ziel} setZiel={setZiel} />
+      </div>
     </Karte>
   )
 }
@@ -100,9 +115,11 @@ export default function EinstellungenSeite() {
 
   return (
     <Seite titel="Einstellungen">
+      <Darstellung />
       <DockSeiten />
       <KalenderFarbenEinstellung />
       <TermineZeitraum />
+      <Wasserziel />
 
       <Karte titel="Foto-Analyse: Google Gemini (kostenlos)" akzent={GRUEN}>
         <p className="mb-3 text-[13px] leading-snug text-grau">
@@ -161,7 +178,7 @@ export default function EinstellungenSeite() {
       </Karte>
 
       <p className="px-1 text-[13px] text-grau">
-        Aktiv für die Foto-Analyse: <b className="text-white">{anbieter ?? 'keine KI (nur manuelle Eingabe)'}</b>
+        Aktiv für die Foto-Analyse: <b className="text-text">{anbieter ?? 'keine KI (nur manuelle Eingabe)'}</b>
       </p>
 
       <Karte titel="Datenschutz">

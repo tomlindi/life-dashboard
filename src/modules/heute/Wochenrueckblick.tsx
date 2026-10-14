@@ -87,7 +87,7 @@ export default function Wochenrueckblick() {
           <p className="text-[13px] text-grau">Zusammenhänge (z. B. Schlaf und Stimmung) erscheinen, sobald genug Einträge da sind.</p>
         ) : (
           erkenntnisse.map((e) => (
-            <p key={e} className="rounded-2xl bg-karte2 p-3 text-[14px] leading-snug text-white/85">
+            <p key={e} className="rounded-2xl bg-karte2 p-3 text-[14px] leading-snug text-text/85">
               {e}
             </p>
           ))

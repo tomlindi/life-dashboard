@@ -2,9 +2,12 @@
 import { useEffect, useState } from 'react'
 import type { Aufgabe } from '../../core/db'
 import { loescheErinnerung, speichereErinnerung } from '../../core/apple'
+import { listenOrt, useAbschnitte } from '../../core/abschnitte'
 import Sheet from '../../core/ui/Sheet'
 import { Eingabe, Label } from '../../core/ui/Formular'
 import { ROT } from './farben'
+
+const OHNE_LISTE = 'Erinnerungen' // so heißt Apples Standardliste
 
 const PRIORITAETEN = [
   { wert: 0, text: 'Keine' },
@@ -19,6 +22,8 @@ export default function ErinnerungSheet({ aufgabe, listen, onZu }: { aufgabe?: A
   const [faellig, setFaellig] = useState('')
   const [liste, setListe] = useState('')
   const [prioritaet, setPrioritaet] = useState(0)
+  const [abschnittId, setAbschnittId] = useState<string | undefined>()
+  const abschnitte = useAbschnitte(listenOrt(liste.trim() || OHNE_LISTE))
 
   useEffect(() => {
     if (!aufgabe) return
@@ -27,12 +32,13 @@ export default function ErinnerungSheet({ aufgabe, listen, onZu }: { aufgabe?: A
     setFaellig(aufgabe.faellig ?? '')
     setListe(aufgabe.liste ?? '')
     setPrioritaet(aufgabe.prioritaet ?? 0)
+    setAbschnittId(aufgabe.abschnittId)
   }, [aufgabe])
 
   async function sichern() {
     if (!aufgabe || !titel.trim()) return
     await speichereErinnerung(
-      { titel: titel.trim(), notiz: notiz.trim() || undefined, faellig: faellig || undefined, liste: liste.trim() || undefined, prioritaet: prioritaet || undefined },
+      { titel: titel.trim(), notiz: notiz.trim() || undefined, faellig: faellig || undefined, liste: liste.trim() || undefined, prioritaet: prioritaet || undefined, abschnittId: abschnitte.some((a) => a.id === abschnittId) ? abschnittId : undefined },
       aufgabe,
     )
     onZu()
@@ -57,6 +63,26 @@ export default function ErinnerungSheet({ aufgabe, listen, onZu }: { aufgabe?: A
           </datalist>
         </label>
       </div>
+      {abschnitte.length > 0 && (
+        <>
+          <Label>Abschnitt</Label>
+          <div className="mb-4 flex flex-wrap gap-2">
+            {[{ id: undefined, titel: 'Ohne' }, ...abschnitte].map((a) => {
+              const an = (abschnitte.some((x) => x.id === abschnittId) ? abschnittId : undefined) === a.id
+              return (
+                <button
+                  key={a.id ?? 'ohne'}
+                  onClick={() => setAbschnittId(a.id)}
+                  className="tippbar min-h-10 rounded-full px-4 text-[15px] font-semibold"
+                  style={{ background: an ? '#0a84ff' : 'var(--color-karte2)', color: an ? '#fff' : 'var(--color-text)' }}
+                >
+                  {a.titel}
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
       <Label>Priorität</Label>
       <div className="mb-5 grid grid-cols-4 gap-2">
         {PRIORITAETEN.map((p) => (
@@ -64,7 +90,7 @@ export default function ErinnerungSheet({ aufgabe, listen, onZu }: { aufgabe?: A
             key={p.wert}
             onClick={() => setPrioritaet(p.wert)}
             className="tippbar h-11 rounded-xl text-[15px] font-semibold"
-            style={{ background: prioritaet === p.wert ? '#0a84ff' : '#2c2c2e' }}
+            style={{ background: prioritaet === p.wert ? '#0a84ff' : 'var(--color-karte2)', color: prioritaet === p.wert ? '#fff' : 'var(--color-text)' }}
           >
             {p.text}
           </button>
@@ -82,7 +108,7 @@ export default function ErinnerungSheet({ aufgabe, listen, onZu }: { aufgabe?: A
         >
           Löschen
         </button>
-        <button onClick={sichern} disabled={!titel.trim()} className="tippbar h-14 flex-1 rounded-2xl bg-[#0a84ff] text-[17px] font-semibold disabled:opacity-40">
+        <button onClick={sichern} disabled={!titel.trim()} className="tippbar h-14 flex-1 rounded-2xl bg-[#0a84ff] text-[17px] font-semibold text-white disabled:opacity-40">
           Sichern
         </button>
       </div>

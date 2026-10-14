@@ -158,7 +158,7 @@ export default function SportSeite() {
                     <li key={e.id} className="flex items-center gap-3 rounded-xl bg-karte2 p-2.5">
                       <span
                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold"
-                        style={{ background: gemacht ? sp.farbe : e.tag === heuteTag ? '#fff' : '#3a3a3c', color: gemacht || e.tag === heuteTag ? '#000' : '#fff' }}
+                        style={{ background: gemacht ? sp.farbe : e.tag === heuteTag ? 'var(--color-text)' : 'var(--color-leer)', color: gemacht || e.tag === heuteTag ? '#000' : 'var(--color-text)' }}
                       >
                         {gemacht ? <Check size={18} strokeWidth={3} /> : WOCHENTAGE[e.tag]}
                       </span>
@@ -195,14 +195,14 @@ export default function SportSeite() {
               {plan.einheiten.map((e) => (
                 <div key={e.id} className="rounded-xl bg-karte2 p-2.5">
                   <div className="mb-2 flex items-center gap-2">
-                    <select value={e.tag} onChange={(ev) => aendereEinheit(e.id, { tag: Number(ev.target.value) })} className="h-10 rounded-lg bg-black/40 px-2 outline-none">
+                    <select value={e.tag} onChange={(ev) => aendereEinheit(e.id, { tag: Number(ev.target.value) })} className="h-10 rounded-lg bg-mulde px-2 outline-none">
                       {WOCHENTAGE.map((t, i) => (
                         <option key={t} value={i}>
                           {t}
                         </option>
                       ))}
                     </select>
-                    <select value={e.typ ?? ''} onChange={(ev) => aendereEinheit(e.id, { typ: ev.target.value || undefined })} className="h-10 min-w-0 flex-1 rounded-lg bg-black/40 px-2 outline-none">
+                    <select value={e.typ ?? ''} onChange={(ev) => aendereEinheit(e.id, { typ: ev.target.value || undefined })} className="h-10 min-w-0 flex-1 rounded-lg bg-mulde px-2 outline-none">
                       <option value="">– Art –</option>
                       {sp.typen.map((t) => (
                         <option key={t}>{t}</option>
@@ -214,13 +214,13 @@ export default function SportSeite() {
                   </div>
                   <div className="flex gap-2">
                     {sp.distanz && (
-                      <input inputMode="decimal" defaultValue={e.km ? String(e.km).replace('.', ',') : ''} placeholder="km" onBlur={(ev) => aendereEinheit(e.id, { km: leseZahl(ev.target.value) })} className="h-10 w-16 rounded-lg bg-black/40 text-center outline-none placeholder:text-grau" />
+                      <input inputMode="decimal" defaultValue={e.km ? String(e.km).replace('.', ',') : ''} placeholder="km" onBlur={(ev) => aendereEinheit(e.id, { km: leseZahl(ev.target.value) })} className="h-10 w-16 rounded-lg bg-mulde text-center outline-none placeholder:text-grau" />
                     )}
-                    <input inputMode="numeric" defaultValue={e.minuten ?? ''} placeholder="Min" onBlur={(ev) => aendereEinheit(e.id, { minuten: leseZahl(ev.target.value) })} className="h-10 w-16 rounded-lg bg-black/40 text-center outline-none placeholder:text-grau" />
+                    <input inputMode="numeric" defaultValue={e.minuten ?? ''} placeholder="Min" onBlur={(ev) => aendereEinheit(e.id, { minuten: leseZahl(ev.target.value) })} className="h-10 w-16 rounded-lg bg-mulde text-center outline-none placeholder:text-grau" />
                     {sp.distanz && (
-                      <input defaultValue={e.pace ?? ''} placeholder="Pace 5:30" onBlur={(ev) => aendereEinheit(e.id, { pace: ev.target.value.trim() || undefined })} className="h-10 w-24 rounded-lg bg-black/40 text-center outline-none placeholder:text-grau" />
+                      <input defaultValue={e.pace ?? ''} placeholder="Pace 5:30" onBlur={(ev) => aendereEinheit(e.id, { pace: ev.target.value.trim() || undefined })} className="h-10 w-24 rounded-lg bg-mulde text-center outline-none placeholder:text-grau" />
                     )}
-                    <input defaultValue={e.notiz ?? ''} placeholder="Notiz" onBlur={(ev) => aendereEinheit(e.id, { notiz: ev.target.value.trim() || undefined })} className="h-10 min-w-0 flex-1 rounded-lg bg-black/40 px-2 outline-none placeholder:text-grau" />
+                    <input defaultValue={e.notiz ?? ''} placeholder="Notiz" onBlur={(ev) => aendereEinheit(e.id, { notiz: ev.target.value.trim() || undefined })} className="h-10 min-w-0 flex-1 rounded-lg bg-mulde px-2 outline-none placeholder:text-grau" />
                   </div>
                 </div>
               ))}
@@ -243,13 +243,13 @@ export default function SportSeite() {
                 <XAxis dataKey="name" tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} interval={1} />
                 <Tooltip
                   cursor={false}
-                  contentStyle={{ background: '#2c2c2e', border: 'none', borderRadius: 12, color: '#fff', fontSize: 13 }}
+                  contentStyle={{ background: 'var(--color-karte2)', border: 'none', borderRadius: 12, color: 'var(--color-text)', fontSize: 13 }}
                   formatter={(v) => [sp.distanz ? `${zahl(Number(v))} km` : `${v} Min`, 'Woche']}
                   labelFormatter={() => ''}
                 />
                 <Bar dataKey="wert" radius={[6, 6, 6, 6]} minPointSize={3}>
                   {diagramm.map((d) => (
-                    <Cell key={d.start} fill={d.wert > 0 ? sp.farbe : '#38383a'} />
+                    <Cell key={d.start} fill={d.wert > 0 ? sp.farbe : 'var(--color-linie)'} />
                   ))}
                 </Bar>
               </BarChart>

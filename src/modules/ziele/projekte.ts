@@ -94,8 +94,8 @@ export async function aendereProjekt(id: string, neu: Partial<Projekt>) {
   await db.projekte.update(id, { ...neu, geaendert: new Date().toISOString() })
 }
 
-export async function neueAufgabe(projektId: string, titel: string, elternId?: string) {
-  await db.projektAufgaben.add({ id: neueId(), projektId, titel, erledigt: false, elternId, erstellt: new Date().toISOString() })
+export async function neueAufgabe(projektId: string, titel: string, elternId?: string, abschnittId?: string) {
+  await db.projektAufgaben.add({ id: neueId(), projektId, titel, erledigt: false, elternId, abschnittId, erstellt: new Date().toISOString() })
   await beruehre(projektId)
 }
 
@@ -115,8 +115,9 @@ export async function loescheAufgabe(a: ProjektAufgabe) {
 
 /** Projekt löschen: Aufgaben weg, zugeordnete Erinnerungen und Termine bleiben (nur ohne Projekt). */
 export async function loescheProjekt(p: Projekt) {
-  await db.transaction('rw', db.projekte, db.projektAufgaben, db.aufgaben, db.termine, async () => {
+  await db.transaction('rw', [db.projekte, db.projektAufgaben, db.aufgaben, db.termine, db.abschnitte], async () => {
     await db.projektAufgaben.where('projektId').equals(p.id).delete()
+    await db.abschnitte.where('ort').equals(`projekt:${p.id}`).delete()
     await db.aufgaben.filter((a) => a.projektId === p.id).modify({ projektId: undefined })
     await db.termine.filter((t) => t.projektId === p.id).modify({ projektId: undefined })
     await db.projekte.delete(p.id)

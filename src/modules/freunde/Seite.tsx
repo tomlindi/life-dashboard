@@ -111,7 +111,7 @@ export default function FreundeSeite() {
                           type="date"
                           value={f.geburtstag ?? ''}
                           onChange={(e) => db.freunde.update(f.id, { geburtstag: e.target.value || undefined })}
-                          className="h-10 rounded-xl bg-black/40 px-3 outline-none"
+                          className="h-10 rounded-xl bg-mulde px-3 outline-none"
                         />
                       </label>
                       <div>

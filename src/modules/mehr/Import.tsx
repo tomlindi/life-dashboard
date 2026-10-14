@@ -107,7 +107,7 @@ export default function ImportSeite() {
       <Karte titel="Format (für den Kurzbefehl)">
         <details>
           <summary className="tippbar min-h-11 cursor-pointer text-[15px] text-[#0a84ff]">Beispiel-JSON anzeigen</summary>
-          <pre className="mt-2 overflow-x-auto whitespace-pre rounded-2xl bg-black p-3 text-[11px] leading-relaxed text-white/80">{BEISPIEL}</pre>
+          <pre className="mt-2 overflow-x-auto whitespace-pre rounded-2xl bg-grund p-3 text-[11px] leading-relaxed text-text/80">{BEISPIEL}</pre>
           <p className="mt-2 text-[13px] text-grau">Alle Teile sind optional. Die ausführliche Anleitung steht in docs/KURZBEFEHL.md.</p>
         </details>
       </Karte>

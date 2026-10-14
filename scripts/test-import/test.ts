@@ -11,6 +11,8 @@ import type { Projekt } from '../../src/core/db'
 import { STANDARD_ZEITEN, anhalten, beenden, naechstePhase, phaseFertig, restMs, startePomodoro, starteStoppuhr, uhrText, weiter } from '../../src/modules/fokus/timer'
 import { istKlausurTermin, passtZuFach } from '../../src/modules/schule/klausuren'
 import { ganztaegigAm, liegtAm, tageDesTermins, tagNummer, zeitAm } from '../../src/modules/kalender/mehrtaegig'
+import { gruppiere, listenOrt, loescheAbschnitt, neuerAbschnitt } from '../../src/core/abschnitte'
+import { checkStand, titelVon as notizTitel, vorschauVon, zuText, zuZeilen } from '../../src/modules/notizen/notizen'
 import { fortschritt, loescheAufgabe, neueAufgabe, passt, schalteAufgabe, sortiere, speichereReihenfolge, zielPasst } from '../../src/modules/ziele/projekte'
 
 // ---------- Mini-Testwerkzeug ----------
@@ -255,6 +257,24 @@ const fachBio = { id: 'b', name: 'Biologie', farbe: '#30D158' }
 pruefe('"Mathe-Klausur" gehört zu Mathematik', [istKlausurTermin('Mathe-Klausur'), passtZuFach(fachMathe, 'Mathe-Klausur')], [true, true])
 pruefe('"Bio Test" gehört zu Biologie, nicht zu Mathe', [passtZuFach(fachBio, 'Bio Test'), passtZuFach(fachMathe, 'Bio Test')], [true, false])
 pruefe('"Training" ist keine Klausur', istKlausurTermin('Training'), false)
+
+// ---------- 12. Abschnitte und Notizen ----------
+console.log('\n12. Abschnitte und Notizen')
+await importiere(leseImportText(zeile({ typ: 'aufgabe', titel: 'Hefte kaufen', liste: 'Schule' })))
+const hefte = (await db.aufgaben.toArray()).find((a) => a.titel === 'Hefte kaufen')!
+await neuerAbschnitt(listenOrt('Schule'), 'Material')
+const material = (await db.abschnitte.where('ort').equals(listenOrt('Schule')).toArray())[0]
+await db.aufgaben.update(hefte.id, { abschnittId: material.id })
+await importiere(leseImportText(zeile({ typ: 'aufgabe', titel: 'Hefte kaufen', liste: 'Schule' })))
+pruefe('Abschnitt einer Erinnerung bleibt beim nächsten Import', (await db.aufgaben.get(hefte.id))?.abschnittId, material.id)
+const gruppen = gruppiere([{ abschnittId: material.id }, {}, { abschnittId: 'gibt-es-nicht' }], [material])
+pruefe('Gruppieren: ohne Abschnitt (auch unbekannte) zuerst, dann je Abschnitt', gruppen.map((g) => [g.abschnitt?.titel ?? '-', g.eintraege.length]), [['-', 2], ['Material', 1]])
+await loescheAbschnitt(material)
+pruefe('Abschnitt löschen: Erinnerung bleibt, nur ohne Abschnitt', [!!(await db.aufgaben.get(hefte.id)), (await db.aufgaben.get(hefte.id))?.abschnittId], [true, undefined])
+const notizText = 'Einkauf\n- [ ] Milch\n- [x] Brot\nRest'
+pruefe('Notiz: Text -> Zeilen -> Text bleibt gleich', zuText(zuZeilen(notizText)), notizText)
+const notiz = { id: 'n', datum: H, text: notizText, erstellt: new Date().toISOString() }
+pruefe('Notiz: Titel, Vorschau, Checkliste 1 von 2', [notizTitel(notiz), vorschauVon(notiz), checkStand(notiz)], ['Einkauf', 'Milch Brot Rest', { erledigt: 1, gesamt: 2 }])
 
 console.log(fehler ? `\n✗ ${fehler} Prüfung(en) fehlgeschlagen` : '\n✓ Alle Prüfungen bestanden')
 process.exit(fehler ? 1 : 0)

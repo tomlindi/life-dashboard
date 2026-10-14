@@ -58,7 +58,7 @@ export default function GewohnheitenSeite() {
                     <button
                       onClick={() => umschalten(h.id, heute(), heuteErledigt)}
                       className="tippbar flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-[26px]"
-                      style={{ background: heuteErledigt ? FARBE : '#3a3a3c' }}
+                      style={{ background: heuteErledigt ? FARBE : 'var(--color-leer)' }}
                       aria-label={`${h.name} heute ${heuteErledigt ? 'nicht erledigt' : 'erledigt'}`}
                     >
                       {heuteErledigt ? '✓' : h.emoji}
@@ -89,7 +89,7 @@ export default function GewohnheitenSeite() {
                           <span className="text-[11px] text-grau">{kurzerWochentag(tag)}</span>
                           <span
                             className="flex h-9 w-9 items-center justify-center rounded-full text-[13px] font-bold text-black"
-                            style={{ background: an ? FARBE : '#3a3a3c', outline: tag === heute() ? '2px solid #fff' : 'none' }}
+                            style={{ background: an ? FARBE : 'var(--color-leer)', outline: tag === heute() ? '2px solid var(--color-text)' : 'none' }}
                           >
                             {an ? '✓' : ''}
                           </span>
@@ -113,7 +113,7 @@ export default function GewohnheitenSeite() {
         <Label>Symbol</Label>
         <div className="mb-5 grid grid-cols-6 gap-2">
           {EMOJIS.map((e) => (
-            <button key={e} onClick={() => setEmoji(e)} className={`tippbar h-12 rounded-xl text-[24px] ${emoji === e ? 'bg-white/20 ring-2 ring-white/60' : 'bg-karte2'}`}>
+            <button key={e} onClick={() => setEmoji(e)} className={`tippbar h-12 rounded-xl text-[24px] ${emoji === e ? 'bg-text/20 ring-2 ring-text/60' : 'bg-karte2'}`}>
               {e}
             </button>
           ))}

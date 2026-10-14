@@ -8,7 +8,7 @@ Mein persönliches Dashboard als Web-App (PWA) fürs iPhone: Fitness, Schule, Zi
 |---|---|
 | `npm run dev` | Startet die App zum Entwickeln auf http://localhost:5173 |
 | `npm run build` | Prüft den Code (TypeScript) und baut die fertige App nach `dist/` |
-| `npm run icons` | Erzeugt die App-Icons in `public/` neu |
+| `npm run icons` | Erzeugt die App-Icons in `public/` neu aus `icon.png` (Windows) |
 
 ## Anleitungen
 

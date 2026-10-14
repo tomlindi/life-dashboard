@@ -28,7 +28,7 @@ function ProjektZeile({ p, anteil, offen, zieht }: { p: Projekt; anteil: number;
   return (
     <Link
       to={`/ziele/projekt/${p.id}`}
-      className={`tippbar flex min-h-16 items-center gap-3 rounded-2xl p-3 ${zieht ? 'bg-[#3a3a3c]' : 'bg-karte2'}`}
+      className={`tippbar flex min-h-16 items-center gap-3 rounded-2xl p-3 ${zieht ? 'bg-leer' : 'bg-karte2'}`}
       draggable={false}
     >
       <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: farbe }} />
@@ -91,7 +91,7 @@ export default function ProjektListe() {
             key={x}
             onClick={() => setFilter(x)}
             className="tippbar min-h-9 shrink-0 rounded-full px-3.5 text-[14px] font-medium"
-            style={{ background: filter === x ? BLAU : '#2c2c2e', color: filter === x ? '#000' : '#fff' }}
+            style={{ background: filter === x ? BLAU : 'var(--color-karte2)', color: filter === x ? '#000' : 'var(--color-text)' }}
           >
             {x}
           </button>
@@ -102,7 +102,7 @@ export default function ProjektListe() {
             value={zielId}
             onChange={(e) => setZielFilter(e.target.value)}
             className="min-h-9 shrink-0 rounded-full px-3 text-[14px] font-medium outline-none"
-            style={{ background: zielId ? BLAU : '#2c2c2e', color: zielId ? '#000' : '#fff' }}
+            style={{ background: zielId ? BLAU : 'var(--color-karte2)', color: zielId ? '#000' : 'var(--color-text)' }}
             aria-label="Nur Projekte eines Ziels"
           >
             <option value="">Ziel: alle</option>

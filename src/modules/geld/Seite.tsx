@@ -54,7 +54,7 @@ export default function GeldSeite() {
       {/* Kontostand */}
       <Karte>
         <p className="text-[13px] text-grau">Kontostand</p>
-        <p className="text-[40px] font-bold leading-tight" style={{ color: kontostand >= 0 ? '#fff' : ROT }}>
+        <p className="text-[40px] font-bold leading-tight" style={{ color: kontostand >= 0 ? 'var(--color-text)' : ROT }}>
           {euro(kontostand)}
         </p>
         <div className="mt-2 flex gap-4 text-[14px]">
@@ -81,7 +81,7 @@ export default function GeldSeite() {
               <XAxis dataKey="name" tick={{ fill: '#8e8e93', fontSize: 12 }} axisLine={false} tickLine={false} />
               <Tooltip
                 cursor={false}
-                contentStyle={{ background: '#2c2c2e', border: 'none', borderRadius: 12, color: '#fff', fontSize: 13 }}
+                contentStyle={{ background: 'var(--color-karte2)', border: 'none', borderRadius: 12, color: 'var(--color-text)', fontSize: 13 }}
                 formatter={(v) => [euro(Number(v)), 'Ausgaben']}
                 labelFormatter={() => ''}
               />
@@ -154,7 +154,7 @@ export default function GeldSeite() {
                     {kurzDatum(b.datum)}
                   </p>
                 </div>
-                <span className="text-[16px] font-semibold" style={{ color: b.art === 'einnahme' ? GRUEN : '#fff' }}>
+                <span className="text-[16px] font-semibold" style={{ color: b.art === 'einnahme' ? GRUEN : 'var(--color-text)' }}>
                   {b.art === 'einnahme' ? '+' : '−'}
                   {euro(b.betrag)}
                 </span>

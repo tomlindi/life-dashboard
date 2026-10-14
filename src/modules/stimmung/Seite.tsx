@@ -40,9 +40,9 @@ function TagEditor({ tag }: { tag: string }) {
             key={e}
             onClick={() => db.stimmung.put({ datum: tag, wert: i + 1, text: eintrag?.text })}
             className={`tippbar flex h-14 w-14 items-center justify-center rounded-2xl text-[28px] ${
-              eintrag?.wert === i + 1 ? 'ring-2 ring-white/70' : ''
+              eintrag?.wert === i + 1 ? 'ring-2 ring-text/70' : ''
             }`}
-            style={{ background: eintrag?.wert === i + 1 ? STIMMUNGS_FARBEN[i] + '55' : '#2c2c2e' }}
+            style={{ background: eintrag?.wert === i + 1 ? STIMMUNGS_FARBEN[i] + '55' : 'var(--color-karte2)' }}
             aria-label={`Stimmung ${i + 1} von 5`}
           >
             {e}
@@ -101,11 +101,11 @@ export default function StimmungSeite() {
         <div className="h-40">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={daten} margin={{ top: 8, right: 8, left: -28, bottom: 0 }}>
-              <CartesianGrid stroke="#38383a" vertical={false} />
+              <CartesianGrid stroke="var(--color-linie)" vertical={false} />
               <XAxis dataKey="name" tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} interval={6} />
               <YAxis domain={[1, 5]} ticks={[1, 3, 5]} tickFormatter={(v) => EMOJIS[v - 1]} tick={{ fontSize: 13 }} axisLine={false} tickLine={false} />
               <Tooltip
-                contentStyle={{ background: '#2c2c2e', border: 'none', borderRadius: 12, color: '#fff', fontSize: 13 }}
+                contentStyle={{ background: 'var(--color-karte2)', border: 'none', borderRadius: 12, color: 'var(--color-text)', fontSize: 13 }}
                 formatter={(v) => [EMOJIS[Number(v) - 1], 'Stimmung']}
                 labelFormatter={() => ''}
               />
@@ -142,8 +142,8 @@ export default function StimmungSeite() {
                 onClick={() => setGewaehlt(tag)}
                 className="tippbar flex aspect-square flex-col items-center justify-center rounded-xl text-[13px] disabled:opacity-30"
                 style={{
-                  background: e ? STIMMUNGS_FARBEN[e.wert - 1] + '40' : '#2c2c2e',
-                  outline: tag === gewaehlt ? '2px solid #fff' : 'none',
+                  background: e ? STIMMUNGS_FARBEN[e.wert - 1] + '40' : 'var(--color-karte2)',
+                  outline: tag === gewaehlt ? '2px solid var(--color-text)' : 'none',
                 }}
               >
                 <span className={tag === heute() ? 'font-bold' : ''}>{Number(tag.slice(8))}</span>

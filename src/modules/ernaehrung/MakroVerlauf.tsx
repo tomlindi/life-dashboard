@@ -22,7 +22,7 @@ const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'A
 const SKALA = 1.5
 
 const achse = { tick: { fill: '#8e8e93', fontSize: 11 }, axisLine: false, tickLine: false } as const
-const tooltipStil = { background: '#2c2c2e', border: 'none', borderRadius: 12, color: '#fff', fontSize: 13 }
+const tooltipStil = { background: 'var(--color-karte2)', border: 'none', borderRadius: 12, color: 'var(--color-text)', fontSize: 13 }
 
 /** Nährwerte pro Tag ("2026-10-06" -> Summe), nur Tage mit Nährwerten. Health ersetzt die Mahlzeiten des Tages. */
 function tagesSummen(mahlzeiten: Mahlzeit[], health: Map<string, Naehrwerte>): Map<string, Naehrwerte> {
@@ -115,16 +115,16 @@ export default function MakroVerlauf({ mahlzeiten, health }: { mahlzeiten: Mahlz
                       {x.name}
                     </span>
                     <span className="text-grau">
-                      Ø <span className="text-white">{zahl(durchschnitt, 0)}</span> / {zahl(ziele[x.key], 0)} {x.einheit} · {zahl(anteil * 100, 0)} %
+                      Ø <span className="text-text">{zahl(durchschnitt, 0)}</span> / {zahl(ziele[x.key], 0)} {x.einheit} · {zahl(anteil * 100, 0)} %
                     </span>
                   </div>
                   <div className="relative h-3 overflow-hidden rounded-full bg-karte2">
                     <div className="h-full rounded-full" style={{ width: `${(Math.min(anteil, SKALA) / SKALA) * 100}%`, background: x.farbe }} />
                     {/* Ziellinie bei 100 % */}
-                    <div className="absolute inset-y-0 w-0.5 bg-white/80" style={{ left: `${(1 / SKALA) * 100}%` }} />
+                    <div className="absolute inset-y-0 w-0.5 bg-text/80" style={{ left: `${(1 / SKALA) * 100}%` }} />
                   </div>
                   <p className="mt-1 text-[12px] text-grau">
-                    Ziel getroffen an <span className="text-white">{treffer}</span> von {tage.length} Tagen
+                    Ziel getroffen an <span className="text-text">{treffer}</span> von {tage.length} Tagen
                   </p>
                 </div>
               )
@@ -140,7 +140,7 @@ export default function MakroVerlauf({ mahlzeiten, health }: { mahlzeiten: Mahlz
                 type="button"
                 onClick={() => setGewaehlt(x.key)}
                 className="tippbar min-h-8 flex-1 rounded-full text-[13px] font-semibold"
-                style={{ background: gewaehlt === x.key ? x.farbe : '#2c2c2e', color: gewaehlt === x.key ? '#000' : '#fff' }}
+                style={{ background: gewaehlt === x.key ? x.farbe : 'var(--color-karte2)', color: gewaehlt === x.key ? '#000' : 'var(--color-text)' }}
               >
                 {x.key === 'kcal' ? 'kcal' : x.key === 'kohlenhydrate' ? 'KH' : x.name}
               </button>

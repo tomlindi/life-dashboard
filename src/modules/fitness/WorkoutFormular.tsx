@@ -84,7 +84,7 @@ export default function WorkoutFormular({ offen, onZu, vorhanden, startArt }: Pr
               setTyp(undefined)
             }}
             className="tippbar flex flex-col items-center gap-1 rounded-2xl py-2.5 text-[12px] font-medium"
-            style={{ background: art === sp.name ? sp.farbe : '#2c2c2e', color: art === sp.name ? '#000' : '#fff' }}
+            style={{ background: art === sp.name ? sp.farbe : 'var(--color-karte2)', color: art === sp.name ? '#000' : 'var(--color-text)' }}
           >
             <sp.icon size={22} />
             {sp.name}
@@ -145,7 +145,7 @@ export default function WorkoutFormular({ offen, onZu, vorhanden, startArt }: Pr
             key={n}
             onClick={() => setAnstrengung(anstrengung === n ? undefined : n)}
             className="tippbar h-10 rounded-lg text-[14px] font-semibold"
-            style={{ background: anstrengung === n ? s.farbe : '#2c2c2e', color: anstrengung === n ? '#000' : '#fff' }}
+            style={{ background: anstrengung === n ? s.farbe : 'var(--color-karte2)', color: anstrengung === n ? '#000' : 'var(--color-text)' }}
           >
             {n}
           </button>

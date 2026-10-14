@@ -72,7 +72,7 @@ export default function AbiPrognose({ faecher, noten, aktuellesHJ }: { faecher: 
                   <select
                     value={eintrag.fachId ?? ''}
                     onChange={(ev) => aendere(e.nr, { fachId: ev.target.value || undefined })}
-                    className="h-10 min-w-0 flex-1 rounded-lg bg-black/40 px-2 text-[15px] outline-none"
+                    className="h-10 min-w-0 flex-1 rounded-lg bg-mulde px-2 text-[15px] outline-none"
                   >
                     <option value="">– Fach wählen –</option>
                     {faecher.map((f) => (
@@ -96,7 +96,7 @@ export default function AbiPrognose({ faecher, noten, aktuellesHJ }: { faecher: 
                         defaultValue={eintrag.schriftlich ?? ''}
                         placeholder={e.geschaetzt ? formatNote(e.ergebnis) : ''}
                         onBlur={(ev) => aendere(e.nr, { schriftlich: leseZahl(ev.target.value) })}
-                        className="h-10 w-full rounded-lg bg-black/40 px-3 outline-none placeholder:text-grau"
+                        className="h-10 w-full rounded-lg bg-mulde px-3 outline-none placeholder:text-grau"
                       />
                     </label>
                   )}
@@ -108,7 +108,7 @@ export default function AbiPrognose({ faecher, noten, aktuellesHJ }: { faecher: 
                       defaultValue={eintrag.muendlich ?? ''}
                       placeholder={e.nr === 5 && e.geschaetzt ? formatNote(e.ergebnis) : '–'}
                       onBlur={(ev) => aendere(e.nr, { muendlich: leseZahl(ev.target.value) })}
-                      className="h-10 w-full rounded-lg bg-black/40 px-3 outline-none placeholder:text-grau"
+                      className="h-10 w-full rounded-lg bg-mulde px-3 outline-none placeholder:text-grau"
                     />
                   </label>
                 </div>

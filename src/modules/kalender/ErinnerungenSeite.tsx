@@ -8,6 +8,8 @@ import { db, type Aufgabe } from '../../core/db'
 import { heute } from '../../core/datum'
 import { kurzDatum, relativ } from '../../core/format'
 import { schalteErinnerung, speichereErinnerung } from '../../core/apple'
+import { gruppiere, listenOrt, useAbschnitte } from '../../core/abschnitte'
+import { AbschnittKopf, NeuerAbschnitt } from '../../core/ui/Abschnitte'
 import ErinnerungSheet from './ErinnerungSheet'
 import SyncKnopf from './SyncKnopf'
 import { farbeFuer, ROT } from './farben'
@@ -20,6 +22,8 @@ export default function ErinnerungenSeite() {
   const alle = useLiveQuery(() => db.aufgaben.toArray(), []) ?? []
   const [ansicht, setAnsicht] = useState<Ansicht | null>(null)
   const [bearbeiten, setBearbeiten] = useState<Aufgabe | undefined>()
+  const listenName = ansicht && typeof ansicht === 'object' ? ansicht.liste : null
+  const abschnitte = useAbschnitte(listenOrt(listenName ?? ''))
   const h = heute()
 
   const offen = alle.filter((a) => !a.erledigt)
@@ -80,20 +84,67 @@ export default function ErinnerungenSeite() {
 
   // ---------- Listenansicht ----------
   const titel = typeof ansicht === 'string' ? { heute: 'Heute', geplant: 'Geplant', alle: 'Alle', erledigt: 'Erledigt' }[ansicht] : ansicht.liste
-  const farbe = typeof ansicht === 'string' ? (ansicht === 'geplant' ? ROT : ansicht === 'heute' ? '#0a84ff' : '#fff') : farbeFuer(ansicht.liste)
+  const farbe = typeof ansicht === 'string' ? (ansicht === 'geplant' ? ROT : ansicht === 'heute' ? '#0a84ff' : 'var(--color-text)') : farbeFuer(ansicht.liste)
   const eintraege = (typeof ansicht === 'string' ? filter[ansicht] : alle.filter((a) => (a.liste ?? OHNE_LISTE) === ansicht.liste && !a.erledigt)).sort(
     (a, b) => (b.prioritaet ?? 0) - (a.prioritaet ?? 0) || (a.faellig ?? '9999').localeCompare(b.faellig ?? '9999'),
   )
 
-  /** Neue Erinnerung direkt in der Liste anlegen (Liste/Datum passend zur Ansicht). */
+  /** Neue Erinnerung direkt in der Liste anlegen (Liste/Datum/Abschnitt passend zur Ansicht). */
   const aktuell = ansicht // hier sicher nicht leer (siehe "if (!ansicht)" oben)
-  async function neu(text: string) {
+  async function neu(text: string, abschnittId?: string) {
     await speichereErinnerung({
       titel: text,
       liste: typeof aktuell === 'object' && aktuell.liste !== OHNE_LISTE ? aktuell.liste : undefined,
       faellig: aktuell === 'heute' ? h : undefined,
+      abschnittId,
     })
   }
+
+  const zeile = (a: Aufgabe) => (
+    <li key={a.id} className="flex items-start gap-3 border-b border-linie py-2">
+      {/* Kreis antippen = abhaken */}
+      <button onClick={() => schalteErinnerung(a)} className="tippbar mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center" aria-label={a.erledigt ? 'Wieder öffnen' : 'Erledigt'}>
+        <span
+          className="flex h-[22px] w-[22px] items-center justify-center rounded-full border-2"
+          style={{ borderColor: a.erledigt ? farbeFuer(a.liste ?? OHNE_LISTE) : '#636366', background: a.erledigt ? farbeFuer(a.liste ?? OHNE_LISTE) : 'transparent' }}
+        >
+          {a.erledigt && <Check size={13} strokeWidth={3} color="#000" />}
+        </span>
+      </button>
+      {/* Text antippen = Details bearbeiten */}
+      <button onClick={() => setBearbeiten(a)} className="tippbar min-w-0 flex-1 py-1 text-left">
+        <p className={`text-[16px] ${a.erledigt ? 'text-grau' : ''}`}>
+          {a.prioritaet ? <span className="mr-1 font-bold text-[#0a84ff]">{'!'.repeat(a.prioritaet)}</span> : null}
+          {a.titel}
+          {a.sync && <Clock size={12} className="ml-1.5 inline text-[#ffd60a]" />}
+        </p>
+        {a.notiz && <p className="truncate text-[13px] text-grau">{a.notiz}</p>}
+        {(a.faellig || (typeof ansicht === 'string' && a.liste)) && (
+          <p className="text-[13px]" style={{ color: a.faellig && a.faellig < h && !a.erledigt ? ROT : '#8e8e93' }}>
+            {[a.faellig ? `${kurzDatum(a.faellig)} (${relativ(a.faellig)})` : '', typeof ansicht === 'string' ? a.liste : ''].filter(Boolean).join(' · ')}
+          </p>
+        )}
+      </button>
+    </li>
+  )
+
+  /** Neue Erinnerung: einfach tippen und Enter (wie in Apples App) */
+  const neueZeile = (abschnittId?: string) => (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        const feld = e.currentTarget.elements.namedItem('neu') as HTMLInputElement
+        if (feld.value.trim()) neu(feld.value.trim(), abschnittId)
+        feld.value = ''
+      }}
+      className="flex items-center gap-3 py-2"
+    >
+      <span className="flex h-8 w-8 items-center justify-center">
+        <span className="h-[22px] w-[22px] rounded-full border-2 border-dashed border-[#636366]" />
+      </span>
+      <input name="neu" placeholder="Neue Erinnerung" enterKeyHint="next" className="h-10 min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-[#0a84ff]" />
+    </form>
+  )
 
   return (
     <div className="px-4 pb-10 pt-3">
@@ -104,53 +155,22 @@ export default function ErinnerungenSeite() {
         {titel}
       </h1>
 
-      <ul>
-        {eintraege.map((a) => (
-          <li key={a.id} className="flex items-start gap-3 border-b border-linie py-2">
-            {/* Kreis antippen = abhaken */}
-            <button onClick={() => schalteErinnerung(a)} className="tippbar mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center" aria-label={a.erledigt ? 'Wieder öffnen' : 'Erledigt'}>
-              <span
-                className="flex h-[22px] w-[22px] items-center justify-center rounded-full border-2"
-                style={{ borderColor: a.erledigt ? farbeFuer(a.liste ?? OHNE_LISTE) : '#636366', background: a.erledigt ? farbeFuer(a.liste ?? OHNE_LISTE) : 'transparent' }}
-              >
-                {a.erledigt && <Check size={13} strokeWidth={3} color="#000" />}
-              </span>
-            </button>
-            {/* Text antippen = Details bearbeiten */}
-            <button onClick={() => setBearbeiten(a)} className="tippbar min-w-0 flex-1 py-1 text-left">
-              <p className={`text-[16px] ${a.erledigt ? 'text-grau' : ''}`}>
-                {a.prioritaet ? <span className="mr-1 font-bold text-[#0a84ff]">{'!'.repeat(a.prioritaet)}</span> : null}
-                {a.titel}
-                {a.sync && <Clock size={12} className="ml-1.5 inline text-[#ffd60a]" />}
-              </p>
-              {a.notiz && <p className="truncate text-[13px] text-grau">{a.notiz}</p>}
-              {(a.faellig || (typeof ansicht === 'string' && a.liste)) && (
-                <p className="text-[13px]" style={{ color: a.faellig && a.faellig < h && !a.erledigt ? ROT : '#8e8e93' }}>
-                  {[a.faellig ? `${kurzDatum(a.faellig)} (${relativ(a.faellig)})` : '', typeof ansicht === 'string' ? a.liste : ''].filter(Boolean).join(' · ')}
-                </p>
-              )}
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      {/* Neue Erinnerung: einfach tippen und Enter (wie in Apples App) */}
-      {ansicht !== 'erledigt' && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            const feld = e.currentTarget.elements.namedItem('neu') as HTMLInputElement
-            if (feld.value.trim()) neu(feld.value.trim())
-            feld.value = ''
-          }}
-          className="flex items-center gap-3 py-2"
-        >
-          <span className="flex h-8 w-8 items-center justify-center">
-            <span className="h-[22px] w-[22px] rounded-full border-2 border-dashed border-[#636366]" />
-          </span>
-          <input name="neu" placeholder="Neue Erinnerung" className="h-10 min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-[#0a84ff]" />
-        </form>
-      )}
+      {listenName
+        ? // Eine Liste: gegliedert nach Abschnitten, jeder mit eigener Zeile "Neue Erinnerung"
+          gruppiere(eintraege, abschnitte).map(({ abschnitt, eintraege: teil }) => (
+            <div key={abschnitt?.id ?? 'ohne'}>
+              {abschnitt && <AbschnittKopf abschnitt={abschnitt} alle={abschnitte} farbe={farbe} />}
+              <ul>{teil.map(zeile)}</ul>
+              {neueZeile(abschnitt?.id)}
+            </div>
+          ))
+        : (
+          <>
+            <ul>{eintraege.map(zeile)}</ul>
+            {ansicht !== 'erledigt' && neueZeile()}
+          </>
+        )}
+      {listenName && <NeuerAbschnitt ort={listenOrt(listenName)} farbe={farbe} />}
       {eintraege.length === 0 && ansicht === 'erledigt' && <p className="py-6 text-center text-grau">Noch nichts erledigt.</p>}
 
       <div className="mt-6">

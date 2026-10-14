@@ -14,7 +14,7 @@ import HealthSymbol from '../../core/ui/HealthSymbol'
 
 /** Gemeinsames Aussehen der Diagramme: dezente Achse, dunkler Tooltip. */
 const achse = { tick: { fill: '#8e8e93', fontSize: 12 }, axisLine: false, tickLine: false } as const
-const tooltipStil = { background: '#2c2c2e', border: 'none', borderRadius: 12, color: '#fff', fontSize: 13 }
+const tooltipStil = { background: 'var(--color-karte2)', border: 'none', borderRadius: 12, color: 'var(--color-text)', fontSize: 13 }
 
 export function WorkoutDiagramm() {
   const tage = letzteTage(7)
@@ -34,7 +34,7 @@ export function WorkoutDiagramm() {
             <Tooltip cursor={false} contentStyle={tooltipStil} formatter={(v) => [`${v} Min`, 'Training']} labelFormatter={() => ''} />
             <Bar dataKey="minuten" radius={[6, 6, 6, 6]} fill="#ff375f" minPointSize={3}>
               {daten.map((d) => (
-                <Cell key={d.tag} fill={d.minuten > 0 ? '#ff375f' : '#38383a'} />
+                <Cell key={d.tag} fill={d.minuten > 0 ? '#ff375f' : 'var(--color-linie)'} />
               ))}
             </Bar>
           </BarChart>
@@ -78,15 +78,15 @@ export function GewichtKarte() {
           <div className="mb-2 flex gap-4 text-[13px]">
             <span className="text-grau">
               Veränderung{' '}
-              <b style={{ color: differenz === null || Math.abs(differenz) < 0.05 ? '#fff' : '#64d2ff' }}>
+              <b style={{ color: differenz === null || Math.abs(differenz) < 0.05 ? 'var(--color-text)' : '#64d2ff' }}>
                 {differenz === null ? '–' : `${differenz > 0 ? '+' : ''}${zahl(differenz)} kg`}
               </b>
             </span>
             <span className="text-grau">
-              Min <b className="text-white">{zahl(Math.min(...kgs))}</b>
+              Min <b className="text-text">{zahl(Math.min(...kgs))}</b>
             </span>
             <span className="text-grau">
-              Max <b className="text-white">{zahl(Math.max(...kgs))}</b>
+              Max <b className="text-text">{zahl(Math.max(...kgs))}</b>
             </span>
           </div>
           <div className="mb-3 h-44">

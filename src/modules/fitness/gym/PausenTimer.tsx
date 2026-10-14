@@ -47,10 +47,10 @@ export default function PausenTimer({ einheitId, pauseEnde }: { einheitId: strin
         </div>
         {!fertig && (
           <>
-            <button onClick={() => verschiebe(-15)} className="tippbar h-11 rounded-xl bg-black/40 px-3 text-[14px] font-semibold">
+            <button onClick={() => verschiebe(-15)} className="tippbar h-11 rounded-xl bg-mulde px-3 text-[14px] font-semibold">
               −15
             </button>
-            <button onClick={() => verschiebe(15)} className="tippbar h-11 rounded-xl bg-black/40 px-3 text-[14px] font-semibold">
+            <button onClick={() => verschiebe(15)} className="tippbar h-11 rounded-xl bg-mulde px-3 text-[14px] font-semibold">
               +15
             </button>
           </>

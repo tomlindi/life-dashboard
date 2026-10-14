@@ -4,7 +4,9 @@ import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register' // meldet den Service Worker an (Offline-Modus)
 import './index.css'
 import App from './App'
+import { wendeDarstellungAn } from './core/darstellung'
 
+wendeDarstellungAn() // Hell/Dunkel vor dem ersten Bild setzen
 registerSW({ immediate: true })
 
 createRoot(document.getElementById('root')!).render(

@@ -26,7 +26,7 @@ const FARBE = '#ff375f'
 const PAUSEN = [60, 90, 120, 150, 180, 240]
 const TYPEN: SatzTyp[] = ['normal', 'aufwaermen', 'drop', 'versagen']
 const TYP_KUERZEL: Record<SatzTyp, string> = { normal: '', aufwaermen: 'W', drop: 'D', versagen: 'F' }
-const TYP_FARBE: Record<SatzTyp, string> = { normal: '#fff', aufwaermen: '#ffd60a', drop: '#64d2ff', versagen: '#ff453a' }
+const TYP_FARBE: Record<SatzTyp, string> = { normal: 'var(--color-text)', aufwaermen: '#ffd60a', drop: '#64d2ff', versagen: '#ff453a' }
 
 /** Ändert ein Training direkt in der Datenbank (immer auf dem neuesten Stand, nichts geht verloren). */
 const aendere = (id: string, fn: (e: GymEinheit) => void) => db.gymEinheiten.where('id').equals(id).modify(fn)
@@ -62,7 +62,7 @@ function ZahlFeld({ wert, platzhalter, onAendern }: { wert?: number; platzhalter
         setText(e.target.value)
         onAendern(leseZahl(e.target.value))
       }}
-      className="h-10 w-full rounded-lg bg-black/40 text-center font-semibold outline-none placeholder:font-normal placeholder:text-grau"
+      className="h-10 w-full rounded-lg bg-mulde text-center font-semibold outline-none placeholder:font-normal placeholder:text-grau"
     />
   )
 }
@@ -231,7 +231,7 @@ export default function TrainingSeite() {
               {/* Letzter Satz, schwerster Satz, Ziel, Pause */}
               <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-grau">
                 <span>
-                  Letzter Satz: <b className="text-white">{satzText(vorherSaetze[vorherSaetze.length - 1] ?? null)}</b>
+                  Letzter Satz: <b className="text-text">{satzText(vorherSaetze[vorherSaetze.length - 1] ?? null)}</b>
                 </span>
                 <span>
                   Schwerster: <b className="text-[#ffd60a]">{satzText(bester)}</b>
@@ -239,7 +239,7 @@ export default function TrainingSeite() {
                 {u.ziel && <span>Ziel: {u.ziel} Wdh</span>}
                 <button
                   onClick={() => aendere(id, (e) => void (e.uebungen[ui].pauseSek = PAUSEN[(PAUSEN.indexOf(u.pauseSek) + 1) % PAUSEN.length]))}
-                  className="tippbar rounded-full bg-karte2 px-2 text-white"
+                  className="tippbar rounded-full bg-karte2 px-2 text-text"
                 >
                   ⏱ {Math.floor(u.pauseSek / 60)}:{String(u.pauseSek % 60).padStart(2, '0')}
                 </button>
@@ -277,7 +277,7 @@ export default function TrainingSeite() {
                       <button
                         onClick={() => satzAbhaken(ui, si, vorher)}
                         className="tippbar flex h-10 items-center justify-center rounded-lg text-[18px] font-bold"
-                        style={{ background: s.erledigt ? '#30d158' : '#3a3a3c', color: s.erledigt ? '#000' : '#8e8e93' }}
+                        style={{ background: s.erledigt ? '#30d158' : 'var(--color-leer)', color: s.erledigt ? '#000' : '#8e8e93' }}
                         aria-label={s.erledigt ? 'Satz als offen markieren' : 'Satz abhaken'}
                       >
                         ✓
@@ -311,7 +311,7 @@ export default function TrainingSeite() {
                 defaultValue={u.notiz ?? ''}
                 onBlur={(e) => aendere(id, (x) => void (x.uebungen[ui].notiz = e.target.value.trim() || undefined))}
                 placeholder="Notiz (z. B. Sitzhöhe 4, enger Griff)"
-                className="mt-2 h-10 w-full rounded-xl bg-black/30 px-3 text-[14px] outline-none placeholder:text-grau"
+                className="mt-2 h-10 w-full rounded-xl bg-mulde px-3 text-[14px] outline-none placeholder:text-grau"
               />
             </Karte>
           )

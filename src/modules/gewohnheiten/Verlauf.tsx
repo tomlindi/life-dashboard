@@ -11,7 +11,7 @@ import { ZeitraumWahl, zeitraumAb, type ZeitraumLabel } from '../../core/ui/Zeit
 const FARBE = '#30d158'
 const ROT = '#ff453a'
 const achse = { tick: { fill: '#8e8e93', fontSize: 11 }, axisLine: false, tickLine: false } as const
-const tooltipStil = { background: '#2c2c2e', border: 'none', borderRadius: 12, color: '#fff', fontSize: 13 }
+const tooltipStil = { background: 'var(--color-karte2)', border: 'none', borderRadius: 12, color: 'var(--color-text)', fontSize: 13 }
 /** Ab mehr Wochen als hier (also bei 1J und oft bei "Alle") zeigen wir Monate, sonst wird die Linie zu unruhig. */
 const MAX_WOCHEN = 27
 
@@ -149,7 +149,7 @@ export default function EntwicklungKarte({ habits, eintraege }: { habits: Habit[
                     key={f.id}
                     onClick={() => setAuswahl(f.id)}
                     className="tippbar min-h-8 max-w-full truncate rounded-full px-3 text-[13px] font-semibold"
-                    style={{ background: an ? FARBE : '#2c2c2e', color: an ? '#000' : '#fff' }}
+                    style={{ background: an ? FARBE : 'var(--color-karte2)', color: an ? '#000' : 'var(--color-text)' }}
                   >
                     {f.text}
                   </button>
@@ -167,17 +167,17 @@ export default function EntwicklungKarte({ habits, eintraege }: { habits: Habit[
               {/* Kennzahlen in einer Zeile wie bei Gewicht und Schlaf */}
               <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
                 <span className="text-grau">
-                  Ø <b className="text-white">{Math.round(ergebnis.schnitt)} %</b>
+                  Ø <b className="text-text">{Math.round(ergebnis.schnitt)} %</b>
                 </span>
                 <span className="text-grau">
                   Veränderung{' '}
-                  <b style={{ color: v === null || v === 0 ? '#fff' : v > 0 ? FARBE : ROT }}>
+                  <b style={{ color: v === null || v === 0 ? 'var(--color-text)' : v > 0 ? FARBE : ROT }}>
                     {v === null ? '–' : `${v > 0 ? '+' : v < 0 ? '−' : '±'}${Math.abs(v)} %-Pkt.`}
                   </b>
                 </span>
                 <span className="text-grau">
                   Längste Serie{' '}
-                  <b className="text-white">
+                  <b className="text-text">
                     {serie} {serie === 1 ? 'Tag' : 'Tage'}
                     {/* Bei "Alle": welches Habit die Serie hat */}
                     {!gewaehlt && serie > 0 && ' ' + ergebnis.serie.habit.emoji}

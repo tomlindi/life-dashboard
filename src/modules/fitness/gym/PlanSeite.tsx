@@ -127,7 +127,7 @@ export default function PlanSeite() {
               defaultValue={u.notiz ?? ''}
               onBlur={(e) => aendere(id, (p) => void (p.uebungen[i].notiz = e.target.value.trim() || undefined))}
               placeholder="Notiz / Technik-Hinweis"
-              className="mt-2 h-10 w-full rounded-xl bg-black/30 px-3 text-[14px] outline-none placeholder:text-grau"
+              className="mt-2 h-10 w-full rounded-xl bg-mulde px-3 text-[14px] outline-none placeholder:text-grau"
             />
           </Karte>
         ))}

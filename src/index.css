@@ -1,23 +1,76 @@
 /* Tailwind laden (Hilfsklassen wie "p-4", "rounded-2xl" ...) */
 @import 'tailwindcss';
 
-/* Eigene Farben: so kannst du sie im Code als "bg-karte" oder "text-grau" nutzen */
+/* Eigene Farben: so kannst du sie im Code als "bg-karte" oder "text-grau" nutzen.
+   Hier stehen die Werte für den Dark Mode. Den Light Mode setzen die Regeln weiter unten. */
 @theme {
+  --color-grund: #000; /* Seitenhintergrund: tiefes Schwarz */
+  --color-text: #fff; /* normaler Text */
   --color-karte: #1c1c1e; /* dunkelgraue Karten wie in Apples Apps */
   --color-karte2: #2c2c2e; /* etwas hellere Fläche (Eingabefelder, Buttons) */
   --color-linie: #38383a;
   --color-grau: #8e8e93; /* Nebentext */
+  --color-leer: #3a3a3c; /* leere Kästchen, Kreise, Balken */
+  --color-mulde: rgb(0 0 0 / 0.4); /* vertiefte Fläche auf "karte2" */
+  --color-segment: #636366; /* gewählter Teil eines Umschalters */
+  --color-gelb: #ffd60a; /* Akzent von Notizen und Hobbys (im Light Mode dunkler, sonst unlesbar) */
   --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
 }
 
-/* Immer Dark Mode: tiefes Schwarz */
+/* Glas-Optik des Docks */
+:root {
+  --glas: rgb(30 30 30 / 0.6);
+  --glas-rand: rgb(255 255 255 / 0.12);
+  --glas-schatten: 0 8px 32px rgb(0 0 0 / 0.45);
+  --glas-aktiv: rgb(255 255 255 / 0.14);
+  color-scheme: dark;
+}
+
+/* Light Mode: Farben wie in Apples hellen Apps.
+   data-theme setzt core/darstellung.ts ("hell", "dunkel" oder "auto" = wie das iPhone). */
+html[data-theme='hell'] {
+  --color-grund: #f2f2f7;
+  --color-text: #000;
+  --color-karte: #fff;
+  --color-karte2: #ebebf0;
+  --color-linie: #d8d8dc;
+  --color-grau: #6e6e73;
+  --color-leer: #d1d1d6;
+  --color-mulde: rgb(255 255 255 / 0.9);
+  --color-segment: #fff;
+  --color-gelb: #d9a400;
+  --glas: rgb(255 255 255 / 0.7);
+  --glas-rand: rgb(0 0 0 / 0.08);
+  --glas-schatten: 0 8px 32px rgb(0 0 0 / 0.15);
+  --glas-aktiv: rgb(0 0 0 / 0.06);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: light) {
+  html[data-theme='auto'] {
+    --color-grund: #f2f2f7;
+    --color-text: #000;
+    --color-karte: #fff;
+    --color-karte2: #ebebf0;
+    --color-linie: #d8d8dc;
+    --color-grau: #6e6e73;
+    --color-leer: #d1d1d6;
+    --color-mulde: rgb(255 255 255 / 0.9);
+    --color-segment: #fff;
+    --color-gelb: #d9a400;
+    --glas: rgb(255 255 255 / 0.7);
+    --glas-rand: rgb(0 0 0 / 0.08);
+    --glas-schatten: 0 8px 32px rgb(0 0 0 / 0.15);
+    --glas-aktiv: rgb(0 0 0 / 0.06);
+    color-scheme: light;
+  }
+}
+
 html,
 body,
 #root {
   height: 100%;
-  background: #000;
-  color: #fff;
-  color-scheme: dark;
+  background: var(--color-grund);
+  color: var(--color-text);
 }
 
 body {

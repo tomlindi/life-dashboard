@@ -188,10 +188,10 @@ export default function FokusSeite() {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={sieben} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
               <XAxis dataKey="name" tick={{ fill: '#8e8e93', fontSize: 12 }} axisLine={false} tickLine={false} />
-              <Tooltip cursor={false} contentStyle={{ background: '#2c2c2e', border: 'none', borderRadius: 12, color: '#fff', fontSize: 13 }} formatter={(v) => [minutenText(Number(v)), 'Fokus']} labelFormatter={() => ''} />
+              <Tooltip cursor={false} contentStyle={{ background: 'var(--color-karte2)', border: 'none', borderRadius: 12, color: 'var(--color-text)', fontSize: 13 }} formatter={(v) => [minutenText(Number(v)), 'Fokus']} labelFormatter={() => ''} />
               <Bar dataKey="minuten" radius={[6, 6, 6, 6]} minPointSize={3}>
                 {sieben.map((d) => (
-                  <Cell key={d.tag} fill={d.minuten === 0 ? '#38383a' : d.tag === heute() ? FARBE : '#a35f00'} />
+                  <Cell key={d.tag} fill={d.minuten === 0 ? 'var(--color-linie)' : d.tag === heute() ? FARBE : '#a35f00'} />
                 ))}
               </Bar>
             </BarChart>

@@ -32,7 +32,7 @@ const KUERZEL: Record<NotenArt, string> = { Klausur: 'SC', Mündlich: 'MÜ', Pra
 function FachEinstellungen({ fach, hj }: { fach: Fach; hj: number }) {
   const summe = Object.values(fach.anteile ?? {}).reduce((s, x) => s + (x ?? 0), 0)
   return (
-    <div className="mt-2 rounded-xl bg-black/30 p-3">
+    <div className="mt-2 rounded-xl bg-mulde p-3">
       {/* Zeugnisnote: leer lassen = gerundeter Schnitt zählt */}
       <label className="flex min-h-10 items-center justify-between gap-3">
         <span className="text-[14px]">Zeugnisnote {hj}. HJ (falls abweichend)</span>
@@ -172,7 +172,7 @@ export default function SchuleSeite() {
             key={h}
             onClick={() => setGewaehltesHJ(h)}
             className="tippbar min-h-11 flex-1 rounded-2xl text-[15px] font-semibold"
-            style={{ background: hj === h ? FARBE : '#1c1c1e', color: hj === h ? '#000' : '#fff' }}
+            style={{ background: hj === h ? FARBE : 'var(--color-karte)', color: hj === h ? '#000' : 'var(--color-text)' }}
           >
             {h}. HJ{h === aktuellesHJ ? ' •' : ''}
           </button>

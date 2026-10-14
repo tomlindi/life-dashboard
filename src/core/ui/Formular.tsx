@@ -23,7 +23,7 @@ export function Chips<T extends string>({
           type="button"
           onClick={() => onWahl(o)}
           className="tippbar min-h-11 rounded-full px-4 text-[15px] font-medium"
-          style={{ background: wert === o ? farbe : '#2c2c2e', color: wert === o ? '#000' : '#fff' }}
+          style={{ background: wert === o ? farbe : 'var(--color-karte2)', color: wert === o ? '#000' : 'var(--color-text)' }}
         >
           {o}
         </button>
@@ -109,7 +109,7 @@ export function Haken({ an, farbe, onClick }: { an: boolean; farbe: string; onCl
 /** Dünner Fortschrittsbalken (0 bis 1). */
 export function Balken({ wert, farbe }: { wert: number; farbe: string }) {
   return (
-    <div className="h-2 w-full overflow-hidden rounded-full" style={{ background: farbe + '33' }}>
+    <div className="h-2 w-full overflow-hidden rounded-full" style={{ background: `color-mix(in srgb, ${farbe} 20%, transparent)` }}>
       <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(1, Math.max(0, wert)) * 100}%`, background: farbe }} />
     </div>
   )

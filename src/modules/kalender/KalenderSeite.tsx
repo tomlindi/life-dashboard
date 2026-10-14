@@ -122,8 +122,8 @@ export default function KalenderSeite() {
               <span
                 className="flex h-9 w-9 items-center justify-center rounded-full text-[18px]"
                 style={{
-                  background: istGewaehlt ? (istHeute ? ROT : '#fff') : 'transparent',
-                  color: istGewaehlt ? (istHeute ? '#fff' : '#000') : istHeute ? ROT : wochenende ? '#8e8e93' : '#fff',
+                  background: istGewaehlt ? (istHeute ? ROT : 'var(--color-text)') : 'transparent',
+                  color: istGewaehlt ? (istHeute ? '#fff' : 'var(--color-grund)') : istHeute ? ROT : wochenende ? '#8e8e93' : 'var(--color-text)',
                   fontWeight: istHeute || istGewaehlt ? 600 : 400,
                 }}
               >

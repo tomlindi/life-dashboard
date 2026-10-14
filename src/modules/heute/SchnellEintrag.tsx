@@ -1,13 +1,14 @@
 // Schnell-Eintrag: Stimmung, Wasser und Notiz mit je 1–2 Taps.
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Minus, Plus, Send } from 'lucide-react'
 import { db } from '../../core/db'
 import { heute, neueId } from '../../core/datum'
+import { useWasserziel } from '../../core/einstellungen'
 import Karte from '../../core/ui/Karte'
 
 const EMOJIS = ['😞', '😕', '😐', '🙂', '😄']
-const WASSER_ZIEL = 8
 
 export default function SchnellEintrag() {
   const tag = heute()
@@ -16,6 +17,7 @@ export default function SchnellEintrag() {
   const wasser = useLiveQuery(() => db.wasser.get(tag), [tag])
   const notizen = useLiveQuery(() => db.notizen.where('datum').equals(tag).toArray(), [tag])
   const [text, setText] = useState('')
+  const [wasserziel] = useWasserziel()
 
   const gläser = wasser?.glaeser ?? 0
 
@@ -31,7 +33,8 @@ export default function SchnellEintrag() {
   async function speichereNotiz() {
     const t = text.trim()
     if (!t) return
-    await db.notizen.add({ id: neueId(), datum: tag, text: t, erstellt: new Date().toISOString() })
+    const jetzt = new Date().toISOString()
+    await db.notizen.add({ id: neueId(), datum: tag, text: t, erstellt: jetzt, geaendert: jetzt })
     setText('')
   }
 
@@ -45,7 +48,7 @@ export default function SchnellEintrag() {
             key={e}
             onClick={() => setzeStimmung(i + 1)}
             className={`tippbar flex h-14 w-14 items-center justify-center rounded-2xl text-[28px] ${
-              stimmung?.wert === i + 1 ? 'bg-white/20 ring-2 ring-white/60' : 'bg-karte2'
+              stimmung?.wert === i + 1 ? 'bg-text/20 ring-2 ring-text/60' : 'bg-karte2'
             }`}
             aria-label={`Stimmung ${i + 1} von 5`}
           >
@@ -59,11 +62,11 @@ export default function SchnellEintrag() {
         <div>
           <p className="text-[13px] text-grau">Wasser</p>
           <p className="text-[20px] font-semibold text-[#64d2ff]">
-            {gläser} <span className="text-[14px] font-normal text-grau">/ {WASSER_ZIEL} Gläser</span>
+            {gläser} <span className="text-[14px] font-normal text-grau">/ {wasserziel} Gläser</span>
           </p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => aendereWasser(-1)} className="tippbar flex h-12 w-12 items-center justify-center rounded-full bg-black/40" aria-label="Ein Glas weniger">
+          <button onClick={() => aendereWasser(-1)} className="tippbar flex h-12 w-12 items-center justify-center rounded-full bg-mulde" aria-label="Ein Glas weniger">
             <Minus size={20} />
           </button>
           <button onClick={() => aendereWasser(1)} className="tippbar flex h-12 w-12 items-center justify-center rounded-full bg-[#64d2ff] text-black" aria-label="Ein Glas mehr">
@@ -93,8 +96,10 @@ export default function SchnellEintrag() {
       {notizen && notizen.length > 0 && (
         <ul className="mt-3 space-y-1.5">
           {notizen.map((n) => (
-            <li key={n.id} className="text-[14px] text-white/80">
-              • {n.text}
+            <li key={n.id} className="text-[14px] text-text/80">
+              <Link to={`/notizen?notiz=${n.id}`} className="tippbar block truncate">
+                • {n.text.split('\n')[0]}
+              </Link>
             </li>
           ))}
         </ul>

@@ -18,3 +18,8 @@ export const useSchrittziel = () => useEinstellung<number>('schrittziel', 10000)
 
 /** Wochenziel Fitness (Anzahl Workouts pro Woche), gemeinsam genutzt von Heute und Fitness. */
 export const useWochenziel = () => useEinstellung<number>('wochenzielWorkouts', 4)
+
+/** Tagesziel Wasser in Gläsern (à 250 ml), gemeinsam genutzt von Heute, Ernährung und Einstellungen. */
+export const useWasserziel = () => useEinstellung<number>('wasserZielGlaeser', 8)
+export const WASSERZIEL_MIN = 1
+export const WASSERZIEL_MAX = 20

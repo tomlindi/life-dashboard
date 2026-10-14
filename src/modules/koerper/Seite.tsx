@@ -16,7 +16,7 @@ import { GewichtKarte } from '../fitness/Diagramme'
 
 const FARBE = '#40c8e0'
 const achse = { tick: { fill: '#8e8e93', fontSize: 11 }, axisLine: false, tickLine: false } as const
-const tooltipStil = { background: '#2c2c2e', border: 'none', borderRadius: 12, color: '#fff', fontSize: 13 }
+const tooltipStil = { background: 'var(--color-karte2)', border: 'none', borderRadius: 12, color: 'var(--color-text)', fontSize: 13 }
 
 /** BMI = Gewicht (kg) ÷ Größe (m)². Einordnung nach WHO für Erwachsene. */
 function bmiEinordnung(bmi: number) {
