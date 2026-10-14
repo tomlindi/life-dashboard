@@ -12,6 +12,9 @@ import { STANDARD_ZEITEN, anhalten, beenden, naechstePhase, phaseFertig, restMs,
 import { istKlausurTermin, passtZuFach } from '../../src/modules/schule/klausuren'
 import { ganztaegigAm, liegtAm, tageDesTermins, tagNummer, zeitAm } from '../../src/modules/kalender/mehrtaegig'
 import { gruppiere, listenOrt, loescheAbschnitt, neuerAbschnitt } from '../../src/core/abschnitte'
+import { vervollstaendige } from '../../src/modules/heute/karten'
+import { kommendeKlausuren, lernMinuten } from '../../src/modules/schule/lernzeit'
+import { backupDateiName } from '../../src/core/apple'
 import { checkStand, titelVon as notizTitel, vorschauVon, zuText, zuZeilen } from '../../src/modules/notizen/notizen'
 import { fortschritt, loescheAufgabe, neueAufgabe, passt, schalteAufgabe, sortiere, speichereReihenfolge, zielPasst } from '../../src/modules/ziele/projekte'
 
@@ -275,6 +278,29 @@ const notizText = 'Einkauf\n- [ ] Milch\n- [x] Brot\nRest'
 pruefe('Notiz: Text -> Zeilen -> Text bleibt gleich', zuText(zuZeilen(notizText)), notizText)
 const notiz = { id: 'n', datum: H, text: notizText, erstellt: new Date().toISOString() }
 pruefe('Notiz: Titel, Vorschau, Checkliste 1 von 2', [notizTitel(notiz), vorschauVon(notiz), checkStand(notiz)], ['Einkauf', 'Milch Brot Rest', { erledigt: 1, gesamt: 2 }])
+
+// ---------- 13. Heute anpassen, Lernzeit, Backup-Name ----------
+console.log('\n13. Heute anpassen, Lernzeit, Backup-Name')
+const wahl = vervollstaendige([{ id: 'schnell', an: false }, { id: 'gibt-es-nicht' as never, an: true }, { id: 'widgets', an: true }])
+pruefe('Heute: gespeicherte Reihenfolge zuerst, Unbekanntes weg, Neues eingeschaltet hinten', [wahl.slice(0, 2), wahl.length, wahl.every((k, i) => i < 2 || k.an)], [[{ id: 'schnell', an: false }, { id: 'widgets', an: true }], 11, true])
+const mathe2 = { id: 'm2', name: 'Mathematik', farbe: '#0A84FF' }
+const wiwi = { id: 'w', name: 'Wirtschaft', farbe: '#30D158' }
+const kommend = kommendeKlausuren(
+  [mathe2, wiwi],
+  [
+    { id: 'k1', fachId: 'w', titel: 'Klausur 1', datum: tagPlus(H, 5) },
+    { id: 'k0', fachId: 'w', titel: 'Alt', datum: tagPlus(H, -2) },
+  ],
+  [{ id: 't1', quelle: 'kalender', titel: 'Mathe-Klausur', start: new Date(zeit(tagPlus(H, 2), '08:00')).toISOString() }],
+)
+pruefe('Kommende Klausuren: nach Datum, Kalender-Klausur bekommt Fach, alte fällt weg', kommend.map((k) => [k.id, k.fach?.name]), [['t1', 'Mathematik'], ['k1', 'Wirtschaft']])
+const lern = [
+  { id: 'f1', datum: tagPlus(H, -1), start: '', ende: '', minuten: 25, art: 'pomodoro' as const, fachId: 'w' },
+  { id: 'f2', datum: tagPlus(H, -20), start: '', ende: '', minuten: 50, art: 'pomodoro' as const, fachId: 'w' },
+  { id: 'f3', datum: H, start: '', ende: '', minuten: 30, art: 'stoppuhr' as const, fachId: 'm2' },
+]
+pruefe('Lernzeit Wirtschaft letzte 14 Tage: 25 min (ältere zählt nicht)', lernMinuten(lern, 'w', tagPlus(H, -14)), 25)
+pruefe('Backup-Datei pro Wochentag', [backupDateiName(new Date(2026, 9, 14)), backupDateiName(new Date(2026, 9, 18))], ['Life Backup Mi.json', 'Life Backup So.json'])
 
 console.log(fehler ? `\n✗ ${fehler} Prüfung(en) fehlgeschlagen` : '\n✓ Alle Prüfungen bestanden')
 process.exit(fehler ? 1 : 0)

@@ -1,12 +1,39 @@
 // Seite "Backup & Daten": Sichern, Wiederherstellen, Beispieldaten, alles löschen.
 import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Download, Upload } from 'lucide-react'
+import { CloudUpload, Download, Upload } from 'lucide-react'
 import { db } from '../../core/db'
 import { exportiereBackup, fuegeDatenHinzu, loescheAlles, stelleBackupWiederHer } from '../../core/backup'
 import { gibtBeispieldaten, ladeBeispieldaten, loescheBeispieldaten } from '../../core/beispieldaten'
 import Seite from '../../core/ui/Seite'
 import Karte from '../../core/ui/Karte'
+import { Schalter } from '../../core/ui/Formular'
+import { autoBackupAn, backupDateiName, setzeAutoBackup, SYNC_KURZBEFEHL } from '../../core/apple'
+
+/** Automatisches Backup bei jedem Apple-Abgleich (über den Kurzbefehl "Life Sync", 7 Dateien, eine pro Wochentag). */
+function AutoBackup() {
+  const [an, setAn] = useState(autoBackupAn())
+  return (
+    <Karte titel="Automatisch in iCloud sichern">
+      <div className="flex min-h-12 items-center gap-3">
+        <CloudUpload size={22} className="shrink-0 text-[#0a84ff]" />
+        <span className="flex-1 text-[15px]">Bei jedem Apple-Abgleich sichern</span>
+        <Schalter
+          an={an}
+          onClick={() => {
+            setzeAutoBackup(!an)
+            setAn(!an)
+          }}
+          label="Automatisches Backup"
+        />
+      </div>
+      <p className="mt-2 text-[13px] leading-snug text-grau">
+        Der Kurzbefehl „{SYNC_KURZBEFEHL}“ speichert dann jedes Mal eine Datei in iCloud Drive → Kurzbefehle → Life Backup. Es gibt eine Datei pro Wochentag (heute: „{backupDateiName()}“), jede wird nach einer Woche überschrieben. So
+        kommst du bis zu 7 Tage zurück. <b>Vorher</b> musst du „{SYNC_KURZBEFEHL}“ einmal um ein paar Aktionen ergänzen (Anleitung: docs/KURZBEFEHL.md, Abschnitt 2d). Wiederherstellen geht oben mit „Backup wiederherstellen“.
+      </p>
+    </Karte>
+  )
+}
 
 export default function BackupSeite() {
   const letztes = useLiveQuery(() => db.einstellungen.get('letztesBackup'), [])
@@ -52,8 +79,8 @@ export default function BackupSeite() {
           Letztes Backup:{' '}
           <b>{letztes ? new Date(String(letztes.value)).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }) : 'noch nie'}</b>
         </p>
-        <button onClick={sichern} className="tippbar mb-2 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#0a84ff] text-[17px] font-semibold">
-          <Download size={20} /> Backup erstellen
+        <button onClick={sichern} className="tippbar mb-2 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#0a84ff] text-[17px] font-semibold text-white">
+          <Download size={20} /> Backup jetzt erstellen
         </button>
         <input ref={dateiFeld} type="file" accept=".json,application/json" className="hidden" onChange={(e) => wiederherstellen(e.target.files?.[0])} />
         <button onClick={() => dateiFeld.current?.click()} className="tippbar flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-karte2 text-[15px] font-semibold">
@@ -61,6 +88,8 @@ export default function BackupSeite() {
         </button>
         {meldung && <p className="mt-3 text-[14px]">{meldung}</p>}
       </Karte>
+
+      <AutoBackup />
 
       <Karte titel="Daten hinzufügen">
         <p className="mb-3 text-[14px] leading-snug text-grau">

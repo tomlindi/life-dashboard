@@ -11,7 +11,6 @@ import { heute, langesDatum } from '../../core/datum'
 import TerminSheet from './TerminSheet'
 import KalenderAuswahl from './KalenderAuswahl'
 import { ganztaegigAm, liegtAm, tageDesTermins, tagNummer, zeitAm } from './mehrtaegig'
-import SyncKnopf from './SyncKnopf'
 import { ROT, kalenderName, useKalenderFarben } from './farben'
 
 const WOCHENTAGE = ['M', 'D', 'M', 'D', 'F', 'S', 'S']
@@ -195,8 +194,7 @@ export default function KalenderSeite() {
         </ul>
       )}
 
-      <SyncKnopf />
-      <p className="mt-2 text-center text-[12px] text-grau">⏳ = in Life geändert, beim nächsten Abgleich wird es in Apple Kalender übernommen.</p>
+      <p className="mt-2 text-center text-[12px] text-grau">⏳ = in Life geändert, beim nächsten Abgleich (↻ auf Heute) wird es in Apple Kalender übernommen.</p>
 
       <KalenderAuswahl offen={auswahlOffen} onZu={() => setAuswahlOffen(false)} />
       <TerminSheet offen={sheet.offen} termin={sheet.termin} tag={gewaehlt} onZu={() => setSheet({ offen: false })} />

@@ -12,6 +12,9 @@ import DockSeiten from './DockSeiten'
 import { useEinstellung, useWasserziel } from '../../core/einstellungen'
 import { WasserzielStepper } from '../ernaehrung/health'
 import Darstellung from './Darstellung'
+import HeuteAnpassen from './HeuteAnpassen'
+import SyncKnopf from '../kalender/SyncKnopf'
+import { autoBackupAn } from '../../core/apple'
 import { STANDARD_TERMINE_TAGE } from '../../core/import'
 
 const GRUEN = '#a3e635'
@@ -35,6 +38,20 @@ function TermineZeitraum() {
       </div>
       <p className="mt-3 text-[13px] leading-snug text-grau">
         Stell hier dieselbe Anzahl Tage ein, die dein Kurzbefehl abfragt (ab heute 00:00). Importierte Termine in diesem Zeitraum, die im Import fehlen, werden gelöscht. Selbst angelegte und vergangene Termine bleiben.
+      </p>
+    </Karte>
+  )
+}
+
+/** Abgleich mit Apple Kalender & Erinnerungen (Kurzbefehl "Life Sync"). Auf Heute gibt es zusätzlich das kleine ↻. */
+function AppleAbgleich() {
+  const [letzter] = useEinstellung<string | null>('letzterAbgleich', null)
+  return (
+    <Karte titel="Apple-Abgleich">
+      <SyncKnopf />
+      <p className="mt-2 text-[13px] leading-snug text-grau">
+        Letzter Abgleich: {letzter ? new Date(letzter).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }) : 'noch nie'}. Schneller geht es mit dem kleinen ↻ oben auf Heute.
+        {autoBackupAn() ? ' Dabei wird automatisch ein Backup gesichert.' : ''}
       </p>
     </Karte>
   )
@@ -116,6 +133,8 @@ export default function EinstellungenSeite() {
   return (
     <Seite titel="Einstellungen">
       <Darstellung />
+      <AppleAbgleich />
+      <HeuteAnpassen />
       <DockSeiten />
       <KalenderFarbenEinstellung />
       <TermineZeitraum />

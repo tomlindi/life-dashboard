@@ -15,6 +15,7 @@ import { MAX_TABS, STANDARD_TABS, module } from '../../modules'
 import { useAusgeblendet, useEinstellung } from '../einstellungen'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
+import { lesbar } from '../darstellung'
 
 // ---------- Welche Seiten gibt es? ----------
 
@@ -233,7 +234,7 @@ function useZurueck(ersatz = '/') {
 export function ZurueckKnopf({ ersatz = '/', label = 'Zurück', farbe = '#0a84ff' }: { ersatz?: string; label?: string; farbe?: string }) {
   const zurueck = useZurueck(ersatz)
   return (
-    <button onClick={zurueck} className="tippbar -ml-1.5 mb-1 inline-flex min-h-10 items-center text-[17px]" style={{ color: farbe }}>
+    <button onClick={zurueck} className="tippbar -ml-1.5 mb-1 inline-flex min-h-10 items-center text-[17px]" style={{ color: lesbar(farbe) }}>
       <ChevronLeft size={22} /> {label}
     </button>
   )

@@ -74,7 +74,7 @@ export function ErinnerungenWidget() {
   return (
     <Link to="/erinnerungen" className="tippbar flex aspect-square flex-col rounded-3xl bg-karte p-3.5">
       <div className="flex items-start justify-between">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0a84ff] text-[16px]">☰</span>
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0a84ff] text-[16px] text-white">☰</span>
         <span className="text-[30px] font-bold leading-none">{offen.length}</span>
       </div>
       <p className="mb-1 mt-1 text-[14px] font-semibold text-[#0a84ff]">Erinnerungen</p>

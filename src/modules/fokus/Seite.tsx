@@ -7,13 +7,13 @@ import { Minus, Pause, Play, Plus, SkipForward, Square } from 'lucide-react'
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import { db } from '../../core/db'
 import { heute, kurzerWochentag, letzteTage, uhrzeit, wochenStart } from '../../core/datum'
-import { kurzDatum } from '../../core/format'
+import { kurzDatum, minutenText } from '../../core/format'
 import { useEinstellung } from '../../core/einstellungen'
 import Seite from '../../core/ui/Seite'
 import Karte from '../../core/ui/Karte'
 import Ring from '../../core/ui/Ring'
 import { Chips, Leer, LoeschKnopf, Schalter } from '../../core/ui/Formular'
-import { TIMER_KURZBEFEHL, speichereErgebnis, speichereLauf, stelleIphoneTimer, useFokusUhr, useFokusZeiten, useIphoneTimer } from './lauf'
+import { TIMER_KURZBEFEHL, speichereErgebnis, speichereLauf, stelleIphoneTimer, useFokusFach, useFokusUhr, useFokusZeiten, useIphoneTimer } from './lauf'
 import {
   PHASEN_NAME,
   anhalten,
@@ -35,8 +35,6 @@ export const FARBE = '#ff9f0a'
 const PAUSE_FARBE = '#30d158'
 const ARTEN = ['Pomodoro', 'Stoppuhr'] as const
 
-/** 95 -> "1 h 35 min", 25 -> "25 min" */
-export const minutenText = (min: number) => (min >= 60 ? `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}` : `${min} min`)
 
 /** Eine Zeile zum Einstellen einer Zeit mit Plus/Minus. */
 function Stepper({ name, wert, einheit, min, max, schritt = 1, onWert }: { name: string; wert: number; einheit: string; min: number; max: number; schritt?: number; onWert: (n: number) => void }) {
@@ -64,6 +62,9 @@ export default function FokusSeite() {
   const [iphoneTimer, setIphoneTimer] = useIphoneTimer()
   const [art, setArt] = useEinstellung<(typeof ARTEN)[number]>('fokusArt', 'Pomodoro')
   const einheiten = useLiveQuery(() => db.fokus.orderBy('datum').reverse().toArray(), []) ?? []
+  const faecher = (useLiveQuery(() => db.faecher.toArray(), []) ?? []).sort((a, b) => (a.sortierung ?? 0) - (b.sortierung ?? 0) || a.name.localeCompare(b.name, 'de'))
+  const [fachId, setFachId] = useFokusFach()
+  const fachVon = (id?: string) => faecher.find((f) => f.id === id)
 
   // ---------- Aktionen ----------
   /** Pomodoro-Phase starten/fortsetzen: Lauf speichern, dann ggf. iPhone-Timer stellen (die App wechselt kurz). */
@@ -110,6 +111,12 @@ export default function FokusSeite() {
   const wocheMin = einheiten.filter((e) => e.datum >= wochenStart()).reduce((s, e) => s + e.minuten, 0)
   const sieben = letzteTage(7).map((tag) => ({ tag, name: kurzerWochentag(tag), minuten: proTag.get(tag) ?? 0 }))
   const schnitt = Math.round(sieben.reduce((s, d) => s + d.minuten, 0) / 7)
+  // Diese Woche pro Fach (meiste Zeit oben)
+  const proFach = faecher
+    .map((f) => ({ fach: f, minuten: einheiten.filter((e) => e.fachId === f.id && e.datum >= wochenStart()).reduce((s, e) => s + e.minuten, 0) }))
+    .filter((x) => x.minuten > 0)
+    .sort((a, b) => b.minuten - a.minuten)
+  const maxFach = Math.max(1, ...proFach.map((x) => x.minuten))
 
   const setze = (key: keyof FokusZeiten) => (n: number) => setZeiten({ ...zeiten, [key]: n })
   const grosserKnopf = 'tippbar flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl text-[17px] font-semibold'
@@ -121,6 +128,28 @@ export default function FokusSeite() {
         {!lauf && (
           <div className="mb-4">
             <Chips optionen={ARTEN} wert={art} onWahl={setArt} farbe={FARBE} />
+          </div>
+        )}
+
+        {/* Wofür lernst du? Das Fach wird mit jeder gespeicherten Fokuszeit gespeichert (auch während es läuft änderbar). */}
+        {faecher.length > 0 && (
+          <div className="mb-4">
+            <p className="mb-1.5 text-[13px] text-grau">Wofür?</p>
+            <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+              {[{ id: null, name: 'Ohne Fach', farbe: FARBE }, ...faecher].map((f) => {
+                const an = (fachVon(fachId ?? undefined)?.id ?? null) === f.id
+                return (
+                  <button
+                    key={f.id ?? 'ohne'}
+                    onClick={() => setFachId(f.id)}
+                    className="tippbar min-h-9 shrink-0 rounded-full px-3 text-[14px] font-semibold"
+                    style={{ background: an ? f.farbe : 'var(--color-karte2)', color: an ? '#000' : 'var(--color-text)' }}
+                  >
+                    {f.name}
+                  </button>
+                )
+              })}
+            </div>
           </div>
         )}
 
@@ -198,6 +227,23 @@ export default function FokusSeite() {
           </ResponsiveContainer>
         </div>
 
+        {proFach.length > 0 && (
+          <>
+            <p className="mb-1.5 mt-3 text-[13px] text-grau">Diese Woche pro Fach</p>
+            <div className="space-y-1.5">
+              {proFach.map(({ fach, minuten }) => (
+                <div key={fach.id} className="flex items-center gap-2 text-[14px]">
+                  <span className="w-24 shrink-0 truncate">{fach.name}</span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-karte2">
+                    <div className="h-full rounded-full" style={{ width: `${(minuten / maxFach) * 100}%`, background: fach.farbe }} />
+                  </div>
+                  <span className="w-20 shrink-0 text-right font-semibold tabular-nums">{minutenText(minuten)}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
         <p className="mb-1 mt-3 text-[13px] text-grau">Letzte Einheiten</p>
         {einheiten.length === 0 ? (
           <Leer>Noch keine Fokuszeit. Starte oben deine erste Runde.</Leer>
@@ -207,7 +253,10 @@ export default function FokusSeite() {
               <li key={e.id} className={`flex min-h-12 items-center gap-2 ${i > 0 ? 'border-t border-linie' : ''}`}>
                 <span className="flex-1 text-[15px]">
                   {kurzDatum(e.datum)}, {uhrzeit(e.start)}
-                  <span className="ml-2 text-[12px] text-grau">{e.art === 'pomodoro' ? 'Pomodoro' : 'Stoppuhr'}</span>
+                  <span className="ml-2 text-[12px] text-grau">
+                    {e.art === 'pomodoro' ? 'Pomodoro' : 'Stoppuhr'}
+                    {fachVon(e.fachId) ? ` · ${fachVon(e.fachId)!.name}` : ''}
+                  </span>
                 </span>
                 <span className="text-[15px] font-semibold">{minutenText(e.minuten)}</span>
                 <LoeschKnopf frage="Eintrag löschen?" onLoeschen={() => db.fokus.delete(e.id)} />

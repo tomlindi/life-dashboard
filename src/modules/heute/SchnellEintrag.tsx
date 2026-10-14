@@ -89,7 +89,7 @@ export default function SchnellEintrag() {
           placeholder="Kurze Notiz …"
           className="h-12 min-w-0 flex-1 rounded-2xl bg-karte2 px-4 outline-none placeholder:text-grau"
         />
-        <button type="submit" className="tippbar flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0a84ff]" aria-label="Notiz speichern">
+        <button type="submit" className="tippbar flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0a84ff] text-white" aria-label="Notiz speichern">
           <Send size={20} />
         </button>
       </form>

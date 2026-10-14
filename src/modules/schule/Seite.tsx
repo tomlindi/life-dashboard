@@ -53,7 +53,7 @@ function FachEinstellungen({ fach, hj }: { fach: Fach; hj: number }) {
       </label>
       <button onClick={() => db.faecher.update(fach.id, { doppelt: !fach.doppelt })} className="flex min-h-10 w-full items-center justify-between">
         <span className="text-[14px]">Zählt doppelt (wie „2x“ in Notan)</span>
-        <span className="relative h-[31px] w-[51px] rounded-full transition-colors" style={{ background: fach.doppelt ? '#30d158' : '#39393d' }}>
+        <span className="relative h-[31px] w-[51px] rounded-full transition-colors" style={{ background: fach.doppelt ? '#30d158' : 'var(--color-leer)' }}>
           <span className="absolute top-[2px] h-[27px] w-[27px] rounded-full bg-white transition-all" style={{ left: fach.doppelt ? 22 : 2 }} />
         </span>
       </button>

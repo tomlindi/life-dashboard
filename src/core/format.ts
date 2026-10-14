@@ -44,3 +44,6 @@ export const stundenText = (h: number) => {
   const min = Math.round((h - std) * 60)
   return min ? `${std} h ${min} min` : `${std} h`
 }
+
+/** 95 -> "1 h 35 min", 25 -> "25 min" */
+export const minutenText = (min: number) => (min >= 60 ? `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}` : `${min} min`)

@@ -1,5 +1,6 @@
 // Eine abgerundete, dunkelgraue Karte. Der Grundbaustein des ganzen Designs.
 import type { ReactNode } from 'react'
+import { lesbar } from '../darstellung'
 
 interface Props {
   titel?: string
@@ -14,7 +15,7 @@ export default function Karte({ titel, akzent, rechts, children, className = '' 
     <section className={`rounded-3xl bg-karte p-4 ${className}`}>
       {(titel || rechts) && (
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-[15px] font-semibold" style={{ color: akzent ?? 'var(--color-text)' }}>
+          <h2 className="text-[15px] font-semibold" style={{ color: lesbar(akzent) ?? 'var(--color-text)' }}>
             {titel}
           </h2>
           {rechts}

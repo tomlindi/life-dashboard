@@ -8,6 +8,20 @@ Die aktuelle Version steht in der App ganz unten unter Mehr → Einstellungen.
 - Nur anschauen (am PC): `git checkout v1.0.0`, danach `npm run dev`. Zurück zur neuesten mit `git checkout main`.
 - Online wirklich zurücksetzen: `git revert --no-edit v1.0.0..HEAD` und `git push`. Dabei entstehen neue Commits, die alles seit v1.0.0 rückgängig machen. Der Verlauf bleibt erhalten, und GitHub Pages baut automatisch die alte Version.
 
+## 1.9.0 – 14.10.2026
+
+**Heute anpassen.** Unter Mehr → Einstellungen → „Heute anpassen“ lässt sich jede Karte der Startseite ein- und ausschalten (z. B. den Schnell-Eintrag) und per Ziehen sortieren. „Standard wiederherstellen“ setzt alles zurück.
+
+**Apple-Abgleich dezenter.** Der große Knopf „Mit Apple abgleichen“ ist von Heute, Kalender und Erinnerungen verschwunden. Auf Heute gibt es oben rechts ein kleines ↻ (mit der Zahl offener Änderungen), den großen Knopf und den letzten Abgleich findest du unter Einstellungen → Apple-Abgleich.
+
+**Automatisches Backup in iCloud.** Unter Mehr → Backup → „Automatisch in iCloud sichern“ einschalten: Bei jedem Abgleich speichert der Kurzbefehl „Life Sync“ ein Backup als „Life Backup <Wochentag>.json“ in iCloud Drive → Kurzbefehle → Life Backup. Eine Datei pro Wochentag, du kommst bis zu 7 Tage zurück. Dafür muss „Life Sync“ einmal um ein paar Aktionen ergänzt werden: docs/KURZBEFEHL.md, Abschnitt 2d.
+
+**Lernzeit pro Fach.** Im Fokus-Timer wählst du unter „Wofür?“ ein Fach, jede Fokuszeit wird dem Fach zugeordnet. Die Statistik zeigt „Diese Woche pro Fach“. Auf jeder Fachseite steht die Lernzeit (diese Woche, für die nächste Klausur, gesamt) mit „Jetzt lernen“. Auf Heute zeigt die neue Karte „Nächste Klausur“ Fach, Countdown und die Lernzeit der letzten 14 Tage, „Lernen“ startet direkt den Fokus-Timer für das Fach.
+
+**Hobby-Timer auf Heute.** Läuft ein Hobby-Timer, steht oben auf Heute ein Banner mit Zeit und Stopp-Knopf.
+
+**Hell-Modus verbessert.** Helle Akzentfarben (Hellblau, Gelb, Grün …) werden bei Überschriften und Links im hellen Modus automatisch dunkler und sind besser lesbar. Schalter und blaue Knöpfe haben jetzt die richtigen Farben.
+
 ## 1.8.0 – 14.10.2026
 
 **Hell, Dunkel oder Automatisch.** Unter Mehr → Einstellungen → „Darstellung“ lässt sich die App hell oder dunkel schalten, „Automatisch“ folgt der Einstellung des iPhones. Standard bleibt Dunkel. Die Wahl gilt pro Gerät.

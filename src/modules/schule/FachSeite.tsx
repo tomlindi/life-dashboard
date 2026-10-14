@@ -2,12 +2,12 @@
 // Oben: Fachname in Fachfarbe und Schnitt im aktuellen Halbjahr.
 // Darunter aufklappbare Abschnitte: Notizen (freies Textfeld), Klausuren, Hausaufgaben, Noten.
 import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Timer } from 'lucide-react'
 import { db, type Klausur, type Termin } from '../../core/db'
-import { heute, tagVon } from '../../core/datum'
-import { kurzDatum, relativ } from '../../core/format'
+import { heute, tagVon, wochenStart } from '../../core/datum'
+import { kurzDatum, minutenText, relativ } from '../../core/format'
 import { useEinstellung } from '../../core/einstellungen'
 import Karte from '../../core/ui/Karte'
 import Ring from '../../core/ui/Ring'
@@ -17,7 +17,9 @@ import { Haken, Leer } from '../../core/ui/Formular'
 import TerminSheet from '../kalender/TerminSheet'
 import { KlausurFormular } from './Formulare'
 import { istKlausurTermin, passtZuFach } from './klausuren'
+import { lernMinuten, lernStart, waehleLernfach } from './lernzeit'
 import { berechneHalbjahr, formatGenau, formatNote, notenText, punkteFarbe, punkteZuNote } from './noten'
+import { lesbar } from '../../core/darstellung'
 
 /** Notizfeld: speichert beim Tippen (kurz verzögert) und beim Verlassen des Feldes. */
 function Notizen({ fachId, start }: { fachId: string; start: string }) {
@@ -55,6 +57,8 @@ export default function FachSeite() {
   const hausaufgaben = useLiveQuery(() => db.hausaufgaben.filter((h) => h.fachId === id).sortBy('faellig'), [id]) ?? []
   const [aktuellesHJ] = useEinstellung<number>('aktuellesHalbjahr', 1)
   const [neueKlausur, setNeueKlausur] = useState(false)
+  const lernzeiten = useLiveQuery(() => db.fokus.filter((e) => e.fachId === id).toArray(), [id]) ?? []
+  const navigate = useNavigate()
   const [bearbeite, setBearbeite] = useState<{ klausur?: Klausur; termin?: Termin } | null>(null)
 
   // Lädt noch oder gibt es nicht (mehr): nur der Zurück-Knopf
@@ -78,6 +82,7 @@ export default function FachSeite() {
     ...kalenderKlausuren.map((t) => ({ id: t.id, titel: t.titel, datum: tagVon(t.start), zusatz: 'aus Kalender', termin: t })),
   ].sort((a, b) => a.datum.localeCompare(b.datum))
   const offeneHA = hausaufgaben.filter((h) => !h.erledigt)
+  const naechste = alleKlausuren[0]
 
   return (
     <div className="px-4 pb-8 pt-3">
@@ -87,7 +92,7 @@ export default function FachSeite() {
       <div className="mb-4 flex items-center gap-4 px-1">
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-semibold uppercase tracking-wide text-grau">{aktuellesHJ}. Halbjahr</p>
-          <h1 className="text-[32px] font-bold leading-tight" style={{ color: fach.farbe }}>
+          <h1 className="text-[32px] font-bold leading-tight" style={{ color: lesbar(fach.farbe) }}>
             {fach.name}
             {fach.doppelt && <span className="ml-2 text-[15px] font-medium text-grau">2x</span>}
           </h1>
@@ -112,6 +117,34 @@ export default function FachSeite() {
           </Aufklapper>
         </Karte>
 
+        {/* Lernzeit aus dem Fokus-Timer */}
+        <Karte titel="Lernzeit" akzent={fach.farbe}>
+          <div className={`mb-3 grid gap-2 text-center ${naechste ? 'grid-cols-3' : 'grid-cols-2'}`}>
+            {[
+              ['Diese Woche', lernMinuten(lernzeiten, fach.id, wochenStart())],
+              [naechste ? `Für ${kurzDatum(naechste.datum)}` : 'Gesamt', naechste ? lernMinuten(lernzeiten, fach.id, lernStart(naechste.datum)) : lernMinuten(lernzeiten, fach.id, '')],
+              ['Gesamt', lernMinuten(lernzeiten, fach.id, '')],
+            ]
+              .filter((x, i) => naechste || i !== 1)
+              .map(([name, min]) => (
+                <div key={String(name)} className="rounded-2xl bg-karte2 py-2">
+                  <p className="text-[17px] font-bold">{minutenText(Number(min))}</p>
+                  <p className="truncate px-1 text-[12px] text-grau">{name}</p>
+                </div>
+              ))}
+          </div>
+          <button
+            onClick={async () => {
+              await waehleLernfach(fach.id)
+              navigate('/fokus')
+            }}
+            className="tippbar flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl text-[16px] font-semibold text-black"
+            style={{ background: fach.farbe }}
+          >
+            <Timer size={19} /> Jetzt lernen (Fokus-Timer)
+          </button>
+        </Karte>
+
         <Karte>
           <Aufklapper titel="Klausuren" anzahl={alleKlausuren.length} standardOffen farbe={fach.farbe}>
             {alleKlausuren.length === 0 && <Leer>Keine kommenden Klausuren.</Leer>}
@@ -133,7 +166,7 @@ export default function FachSeite() {
                 </li>
               ))}
             </ul>
-            <button onClick={() => setNeueKlausur(true)} className="tippbar mb-1 mt-1 min-h-10 text-[15px] font-semibold" style={{ color: fach.farbe }}>
+            <button onClick={() => setNeueKlausur(true)} className="tippbar mb-1 mt-1 min-h-10 text-[15px] font-semibold" style={{ color: lesbar(fach.farbe) }}>
               + Klausur
             </button>
           </Aufklapper>

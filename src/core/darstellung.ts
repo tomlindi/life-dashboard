@@ -52,3 +52,9 @@ export function useDarstellung(): [Darstellung, (d: Darstellung) => void] {
   )
   return [wert, setzeDarstellung]
 }
+
+/**
+ * Akzentfarbe für Text (Überschriften, Links): im Light Mode etwas dunkler, damit helle Farben wie Hellblau
+ * oder Gelb auf weißem Grund lesbar bleiben. Im Dark Mode unverändert. Die Stärke steht in index.css (--abdunkeln).
+ */
+export const lesbar = (farbe?: string) => (farbe ? `color-mix(in srgb, ${farbe}, #000 var(--abdunkeln))` : undefined)

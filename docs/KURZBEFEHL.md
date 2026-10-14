@@ -230,11 +230,43 @@ Termine und Aufgaben zusammen, **ein JSON-Objekt pro Zeile**. Das Feld `"typ"` s
 - Auch erlaubt: ein Array `[…]` oder Objekte direkt hintereinander. Leere Zeilen werden ignoriert. Ist eine Zeile kaputt, zeigt Life genau diese Zeile an.
 
 ### Ablauf im Alltag
-1. In Life auf **„🔄 Mit Apple abgleichen“** tippen. Die Kurzbefehle-App öffnet sich und erledigt alles.
+1. In Life auf Heute oben rechts auf **↻** tippen (oder Einstellungen → Apple-Abgleich → **„Mit Apple abgleichen“**). Die Kurzbefehle-App öffnet sich und erledigt alles.
 2. Oben links auf **„◀ Life“** tippen (oder zurückwischen).
 3. Life zeigt **„Jetzt die aktuellen Apple-Daten übernehmen“** → **Importieren** → **Einfügen** (oder unter *Mehr → Daten importieren* → **„Life Sync einfügen“**). Danach steht da, wie viele Termine und Aufgaben übernommen wurden.
 
 Einträge mit ⏳ sind in Life geändert, aber noch nicht von Apple bestätigt. Nach dem Import verschwindet das ⏳.
+
+---
+
+## 2d. Automatisches Backup über „Life Sync“
+
+Ist in Life unter **Mehr → Backup → „Automatisch in iCloud sichern“** der Schalter an, gibt Life dem Kurzbefehl bei jedem Abgleich zusätzlich das komplette Backup mit. Weil das Backup zu groß für die Adresse ist, kommt es über die **Zwischenablage**. Das Wörterbuch hat dann zwei neue Schlüssel:
+
+```json
+{ "aktionen": [ … ], "backup": "{\"app\":\"life-dashboard\", …}", "backupName": "Life Backup Mi.json" }
+```
+
+`backupName` enthält den Wochentag (Mo bis So). So entstehen höchstens **7 Dateien**, jede wird nach einer Woche überschrieben, und du kommst bis zu 7 Tage zurück.
+
+### Diese Aktionen in „Life Sync“ ergänzen
+Direkt **nach Schritt 1** („Wörterbuch abrufen“ von Kurzbefehl-Eingabe), also noch **vor** „Wiederholen mit jedem“:
+
+1. **„Wörterbuchwert abrufen“**: Schlüssel `backup` von **Wörterbuch** → umbenennen in `Backup`
+2. **„Wenn“** *Backup* **hat beliebigen Wert**:
+   1. **„Wörterbuchwert abrufen“**: Schlüssel `backupName` von **Wörterbuch** → umbenennen in `Dateiname`
+   2. **„Text“**: als Inhalt die Variable **Backup** einsetzen
+   3. **„Namen festlegen“**: *Text* → Name **Dateiname**
+   4. **„Datei sichern“**: *Umbenannte Datei*. Dienst: **iCloud Drive**. „Fragen, wo gesichert werden soll“ **aus**. Unterpfad: `Life Backup/`. **„Überschreiben, wenn Datei existiert“ an**.
+3. **„Ende Wenn“**
+
+Wichtig: Bei **Schritt 2** (`aktionen` abrufen) muss als Eingabe weiter das **Wörterbuch** aus Schritt 1 stehen, nicht das Ergebnis der neuen Aktionen. Tippe dazu auf das Eingabefeld und wähle wieder *Wörterbuch*.
+
+Die Dateien liegen danach in der Dateien-App unter **iCloud Drive → Kurzbefehle → Life Backup**. Wiederherstellen: in Life **Mehr → Backup → „Backup wiederherstellen“** → Datei wählen.
+
+Gut zu wissen:
+- Life schickt die Änderungen wie bisher mit. Ohne die neuen Aktionen funktioniert der Abgleich weiter, es wird nur nichts gespeichert. Prüfe deshalb einmal in der Dateien-App, ob die Datei ankommt.
+- Ist der Schalter aus, bekommt der Kurzbefehl die Daten wie früher als Text (ohne Backup). Die neuen Aktionen stören dann nicht.
+- Nicht im Backup: die KI-Schlüssel und die Einstellung Hell/Dunkel (beides liegt nur auf dem Gerät).
 
 ---
 

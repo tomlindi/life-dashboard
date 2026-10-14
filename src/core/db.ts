@@ -387,6 +387,7 @@ export interface FokusEinheit {
   ende: string // ISO
   minuten: number
   art: 'pomodoro' | 'stoppuhr'
+  fachId?: string // gelernt für dieses Schulfach (Fokus-Seite: "Wofür?")
 }
 
 // ---------- Die Datenbank selbst ----------

@@ -1,58 +1,19 @@
 // Bereich "Hobbys": investierte Zeit (per Timer, schnell per +15/+30/+60 Min oder nachgetragen) und Ziele pro Hobby.
-// Der Timer merkt sich nur den Startzeitpunkt (Einstellung "hobbyLaeuft"). Er läuft also weiter,
-// auch wenn die App geschlossen wird. Beim Stoppen wird ein Eintrag mit Beginn und Ende gespeichert.
+// Der Timer selbst steht in timer.ts.
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronDown, Clock, Play, Square } from 'lucide-react'
-import { db, holeEinstellung, setzeEinstellung, type Hobby, type HobbyZeit } from '../../core/db'
-import { heute, neueId, tagVon, uhrzeit, wochenStart } from '../../core/datum'
-import { kurzDatum, zahl } from '../../core/format'
-import { useEinstellung } from '../../core/einstellungen'
+import { db, setzeEinstellung, type Hobby, type HobbyZeit } from '../../core/db'
+import { heute, neueId, uhrzeit, wochenStart } from '../../core/datum'
+import { kurzDatum, minutenText, zahl } from '../../core/format'
+import { FARBE, LAUF, starteTimer, stoppeTimer, uhrText, useHobbyLauf, type HobbyLauf } from './timer'
 import Seite from '../../core/ui/Seite'
 import Karte from '../../core/ui/Karte'
 import Sheet from '../../core/ui/Sheet'
 import { Balken, Eingabe, Knopf, Label, Leer, LoeschKnopf, PlusKnopf } from '../../core/ui/Formular'
 
-const FARBE = 'var(--color-gelb)' // #ffd60a, im Light Mode dunkler (index.css)
 const EMOJIS = ['🎸', '🎮', '🎨', '📷', '⚽', '🏀', '🎹', '📖', '💻', '🧩', '🛹', '🎤']
 const ZIEL_OPTIONEN = [0, 60, 120, 180, 300, 420]
-const LAUF = 'hobbyLaeuft'
-
-/** Der laufende Hobby-Timer. */
-interface HobbyLauf {
-  hobbyId: string
-  start: string // ISO
-}
-
-/** 90 -> "1 h 30 min" */
-const minutenText = (m: number) => (m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ''}`)
-
-/** 1234 Sekunden -> "0:20:34" */
-function uhrText(sek: number) {
-  const zwei = (n: number) => String(n).padStart(2, '0')
-  return `${Math.floor(sek / 3600)}:${zwei(Math.floor(sek / 60) % 60)}:${zwei(sek % 60)}`
-}
-
-/**
- * Den laufenden Timer beenden und als Eintrag speichern (mindestens 1 Minute).
- * In einer Transaktion, damit ein doppeltes Antippen nicht zwei Einträge erzeugt.
- */
-function stoppeTimer() {
-  return db.transaction('rw', db.einstellungen, db.hobbyZeiten, async () => {
-    const lauf = await holeEinstellung<HobbyLauf | null>(LAUF, null)
-    if (!lauf) return
-    const ende = new Date().toISOString()
-    const minuten = Math.max(1, Math.round((Date.parse(ende) - Date.parse(lauf.start)) / 60000))
-    await db.hobbyZeiten.add({ id: neueId(), hobbyId: lauf.hobbyId, datum: tagVon(lauf.start), minuten, start: lauf.start, ende })
-    await setzeEinstellung(LAUF, null)
-  })
-}
-
-/** Timer für ein Hobby starten. Läuft schon einer (für ein anderes Hobby), wird er vorher gespeichert. */
-async function starteTimer(hobbyId: string) {
-  await stoppeTimer()
-  await setzeEinstellung(LAUF, { hobbyId, start: new Date().toISOString() } satisfies HobbyLauf)
-}
 
 /** Eine Zeile im Protokoll: "Mo 13.10. · 14:05–15:20 · 1 h 15 min" */
 function eintragText(z: HobbyZeit) {
@@ -180,7 +141,7 @@ function LaufenderTimer({ lauf, hobby }: { lauf: HobbyLauf; hobby?: Hobby }) {
 export default function HobbysSeite() {
   const hobbys = useLiveQuery(() => db.hobbys.toArray(), []) ?? []
   const zeiten = (useLiveQuery(() => db.hobbyZeiten.toArray(), []) ?? []).sort(neuesteZuerst)
-  const [lauf] = useEinstellung<HobbyLauf | null>(LAUF, null)
+  const [lauf] = useHobbyLauf()
   const [neuOffen, setNeuOffen] = useState(false)
   const [offen, setOffen] = useState<string | null>(null)
   const [nachtragen, setNachtragen] = useState<Hobby | undefined>()

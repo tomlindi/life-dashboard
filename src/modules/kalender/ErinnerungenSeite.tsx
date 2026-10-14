@@ -11,8 +11,8 @@ import { schalteErinnerung, speichereErinnerung } from '../../core/apple'
 import { gruppiere, listenOrt, useAbschnitte } from '../../core/abschnitte'
 import { AbschnittKopf, NeuerAbschnitt } from '../../core/ui/Abschnitte'
 import ErinnerungSheet from './ErinnerungSheet'
-import SyncKnopf from './SyncKnopf'
 import { farbeFuer, ROT } from './farben'
+import { lesbar } from '../../core/darstellung'
 
 type Ansicht = 'heute' | 'geplant' | 'alle' | 'erledigt' | { liste: string }
 
@@ -77,7 +77,6 @@ export default function ErinnerungenSeite() {
             </button>
           ))}
         </div>
-        <SyncKnopf />
       </div>
     )
   }
@@ -151,7 +150,7 @@ export default function ErinnerungenSeite() {
       <button onClick={() => setAnsicht(null)} className="tippbar mb-2 inline-flex min-h-10 items-center text-[17px] text-[#0a84ff]">
         <ChevronLeft size={22} /> Listen
       </button>
-      <h1 className="mb-3 text-[34px] font-bold" style={{ color: farbe }}>
+      <h1 className="mb-3 text-[34px] font-bold" style={{ color: lesbar(farbe) }}>
         {titel}
       </h1>
 
@@ -174,9 +173,8 @@ export default function ErinnerungenSeite() {
       {eintraege.length === 0 && ansicht === 'erledigt' && <p className="py-6 text-center text-grau">Noch nichts erledigt.</p>}
 
       <div className="mt-6">
-        <SyncKnopf />
-        <p className="mt-2 flex items-center justify-center gap-1 text-[12px] text-grau">
-          <ListChecks size={13} /> Änderungen gehen beim Abgleich an Apple Erinnerungen.
+        <p className="flex items-center justify-center gap-1 text-[12px] text-grau">
+          <ListChecks size={13} /> Änderungen gehen beim nächsten Abgleich (↻ auf Heute) an Apple.
         </p>
       </div>
 

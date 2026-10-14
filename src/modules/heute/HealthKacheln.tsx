@@ -11,11 +11,12 @@ import { indexFarbe, schlafIndex } from '../../core/health'
 import { GLAS_ML, useHealthNaechte, useHealthTage } from '../../core/healthDaten'
 import HealthSymbol from '../../core/ui/HealthSymbol'
 import { wasserMl } from '../ernaehrung/health'
+import { lesbar } from '../../core/darstellung'
 
 function Kachel({ to, titel, farbe, health, children, fortschritt }: { to: string; titel: string; farbe: string; health: boolean; children: ReactNode; fortschritt?: number }) {
   return (
     <Link to={to} className="tippbar flex min-h-[92px] flex-col justify-between rounded-3xl bg-karte p-3">
-      <p className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: farbe }}>
+      <p className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: lesbar(farbe) }}>
         {titel} {health && <HealthSymbol groesse={10} />}
       </p>
       <div>{children}</div>

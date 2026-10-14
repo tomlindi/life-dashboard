@@ -7,6 +7,7 @@ import { ArrowDown, ArrowUp, Check, Plus, Trash2 } from 'lucide-react'
 import type { Abschnitt } from '../db'
 import { benenneAbschnittUm, loescheAbschnitt, neuerAbschnitt, verschiebeAbschnitt } from '../abschnitte'
 import Sheet from './Sheet'
+import { lesbar } from '../darstellung'
 
 export function AbschnittKopf({ abschnitt, alle, farbe }: { abschnitt: Abschnitt; alle: Abschnitt[]; farbe: string }) {
   const [bearbeiten, setBearbeiten] = useState(false)
@@ -26,7 +27,7 @@ export function AbschnittKopf({ abschnitt, alle, farbe }: { abschnitt: Abschnitt
           setTitel(abschnitt.titel)
           setBearbeiten(true)
         }}
-        className="tippbar block w-full pb-1 pl-2 pt-5 text-left text-[20px] font-bold leading-tight" style={{ color: farbe }}>
+        className="tippbar block w-full pb-1 pl-2 pt-5 text-left text-[20px] font-bold leading-tight" style={{ color: lesbar(farbe) }}>
         {abschnitt.titel}
       </button>
     )
@@ -49,7 +50,7 @@ export function AbschnittKopf({ abschnitt, alle, farbe }: { abschnitt: Abschnitt
         autoFocus
         enterKeyHint="done"
         className="h-10 min-w-0 flex-1 bg-transparent text-[20px] font-bold outline-none"
-        style={{ color: farbe }}
+        style={{ color: lesbar(farbe) }}
       />
       <button onPointerDown={(e) => e.preventDefault()} onClick={() => verschiebeAbschnitt(alle, abschnitt, -1)} disabled={i <= 0} className={`${knopf} disabled:opacity-30`} aria-label="Abschnitt nach oben">
         <ArrowUp size={18} />
@@ -81,7 +82,7 @@ export function NeuerAbschnitt({ ort, farbe }: { ort: string; farbe: string }) {
 
   if (!offen)
     return (
-      <button onClick={() => setOffen(true)} className="tippbar flex min-h-11 items-center gap-2 pl-2 text-[15px] font-semibold" style={{ color: farbe }}>
+      <button onClick={() => setOffen(true)} className="tippbar flex min-h-11 items-center gap-2 pl-2 text-[15px] font-semibold" style={{ color: lesbar(farbe) }}>
         <Plus size={18} /> Abschnitt hinzufügen
       </button>
     )

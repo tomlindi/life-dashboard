@@ -2,6 +2,7 @@
 // Die Höhe ändert sich weich: Trick mit CSS-Grid ("0fr" -> "1fr"), so muss nichts ausgemessen werden.
 import { useState, type ReactNode } from 'react'
 import { ChevronRight } from 'lucide-react'
+import { lesbar } from '../darstellung'
 
 interface Props {
   titel: string
@@ -20,7 +21,7 @@ export default function Aufklapper({ titel, anzahl, standardOffen = false, farbe
         onClick={() => setOffen(!offen)}
         aria-expanded={offen}
         className={`tippbar flex w-full items-center gap-1.5 text-left ${klein ? 'min-h-9 text-[14px] text-grau' : 'min-h-11 text-[16px] font-semibold'}`}
-        style={{ color: klein ? undefined : farbe }}
+        style={{ color: klein ? undefined : lesbar(farbe) }}
       >
         <span className="flex-1">
           {titel}

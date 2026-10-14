@@ -14,6 +14,7 @@
 // ] }
 // Ändern = altes löschen + neues anlegen (so bleibt der Kurzbefehl einfach).
 import { db, holeEinstellung, setzeEinstellung, type Aufgabe, type Termin } from './db'
+import { sammleDaten } from './backup'
 
 export const SYNC_KURZBEFEHL = 'Life Sync'
 
@@ -115,20 +116,75 @@ export async function loescheErinnerung(a: Aufgabe) {
 
 export const SYNC_GESTARTET = 'lifeSyncGestartet'
 
-/**
- * Startet den Kurzbefehl "Life Sync" mit allen ausstehenden Änderungen.
- * Die Warteschlange wird geleert (der Kurzbefehl hat sie jetzt). Termine/Erinnerungen bleiben
- * als "ausstehend" markiert, bis der nächste Import sie von Apple zurückmeldet.
- */
-export async function starteAbgleich() {
+// ---------- Automatisches Backup beim Abgleich ----------
+// Ist es eingeschaltet (Mehr → Backup), bekommt "Life Sync" zusätzlich das komplette Backup und speichert es
+// in iCloud Drive als "Life Backup <Wochentag>.json" (eine Datei pro Wochentag, jede Woche überschrieben).
+// Das Backup ist zu groß für die Adresse, deshalb geht es über die Zwischenablage (input=clipboard).
+// Der Schalter liegt im localStorage, weil er beim Antippen sofort (ohne Datenbank-Wartezeit) bekannt sein muss.
+
+const AUTO_BACKUP = 'autoBackup'
+const WOCHENTAGE = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
+
+export function autoBackupAn(): boolean {
+  try {
+    return localStorage.getItem(AUTO_BACKUP) === 'an'
+  } catch {
+    return false
+  }
+}
+export function setzeAutoBackup(an: boolean) {
+  try {
+    if (an) localStorage.setItem(AUTO_BACKUP, 'an')
+    else localStorage.removeItem(AUTO_BACKUP)
+  } catch {
+    // privater Modus: dann eben ohne
+  }
+}
+export const backupDateiName = (d = new Date()) => `Life Backup ${WOCHENTAGE[d.getDay()]}.json`
+
+/** Warteschlange holen und leeren; mit Backup, wenn gewünscht. Ergebnis: der Text für den Kurzbefehl. */
+async function abgleichText(mitBackup: boolean) {
   const aktionen = await holeEinstellung<AppleAktion[]>(SCHLUESSEL, [])
-  const text = JSON.stringify({ aktionen })
   await setzeEinstellung(SCHLUESSEL, [])
-  await setzeEinstellung('letzterAbgleich', new Date().toISOString())
+  const jetzt = new Date().toISOString()
+  await setzeEinstellung('letzterAbgleich', jetzt)
+  if (!mitBackup) return JSON.stringify({ aktionen })
+  const backup = JSON.stringify(await sammleDaten())
+  await setzeEinstellung('letztesBackup', jetzt)
+  return JSON.stringify({ aktionen, backup, backupName: backupDateiName() })
+}
+
+function oeffneKurzbefehl(eingabe: { text: string } | 'zwischenablage') {
   try {
     sessionStorage.setItem(SYNC_GESTARTET, String(Date.now()))
   } catch {
     // privater Modus o. Ä. – dann eben ohne Hinweis beim Zurückkommen
   }
-  window.location.href = `shortcuts://run-shortcut?name=${encodeURIComponent(SYNC_KURZBEFEHL)}&input=text&text=${encodeURIComponent(text)}`
+  const name = encodeURIComponent(SYNC_KURZBEFEHL)
+  window.location.href =
+    eingabe === 'zwischenablage' ? `shortcuts://run-shortcut?name=${name}&input=clipboard` : `shortcuts://run-shortcut?name=${name}&input=text&text=${encodeURIComponent(eingabe.text)}`
+}
+
+/**
+ * Startet den Kurzbefehl "Life Sync" mit allen ausstehenden Änderungen (und ggf. dem Backup).
+ * Die Warteschlange wird geleert (der Kurzbefehl hat sie jetzt). Termine/Erinnerungen bleiben
+ * als "ausstehend" markiert, bis der nächste Import sie von Apple zurückmeldet.
+ *
+ * Wichtig: direkt beim Antippen aufrufen (nicht nach einem "await"). Safari erlaubt das Schreiben
+ * in die Zwischenablage nur unmittelbar nach einem Tipp, deshalb wird der Inhalt als Promise übergeben.
+ */
+export function starteAbgleich() {
+  if (!autoBackupAn() || typeof ClipboardItem === 'undefined' || !navigator.clipboard?.write) {
+    void abgleichText(false).then((text) => oeffneKurzbefehl({ text }))
+    return
+  }
+  const text = abgleichText(true)
+  navigator.clipboard
+    .write([new ClipboardItem({ 'text/plain': text.then((t) => new Blob([t], { type: 'text/plain' })) })])
+    .then(() => oeffneKurzbefehl('zwischenablage'))
+    .catch(async () => {
+      // Zwischenablage nicht erlaubt: ohne Backup über die Adresse (die Änderungen gehen nicht verloren)
+      const { aktionen } = JSON.parse(await text) as { aktionen: AppleAktion[] }
+      oeffneKurzbefehl({ text: JSON.stringify({ aktionen }) })
+    })
 }

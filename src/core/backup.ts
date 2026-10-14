@@ -6,8 +6,8 @@ import { heute } from './datum'
 
 export const BACKUP_INTERVALL_TAGE = 7
 
-/** Alle Tabellen in ein Objekt packen. */
-async function sammleDaten() {
+/** Alle Tabellen in ein Objekt packen (auch für das automatische Backup über "Life Sync", siehe apple.ts). */
+export async function sammleDaten() {
   const tabellen: Record<string, unknown[]> = {}
   for (const tabelle of db.tables) tabellen[tabelle.name] = await tabelle.toArray()
   return { app: 'life-dashboard', version: db.verno, exportiert: new Date().toISOString(), tabellen }

@@ -17,8 +17,9 @@
   --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
 }
 
-/* Glas-Optik des Docks */
+/* Glas-Optik des Docks; --abdunkeln: wie stark Akzentfarben für Text im Light Mode abgedunkelt werden (lesbar()) */
 :root {
+  --abdunkeln: 0%;
   --glas: rgb(30 30 30 / 0.6);
   --glas-rand: rgb(255 255 255 / 0.12);
   --glas-schatten: 0 8px 32px rgb(0 0 0 / 0.45);
@@ -39,6 +40,7 @@ html[data-theme='hell'] {
   --color-mulde: rgb(255 255 255 / 0.9);
   --color-segment: #fff;
   --color-gelb: #d9a400;
+  --abdunkeln: 18%;
   --glas: rgb(255 255 255 / 0.7);
   --glas-rand: rgb(0 0 0 / 0.08);
   --glas-schatten: 0 8px 32px rgb(0 0 0 / 0.15);
@@ -57,6 +59,7 @@ html[data-theme='hell'] {
     --color-mulde: rgb(255 255 255 / 0.9);
     --color-segment: #fff;
     --color-gelb: #d9a400;
+    --abdunkeln: 18%;
     --glas: rgb(255 255 255 / 0.7);
     --glas-rand: rgb(0 0 0 / 0.08);
     --glas-schatten: 0 8px 32px rgb(0 0 0 / 0.15);

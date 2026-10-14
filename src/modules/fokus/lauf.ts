@@ -14,6 +14,10 @@ export const TIMER_KURZBEFEHL = 'Life Timer'
 export const useFokusZeiten = () => useEinstellung<FokusZeiten>('fokusZeiten', STANDARD_ZEITEN)
 export const useIphoneTimer = () => useEinstellung<boolean>('fokusIphoneTimer', true)
 
+/** Für welches Schulfach gerade gelernt wird (null = ohne Fach). Wird beim Speichern einer Fokuszeit mitgespeichert. */
+export const FOKUS_FACH = 'fokusFach'
+export const useFokusFach = () => useEinstellung<string | null>(FOKUS_FACH, null)
+
 /** Der laufende Timer (oder null). `undefined` = lädt noch. */
 export function useFokusLauf(): Lauf | null | undefined {
   return useLiveQuery(() => holeEinstellung<Lauf | null>(LAUF, null), [])
@@ -21,9 +25,10 @@ export function useFokusLauf(): Lauf | null | undefined {
 
 export const speichereLauf = (l: Lauf | null) => setzeEinstellung(LAUF, l)
 
-/** Eine fertige Fokuszeit speichern. */
-export function speichereErgebnis(e: Ergebnis, art: Lauf['art']) {
-  return db.fokus.add({ id: neueId(), datum: tagVon(e.start), start: e.start, ende: e.ende, minuten: e.minuten, art })
+/** Eine fertige Fokuszeit speichern (mit dem gerade gewählten Fach). */
+export async function speichereErgebnis(e: Ergebnis, art: Lauf['art']) {
+  const fachId = (await holeEinstellung<string | null>(FOKUS_FACH, null)) ?? undefined
+  return db.fokus.add({ id: neueId(), datum: tagVon(e.start), start: e.start, ende: e.ende, minuten: e.minuten, art, fachId })
 }
 
 /**

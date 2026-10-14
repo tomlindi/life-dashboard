@@ -83,7 +83,7 @@ export default function ImportSeite() {
         <button
           onClick={() => verarbeite(text)}
           disabled={!text.trim()}
-          className="tippbar mt-2 min-h-12 w-full rounded-2xl bg-[#0a84ff] text-[16px] font-semibold disabled:opacity-40"
+          className="tippbar mt-2 min-h-12 w-full rounded-2xl bg-[#0a84ff] text-[16px] font-semibold text-white disabled:opacity-40"
         >
           Importieren
         </button>

@@ -54,7 +54,7 @@ export default function MehrSeite() {
               <m.icon size={20} color={m.farbe} />
               <span className="flex-1 text-left text-[16px]">{m.name}</span>
               {/* Schalter im iOS-Stil */}
-              <span className="relative h-[31px] w-[51px] rounded-full transition-colors" style={{ background: an ? '#30d158' : '#39393d' }}>
+              <span className="relative h-[31px] w-[51px] rounded-full transition-colors" style={{ background: an ? '#30d158' : 'var(--color-leer)' }}>
                 <span className="absolute top-[2px] h-[27px] w-[27px] rounded-full bg-white shadow transition-all" style={{ left: an ? 22 : 2 }} />
               </span>
             </button>

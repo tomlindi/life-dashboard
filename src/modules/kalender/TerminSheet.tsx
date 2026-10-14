@@ -74,7 +74,7 @@ export default function TerminSheet({ offen, onZu, termin, tag }: { offen: boole
 
       <button onClick={() => setGanztaegig(!ganztaegig)} className="mb-3 flex min-h-11 w-full items-center justify-between rounded-2xl bg-karte2 px-4">
         <span className="text-[16px]">Ganztägig</span>
-        <span className="relative h-[31px] w-[51px] rounded-full transition-colors" style={{ background: ganztaegig ? '#30d158' : '#39393d' }}>
+        <span className="relative h-[31px] w-[51px] rounded-full transition-colors" style={{ background: ganztaegig ? '#30d158' : 'var(--color-leer)' }}>
           <span className="absolute top-[2px] h-[27px] w-[27px] rounded-full bg-white transition-all" style={{ left: ganztaegig ? 22 : 2 }} />
         </span>
       </button>

@@ -32,7 +32,7 @@ export default function ImportKnopf({ klein = false, titel = 'Aus Zwischenablage
       <button
         onClick={los}
         disabled={laeuft}
-        className={`tippbar flex w-full items-center justify-center gap-2 rounded-2xl font-semibold ${klein ? 'h-12 bg-karte text-[16px] text-[#0a84ff]' : 'h-14 bg-[#0a84ff] text-[17px]'}`}
+        className={`tippbar flex w-full items-center justify-center gap-2 rounded-2xl font-semibold ${klein ? 'h-12 bg-karte text-[16px] text-[#0a84ff]' : 'h-14 bg-[#0a84ff] text-[17px] text-white'}`}
       >
         <ClipboardPaste size={20} /> {laeuft ? 'Importiere …' : titel}
       </button>

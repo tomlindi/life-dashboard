@@ -17,6 +17,7 @@ import { ProjektFormular } from './Formulare'
 import { STATUS_FARBE, aendereProjekt, farbeVon, fortschritt } from './projekte'
 import AufgabenListe, { ErinnerungEintrag } from './AufgabenListe'
 import { letzterTag } from '../kalender/mehrtaegig'
+import { lesbar } from '../../core/darstellung'
 
 /** Notizfeld: speichert beim Tippen (kurz verzögert) und beim Verlassen des Feldes. */
 function Notizen({ projektId, start }: { projektId: string; start: string }) {
@@ -68,7 +69,7 @@ export default function ProjektSeite() {
       {/* Kopfzeile: Zurück und Bearbeiten */}
       <div className="flex items-center justify-between">
         <ZurueckKnopf ersatz="/ziele" label="Ziele" farbe={farbe} />
-        <button onClick={() => setBearbeiten(true)} className="tippbar mb-1 min-h-10 text-[17px]" style={{ color: farbe }}>
+        <button onClick={() => setBearbeiten(true)} className="tippbar mb-1 min-h-10 text-[17px]" style={{ color: lesbar(farbe) }}>
           Bearbeiten
         </button>
       </div>
@@ -84,7 +85,7 @@ export default function ProjektSeite() {
           </div>
         </Ring>
         <div className="min-w-0 flex-1">
-          <h1 className="text-[28px] font-bold leading-tight" style={{ color: farbe }}>
+          <h1 className="text-[28px] font-bold leading-tight" style={{ color: lesbar(farbe) }}>
             {projekt.titel}
           </h1>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px]">
