@@ -42,12 +42,43 @@ export class ImportFehler extends Error {
  * Bereinigt typische Probleme aus der Kurzbefehle-App:
  * - typografische Anführungszeichen („ “ ” ″), die iOS beim Tippen automatisch setzt
  * - Windows-Zeilenenden und ein unsichtbares BOM-Zeichen am Anfang
+ * - echte Zeilenumbrüche INNERHALB eines Textes (z. B. ein Ort "Hauptstr. 1⏎12345 Stadt")
  */
 export function bereinige(text: string): string {
-  return text
-    .replace(/^﻿/, '')
-    .replace(/\r\n?/g, '\n')
-    .replace(/[“”„‟″«»]/g, '"')
+  return maskiereUmbrueche(
+    text
+      .replace(/^﻿/, '')
+      .replace(/\r\n?/g, '\n')
+      .replace(/[“”„‟″«»]/g, '"'),
+  )
+}
+
+/**
+ * In JSON darf ein Text in "…" keinen echten Zeilenumbruch oder Tab enthalten. Die Kurzbefehle-App
+ * setzt aber z. B. mehrzeilige Adressen oder Notizen 1:1 ein. Solche Umbrüche werden zu \n bzw. \t.
+ * Sicherheitsregel: Beginnt die nächste Zeile mit "{", ist es doch ein neuer Eintrag (dann fehlte
+ * vorher wohl ein Anführungszeichen) – so reißt ein kaputter Eintrag nicht alle folgenden mit.
+ */
+function maskiereUmbrueche(text: string): string {
+  let aus = ''
+  let imText = false
+  for (let i = 0; i < text.length; i++) {
+    const z = text[i]
+    if (imText && z === '\\') {
+      aus += z + (text[i + 1] ?? '')
+      i++
+    } else if (z === '"') {
+      imText = !imText
+      aus += z
+    } else if (imText && z === '\n') {
+      if (/^\s*\{/.test(text.slice(i + 1, i + 40))) {
+        imText = false
+        aus += z
+      } else aus += '\\n'
+    } else if (imText && z === '\t') aus += '\\t'
+    else aus += z
+  }
+  return aus
 }
 
 /** Zeilennummer (ab 1) für eine Position im Text. */
