@@ -1,6 +1,6 @@
-// Das Grundgerüst der App: Seiten-Bereich und unten das Dock (wie auf dem iPhone-Homescreen).
+// Das Grundgerüst der App: Seiten-Bereich und unten die Leiste mit den Dock-Seiten (wie bei WhatsApp).
 // Wie das Dock funktioniert, steht in core/ui/Dock.tsx.
-import { Suspense, lazy, useRef } from 'react'
+import { Suspense, lazy } from 'react'
 import { HashRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { module } from './modules'
 import HeuteSeite from './modules/heute/Seite'
@@ -44,18 +44,17 @@ function Seiten() {
 
 /** Inhalt + Dock. Eigene Komponente, weil Dock und Zurück-Wischen den Router (aktuelle Seite) brauchen. */
 function Rahmen() {
-  const inhalt = useRef<HTMLElement>(null)
   useZurueckWischen() // vom linken Rand nach rechts wischen = zurück
 
   return (
     <div className="h-full">
-      {/* Scrollbarer Inhalt. Oben Platz für Notch/Statusleiste, unten genug Abstand für den Dock-Knopf. */}
-      <main ref={inhalt} className="h-full overflow-y-auto overscroll-contain" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: DOCK_ABSTAND }}>
+      {/* Scrollbarer Inhalt. Oben Platz für Notch/Statusleiste, unten genug Abstand für die Leiste. */}
+      <main className="h-full overflow-y-auto overscroll-contain" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: DOCK_ABSTAND }}>
         <Seiten />
       </main>
 
-      {/* Dock: runder Knopf unten rechts, klappt zur Kapsel mit allen Seiten auf */}
-      <Dock inhalt={inhalt} />
+      {/* Leiste unten mit den Dock-Seiten (wie bei WhatsApp) */}
+      <Dock />
     </div>
   )
 }

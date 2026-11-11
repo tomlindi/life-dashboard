@@ -1,9 +1,11 @@
 // Bereich "Fokus": Pomodoro-Timer (Fokus / Pause, nach 4 Runden lange Pause) oder freie Stoppuhr.
+// Die Fokuszeit stellst du vor dem Start selbst ein: Schnellwahl oder auf die Uhr tippen und Minuten eintippen.
 // Gespeichert werden nur die Fokuszeiten (Tabelle "fokus"), darunter steht die Statistik.
 // Optional stellt die App beim Start zusätzlich einen echten iPhone-Timer über den Kurzbefehl "Life Timer",
 // weil eine Web-App im Hintergrund nicht klingeln kann.
+import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Minus, Pause, Play, Plus, SkipForward, Square } from 'lucide-react'
+import { Minus, Pause, Pencil, Play, Plus, SkipForward, Square } from 'lucide-react'
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import { db } from '../../core/db'
 import { heute, kurzerWochentag, letzteTage, uhrzeit, wochenStart } from '../../core/datum'
@@ -34,7 +36,15 @@ import {
 export const FARBE = '#ff9f0a'
 const PAUSE_FARBE = '#30d158'
 const ARTEN = ['Pomodoro', 'Stoppuhr'] as const
+/** Schnellwahl für die Fokuszeit (Minuten). Jede andere Zeit: auf die Uhr tippen und eintippen. */
+const SCHNELLWAHL = [15, 25, 30, 45, 60, 90]
+const MAX_FOKUS = 240
 
+/** Zahl aus einem Eingabefeld, auf min…max begrenzt; ungültig = null. */
+function zahl(text: string, min: number, max: number) {
+  const n = Math.round(Number(text.replace(',', '.')))
+  return text.trim() && Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : null
+}
 
 /** Eine Zeile zum Einstellen einer Zeit mit Plus/Minus. */
 function Stepper({ name, wert, einheit, min, max, schritt = 1, onWert }: { name: string; wert: number; einheit: string; min: number; max: number; schritt?: number; onWert: (n: number) => void }) {
@@ -45,9 +55,25 @@ function Stepper({ name, wert, einheit, min, max, schritt = 1, onWert }: { name:
         <button onClick={() => onWert(Math.max(min, wert - schritt))} className="tippbar flex h-9 w-9 items-center justify-center rounded-full bg-karte2" aria-label={`${name} verringern`}>
           <Minus size={16} />
         </button>
-        <span className="w-16 text-center text-[16px] font-semibold">
-          {wert} {einheit}
-        </span>
+        {/* Antippen und eine beliebige Zahl eintippen */}
+        <label className="flex w-20 items-baseline justify-center gap-1 text-[16px] font-semibold">
+          <input
+            key={wert}
+            type="text"
+            inputMode="numeric"
+            defaultValue={wert}
+            aria-label={name}
+            onFocus={(e) => e.target.select()}
+            onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+            onBlur={(e) => {
+              const n = zahl(e.target.value, min, max)
+              if (n !== null && n !== wert) onWert(n)
+              else e.target.value = String(wert)
+            }}
+            className="w-9 rounded-md bg-transparent text-right outline-none focus:bg-karte2"
+          />
+          {einheit && <span className="text-[14px] font-normal text-grau">{einheit}</span>}
+        </label>
         <button onClick={() => onWert(Math.min(max, wert + schritt))} className="tippbar flex h-9 w-9 items-center justify-center rounded-full bg-karte2" aria-label={`${name} erhöhen`}>
           <Plus size={16} />
         </button>
@@ -64,6 +90,7 @@ export default function FokusSeite() {
   const einheiten = useLiveQuery(() => db.fokus.orderBy('datum').reverse().toArray(), []) ?? []
   const faecher = (useLiveQuery(() => db.faecher.toArray(), []) ?? []).sort((a, b) => (a.sortierung ?? 0) - (b.sortierung ?? 0) || a.name.localeCompare(b.name, 'de'))
   const [fachId, setFachId] = useFokusFach()
+  const [zeitBearbeiten, setZeitBearbeiten] = useState(false) // Fokuszeit direkt in der Uhr eintippen
   const fachVon = (id?: string) => faecher.find((f) => f.id === id)
 
   // ---------- Aktionen ----------
@@ -119,6 +146,8 @@ export default function FokusSeite() {
   const maxFach = Math.max(1, ...proFach.map((x) => x.minuten))
 
   const setze = (key: keyof FokusZeiten) => (n: number) => setZeiten({ ...zeiten, [key]: n })
+  // Fokuszeit einstellen geht, solange noch kein Pomodoro läuft
+  const kannZeitWaehlen = !lauf && art === 'Pomodoro'
   const grosserKnopf = 'tippbar flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl text-[17px] font-semibold'
 
   return (
@@ -164,11 +193,61 @@ export default function FokusSeite() {
         <div className="flex flex-col items-center py-2">
           <Ring fortschritt={fortschritt} farbe={ringFarbe} groesse={220} dicke={16}>
             <div>
-              <p className="text-[48px] font-light tabular-nums leading-none">{zeitText}</p>
-              <p className="mt-2 text-[14px] text-grau">{unterzeile}</p>
+              {zeitBearbeiten ? (
+                // Eigene Fokuszeit in Minuten eintippen
+                <label className="flex items-baseline justify-center gap-1">
+                  <input
+                    autoFocus
+                    type="text"
+                    inputMode="numeric"
+                    defaultValue={zeiten.fokus}
+                    aria-label="Fokuszeit in Minuten"
+                    onFocus={(e) => e.target.select()}
+                    onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                    onBlur={(e) => {
+                      const n = zahl(e.target.value, 1, MAX_FOKUS)
+                      if (n !== null) setZeiten({ ...zeiten, fokus: n })
+                      setZeitBearbeiten(false)
+                    }}
+                    className="w-24 rounded-xl bg-karte2 text-center text-[44px] font-light tabular-nums leading-tight outline-none"
+                  />
+                  <span className="text-[20px] text-grau">min</span>
+                </label>
+              ) : kannZeitWaehlen ? (
+                <button onClick={() => setZeitBearbeiten(true)} className="tippbar" aria-label="Fokuszeit ändern">
+                  <p className="text-[48px] font-light tabular-nums leading-none">{zeitText}</p>
+                  <p className="mt-2 flex items-center justify-center gap-1 text-[14px] text-grau">
+                    {unterzeile} <Pencil size={12} />
+                  </p>
+                </button>
+              ) : (
+                <>
+                  <p className="text-[48px] font-light tabular-nums leading-none">{zeitText}</p>
+                  <p className="mt-2 text-[14px] text-grau">{unterzeile}</p>
+                </>
+              )}
             </div>
           </Ring>
         </div>
+
+        {/* Schnellwahl der Fokuszeit (nur vor dem Start); jede andere Zeit: auf die Uhr tippen */}
+        {kannZeitWaehlen && (
+          <div className="mt-3 grid grid-cols-6 gap-1.5">
+            {SCHNELLWAHL.map((min) => {
+              const an = zeiten.fokus === min
+              return (
+                <button
+                  key={min}
+                  onClick={() => setZeiten({ ...zeiten, fokus: min })}
+                  className="tippbar min-h-9 rounded-full text-[13px] font-semibold tabular-nums"
+                  style={{ background: an ? FARBE : 'var(--color-karte2)', color: an ? '#000' : 'var(--color-text)' }}
+                >
+                  {min} min
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         {/* Knöpfe je nach Zustand */}
         <div className="mt-4 flex gap-2">
@@ -267,11 +346,11 @@ export default function FokusSeite() {
       </Karte>
 
       <Karte titel="Pomodoro-Zeiten">
-        <Stepper name="Fokus" wert={zeiten.fokus} einheit="min" min={5} max={120} schritt={5} onWert={setze('fokus')} />
-        <Stepper name="Pause" wert={zeiten.pause} einheit="min" min={1} max={30} onWert={setze('pause')} />
-        <Stepper name="Lange Pause" wert={zeiten.langePause} einheit="min" min={5} max={60} schritt={5} onWert={setze('langePause')} />
+        <Stepper name="Fokus" wert={zeiten.fokus} einheit="min" min={1} max={MAX_FOKUS} schritt={5} onWert={setze('fokus')} />
+        <Stepper name="Pause" wert={zeiten.pause} einheit="min" min={1} max={60} onWert={setze('pause')} />
+        <Stepper name="Lange Pause" wert={zeiten.langePause} einheit="min" min={1} max={90} schritt={5} onWert={setze('langePause')} />
         <Stepper name="Runden bis lange Pause" wert={zeiten.runden} einheit="" min={2} max={8} onWert={setze('runden')} />
-        <p className="text-[12px] text-grau">Änderungen gelten ab der nächsten Phase.</p>
+        <p className="text-[12px] text-grau">Auf eine Zahl tippen, um sie frei einzugeben. Änderungen gelten ab der nächsten Phase.</p>
       </Karte>
 
       <Karte titel="iPhone-Timer">

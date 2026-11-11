@@ -3,6 +3,7 @@
 // Einen neuen Bereich hinzufügen: Ordner in src/modules/ anlegen und hier eintragen.
 // Die Reihenfolge bestimmt die Reihenfolge der Kacheln auf der Startseite.
 import fitness from './fitness'
+import knie from './knie'
 import schule from './schule'
 import ziele from './ziele'
 import notizen from './notizen'
@@ -15,11 +16,14 @@ import freunde from './freunde'
 import hobbys from './hobbys'
 import fokus from './fokus'
 import stimmung from './stimmung'
+import studium from './studium'
 import type { Modul } from '../core/module'
 
 export const module: Modul[] = [
   fitness,
+  knie,
   schule,
+  studium,
   ziele,
   notizen,
   gewohnheiten,

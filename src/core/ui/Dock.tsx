@@ -1,14 +1,12 @@
-// Das Dock: ein runder Glas-Knopf unten rechts (oder links, Einstellung "Knopf links").
+// Die Leiste unten (aufgebaut wie die Tab-Leiste von WhatsApp):
 //
-//   • Im Knopf steht immer das Symbol der Seite, auf der du gerade bist, in ihrer Farbe.
-//   • Antippen: Der Knopf klappt mit Federeffekt zu einer Glas-Kapsel auf. Darin stehen die 4 festen
-//     Dock-Seiten und "Mehr". Bist du auf einer anderen Seite (z. B. Schlaf), steht sie zusätzlich
-//     ganz außen. Die aktuelle Seite hat eine helle Kapsel dahinter.
-//   • Seite antippen = dorthin wechseln und zuklappen. Daneben tippen oder nach unten wischen = nur zuklappen.
-//   • Beim Scrollen wird der Knopf kleiner und durchsichtiger, kurz danach wieder normal.
+//   • Volle Breite, halb durchsichtig mit feiner Linie oben, immer sichtbar.
+//   • Die 4 festen Dock-Seiten (einstellbar unter Einstellungen → Dock-Seiten) und "Mehr", jeweils Symbol + Name.
+//     Bist du auf einer anderen Seite (z. B. Schlaf), steht sie zusätzlich ganz rechts.
+//   • Die aktuelle Seite: Symbol in einer Pille in ihrer Akzentfarbe, Name fett.
 //
 // Außerdem hier: "‹ Zurück"-Knopf und Zurück-Wischen vom linken Bildschirmrand.
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import { useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { CalendarDays, ChevronLeft, ClipboardPaste, HardDrive, House, LayoutGrid, ListChecks, Settings, type LucideIcon } from 'lucide-react'
 import { MAX_TABS, STANDARD_TABS, module } from '../../modules'
@@ -73,147 +71,72 @@ export function useIstUebersicht(pfad: string) {
   return pfad === '/' || tabs.some((t) => t.pfad === pfad)
 }
 
-// ---------- Maße und Bewegung ----------
-const KNOPF = 56
-const RAND = 16
-const EINTRAG = 58 // Breite eines Eintrags in der aufgeklappten Kapsel
-// Federeffekt: schnell los, leicht über das Ziel hinaus, dann zurück (ca. 300 ms)
-const FEDER = '300ms cubic-bezier(0.34, 1.36, 0.64, 1)'
-const SANFT = '200ms ease-out'
+// ---------- Maße ----------
+const HOEHE = 56 // Höhe der Leiste ohne den Streifen für die Home-Leiste des iPhones
 
-/** Abstand unten im Inhalt, damit nichts unter dem Knopf liegt. */
-export const DOCK_ABSTAND = `calc(env(safe-area-inset-bottom) + ${8 + KNOPF + 16}px)`
+/** Abstand unten im Inhalt, damit nichts unter der Leiste liegt. */
+export const DOCK_ABSTAND = `calc(env(safe-area-inset-bottom) + ${HOEHE + 16}px)`
 
-/** Glas-Optik wie in iOS 26: halb durchsichtig, unscharfer Hintergrund, feiner heller Rand, weicher Schatten. */
-const GLAS = {
-  background: 'var(--glas)',
-  backdropFilter: 'blur(20px) saturate(180%)',
-  WebkitBackdropFilter: 'blur(20px) saturate(180%)', // Safari
-  border: '1px solid var(--glas-rand)',
-  boxShadow: 'var(--glas-schatten)',
-} as const
-
-/** Ein Eintrag in der aufgeklappten Kapsel. */
-function Eintrag({ seite, aktiv, onWahl }: { seite: DockSeite; aktiv: boolean; onWahl: () => void }) {
+/** Ein Eintrag der Leiste: Symbol in einer Pille (bei der aktuellen Seite farbig hinterlegt), darunter der Name. */
+function Eintrag({ seite, aktiv, farbe }: { seite: DockSeite; aktiv: boolean; farbe: string }) {
   return (
-    <Link to={seite.pfad} onClick={onWahl} aria-label={seite.name} aria-current={aktiv ? 'page' : undefined} className="tippbar flex h-full min-w-0 flex-1 items-center justify-center">
+    <Link
+      to={seite.pfad}
+      aria-label={seite.name}
+      aria-current={aktiv ? 'page' : undefined}
+      className="tippbar flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-1"
+      style={{ color: aktiv ? 'var(--color-text)' : 'var(--color-grau)' }}
+    >
       <span
-        className="flex w-full min-w-0 flex-col items-center gap-0.5 rounded-full px-1 py-1.5"
-        style={{ background: aktiv ? 'var(--glas-aktiv)' : 'transparent', color: aktiv ? seite.farbe : '#8e8e93' }}
+        className="flex h-8 items-center justify-center rounded-full"
+        style={{
+          width: aktiv ? 56 : 32,
+          // Farbige Pille in der Akzentfarbe der Seite (wie bei WhatsApp), mit Federeffekt
+          background: aktiv ? `color-mix(in srgb, ${farbe} 22%, transparent)` : 'transparent',
+          color: aktiv ? lesbar(farbe) : undefined,
+          transition: 'width 300ms cubic-bezier(0.34, 1.36, 0.64, 1), background 200ms ease-out',
+        }}
       >
-        <seite.icon size={21} strokeWidth={aktiv ? 2.4 : 2} />
-        <span className="max-w-full truncate text-[10px] font-medium leading-none">{seite.name}</span>
+        <seite.icon size={22} strokeWidth={aktiv ? 2.4 : 1.9} />
       </span>
+      <span className={`max-w-full truncate px-0.5 text-[11px] leading-none ${aktiv ? 'font-semibold' : 'font-medium'}`}>{seite.name}</span>
     </Link>
   )
 }
 
 /**
- * Das Dock. `inhalt` ist der scrollbare Bereich (für "beim Scrollen kleiner werden").
- * `farbe`: optional eine eigene Farbe für das Symbol (z. B. die Projektfarbe), sonst die des Bereichs.
+ * Die Leiste unten. `farbe`: optional eine eigene Farbe für die aktuelle Seite (z. B. die Projektfarbe),
+ * sonst die des Bereichs.
  */
-export function Dock({ inhalt, farbe: farbeVonSeite }: { inhalt: RefObject<HTMLElement | null>; farbe?: string }) {
+export function Dock({ farbe: farbeVonSeite }: { farbe?: string }) {
   const { pathname } = useLocation()
   const tabs = useDockTabs()
-  const [links] = useEinstellung<boolean>('dockLinks', false)
-  const [offen, setOffen] = useState(false)
-  const [scrollt, setScrollt] = useState(false)
 
   const aktuell = seiteZu(pathname)
-  // Auf einer Projektseite (/ziele/projekt/<id>) hat der Knopf die Farbe des Projekts
+  // Auf einer Projektseite (/ziele/projekt/<id>) hat die aktuelle Seite die Farbe des Projekts
   const projektId = pathname.match(/^\/ziele\/projekt\/([^/]+)/)?.[1]
   const projektFarbe = useLiveQuery(async () => (projektId ? (await db.projekte.get(projektId))?.farbe : undefined), [projektId])
   const farbe = farbeVonSeite ?? projektFarbe ?? aktuell.farbe
-  // Aktuelle Seite gehört nicht zu den festen? Dann zusätzlich ganz außen anzeigen.
+  // Aktuelle Seite gehört nicht zu den festen? Dann zusätzlich ganz rechts anzeigen.
   const eintraege = tabs.some((t) => t.id === aktuell.id) ? tabs : [...tabs, aktuell]
-  // Für Linkshänder spiegeln: dann steht "außen" rechts, und die Kapsel klappt nach rechts auf
-  const reihe = links ? [...eintraege].reverse() : eintraege
-
-  // Seitenwechsel (auch über "Zurück") klappt das Dock zu
-  useEffect(() => setOffen(false), [pathname])
-
-  // Beim Scrollen: kleiner und durchsichtiger, 0,8 s nach dem letzten Scrollen wieder normal
-  useEffect(() => {
-    const el = inhalt.current
-    if (!el) return
-    let timer: number | undefined
-    const beimScrollen = () => {
-      setScrollt(true)
-      window.clearTimeout(timer)
-      timer = window.setTimeout(() => setScrollt(false), 800)
-    }
-    el.addEventListener('scroll', beimScrollen, { passive: true })
-    return () => {
-      el.removeEventListener('scroll', beimScrollen)
-      window.clearTimeout(timer)
-    }
-  }, [inhalt])
-
-  // Nach unten wischen auf der offenen Kapsel klappt sie zu
-  const wischStart = useRef<number | null>(null)
-  const seite = links ? { left: RAND } : { right: RAND }
-  const klein = scrollt && !offen
 
   return (
-    <>
-      {/* Unsichtbare Fläche hinter der offenen Kapsel: daneben tippen = zuklappen */}
-      {offen && <button aria-label="Dock schließen" onClick={() => setOffen(false)} className="fixed inset-0 z-30 cursor-default" />}
-
-      <nav
-        className="fixed z-40 overflow-hidden rounded-full"
-        onTouchStart={(e) => (wischStart.current = e.touches[0].clientY)}
-        onTouchEnd={(e) => {
-          if (wischStart.current !== null && e.changedTouches[0].clientY - wischStart.current > 30) setOffen(false)
-          wischStart.current = null
-        }}
-        style={{
-          ...GLAS,
-          ...seite,
-          bottom: 'calc(env(safe-area-inset-bottom) + 8px)',
-          height: KNOPF,
-          // Zu: ein Kreis. Offen: so breit wie die Einträge, höchstens Bildschirmbreite minus Rand.
-          width: offen ? `min(${reihe.length * EINTRAG + 8}px, calc(100vw - ${2 * RAND}px))` : KNOPF,
-          transform: klein ? 'scale(0.85)' : 'scale(1)',
-          transformOrigin: links ? 'bottom left' : 'bottom right',
-          opacity: klein ? 0.6 : 1,
-          transition: `width ${FEDER}, transform ${FEDER}, opacity ${SANFT}`,
-        }}
-      >
-        {/* Aufgeklappt: alle Einträge */}
-        <div
-          className="absolute inset-y-0 flex items-center px-1"
-          style={{
-            ...(links ? { left: 0 } : { right: 0 }),
-            width: `min(${reihe.length * EINTRAG + 8}px, calc(100vw - ${2 * RAND}px))`,
-            opacity: offen ? 1 : 0,
-            pointerEvents: offen ? 'auto' : 'none',
-            transition: `opacity ${SANFT}`,
-          }}
-        >
-          {reihe.map((s) => (
-            <Eintrag key={s.id} seite={s} aktiv={s.id === aktuell.id} onWahl={() => setOffen(false)} />
-          ))}
-        </div>
-
-        {/* Zugeklappt: nur das Symbol der aktuellen Seite */}
-        <button
-          onClick={() => setOffen(true)}
-          aria-label={`Navigation öffnen (aktuell: ${aktuell.name})`}
-          tabIndex={offen ? -1 : 0}
-          className="absolute inset-y-0 flex items-center justify-center"
-          style={{
-            ...(links ? { left: 0 } : { right: 0 }),
-            width: KNOPF - 2,
-            color: farbe,
-            opacity: offen ? 0 : 1,
-            pointerEvents: offen ? 'none' : 'auto',
-            transition: `opacity ${SANFT}`,
-          }}
-        >
-          <aktuell.icon size={24} strokeWidth={2.3} />
-        </button>
-      </nav>
-    </>
+    <nav
+      className="fixed inset-x-0 bottom-0 z-40"
+      style={{
+        background: 'var(--leiste)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)', // Safari
+        borderTop: '0.5px solid var(--leiste-rand)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}
+    >
+      <div className="mx-auto flex max-w-xl items-stretch px-1" style={{ height: HOEHE }}>
+        {eintraege.map((s) => (
+          <Eintrag key={s.id} seite={s} aktiv={s.id === aktuell.id} farbe={s.id === aktuell.id ? farbe : s.farbe} />
+        ))}
+      </div>
+    </nav>
   )
 }
 

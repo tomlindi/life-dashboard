@@ -10,6 +10,7 @@ import { useAusgeblendet } from '../../core/einstellungen'
 import { berechneHalbjahr } from '../schule/noten'
 import { ohneDoppelte } from '../fitness/workouts'
 import { abiPrognose, STANDARD_PRUEFUNGEN, type AbiPruefung } from '../schule/abi'
+import { seitOp, STANDARD_OP_DATUM } from '../knie/reha'
 
 /** Liest für jeden Bereich eine kurze Kennzahl aus der Datenbank. */
 function useKennzahlen(): Record<string, string> {
@@ -36,11 +37,15 @@ function useKennzahlen(): Record<string, string> {
       const pruefungen = await holeEinstellung<AbiPruefung[]>('abiPruefungen', STANDARD_PRUEFUNGEN)
       const gewicht = await db.gewicht.orderBy('datum').last()
       const fokusMin = (await db.fokus.where('datum').equals(h).toArray()).reduce((s, e) => s + e.minuten, 0)
+      const opDatum = await holeEinstellung<string>('rehaOpDatum', STANDARD_OP_DATUM)
+      const studiumOffen = (await db.studiumOptionen.toArray()).filter((o) => o.status !== 'Absage').length
       const abi = faecher.length ? abiPrognose(faecher, noten, hj, pruefungen) : null
       const konto = buchungen.reduce((s, b) => s + (b.art === 'einnahme' ? b.betrag : -b.betrag), 0)
       const hobbyMin = hobbyZeiten.reduce((s, z) => s + z.minuten, 0)
       return {
         fitness: `${workouts.filter((w) => tagVon(w.start) >= ws).length} Workouts diese Woche`,
+        knie: `Tag ${Math.max(0, seitOp(opDatum).tage)} nach der OP`,
+        studium: studiumOffen ? `${studiumOffen} Optionen offen` : 'Noch leer',
         schule: abi?.bestanden ? `Abi ≈ ${abi.note.toFixed(1).replace('.', ',')}` : gesamt === null ? 'Noch keine Noten' : `Ø ${zahl(gesamt)} Punkte`,
         ziele: `${ziele} ${ziele === 1 ? 'Ziel' : 'Ziele'}`,
         gewohnheiten: habits ? `${haken}/${habits} heute` : 'Keine Habits',

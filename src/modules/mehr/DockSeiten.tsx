@@ -1,17 +1,15 @@
 // Einstellungen → "Dock-Seiten": welche (höchstens 4) Seiten fest im Dock stehen und in welcher Reihenfolge.
-// "Mehr" ist immer dabei. Reihenfolge: Zeile gedrückt halten und ziehen (oben = links in der Kapsel).
-// Gespeichert als Einstellung "dockTabs" (Liste von IDs). Dazu der Schalter "Knopf links" (Einstellung "dockLinks").
+// "Mehr" ist immer dabei (ganz rechts). Reihenfolge: Zeile gedrückt halten und ziehen (oben = links in der Leiste).
+// Gespeichert als Einstellung "dockTabs" (Liste von IDs).
 import { GripVertical, Minus, Plus } from 'lucide-react'
 import { MAX_TABS, STANDARD_TABS } from '..'
-import { useAusgeblendet, useEinstellung } from '../../core/einstellungen'
+import { useAusgeblendet } from '../../core/einstellungen'
 import Karte from '../../core/ui/Karte'
-import { Schalter } from '../../core/ui/Formular'
 import SortierListe from '../../core/ui/SortierListe'
 import { WAEHLBARE_SEITEN, useDockTabIds, type DockSeite } from '../../core/ui/Dock'
 
 export default function DockSeiten() {
   const [ids, setIds] = useDockTabIds()
-  const [links, setLinks] = useEinstellung<boolean>('dockLinks', false)
   const [ausgeblendet] = useAusgeblendet()
   // Nur gültige, nicht ausgeblendete Seiten (ein ausgeblendeter Bereich kann nicht im Dock stehen)
   const nutzbar = WAEHLBARE_SEITEN.filter((s) => !ausgeblendet.includes(s.id))
@@ -63,19 +61,11 @@ export default function DockSeiten() {
       )}
 
       <p className="mt-3 text-[12px] leading-snug text-grau">
-        Zum Sortieren eine Zeile gedrückt halten und ziehen. Oben = links im Dock.{' '}
+        Zum Sortieren eine Zeile gedrückt halten und ziehen. Oben = links in der Leiste.{' '}
         <button onClick={() => setIds(STANDARD_TABS)} className="underline">
           Standard wiederherstellen
         </button>
       </p>
-
-      <div className="mt-3 flex min-h-12 items-center gap-3 border-t border-linie pt-3">
-        <span className="flex-1">
-          <span className="block text-[16px]">Knopf links</span>
-          <span className="block text-[12px] text-grau">für Linkshänder</span>
-        </span>
-        <Schalter an={links} onClick={() => setLinks(!links)} label="Dock-Knopf links" />
-      </div>
     </Karte>
   )
 }

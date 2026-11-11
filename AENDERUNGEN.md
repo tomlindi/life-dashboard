@@ -8,6 +8,14 @@ Die aktuelle Version steht in der App ganz unten unter Mehr → Einstellungen.
 - Nur anschauen (am PC): `git checkout v1.0.0`, danach `npm run dev`. Zurück zur neuesten mit `git checkout main`.
 - Online wirklich zurücksetzen: `git revert --no-edit v1.0.0..HEAD` und `git push`. Dabei entstehen neue Commits, die alles seit v1.0.0 rückgängig machen. Der Verlauf bleibt erhalten, und GitHub Pages baut automatisch die alte Version.
 
+## 1.10.0 – 11.11.2026
+
+**Neuer Bereich Knie.** Reha nach der Kreuzband-OP: oben Tag und Woche seit der OP (Datum änderbar) mit Ring für die Übungen von heute und einer Serie, wie viele Tage in Folge alle Übungen erledigt waren. Bei „Heute“ hakst du die Physio-Übungen ab und trägst Schmerz (0–10), Schwellung, Beugung und Streckdefizit in Grad und eine Notiz ein. Mit ‹ › gehst du zu früheren Tagen. „Verlauf“ zeigt Beugung, Streckdefizit oder Schmerz über die Tage nach der OP. „Meilensteine“ sind die Schritte zurück zum Handball (Vorlage per Knopf, eigene dazu), abgehakt wird mit Datum. Übungen legst du unter „Übungen vom Physio“ an und schaltest sie ein oder aus. Die App plant selbst kein Training.
+
+**Neuer Bereich Studium.** Dein Ziel oben, darunter Zähler (in Prüfung, beworben, Zusagen) und die nächste Frist. Hochschulen und Firmen fürs Praxisstudium haben einen Status (Idee bis Zusage/Absage), Favoriten-Stern, Ort, Link und Notizen, Favoriten stehen oben. „Aufgaben & Fristen“ sortiert nach Datum und färbt knappe Fristen orange, fällige rot. „Aus meinen Notizen laden“ übernimmt einmalig HSLU, ZHAW, FHNW, OST, BFH, Karlsruhe, die PiBS-Firmen aus der HSLU-Stellenbörse und die offenen Fragen.
+
+**Knie-Karte auf Heute.** Tag nach der OP und Fortschritt der Übungen, Antippen öffnet den Bereich. Neue Karten stehen unten, verschieben oder ausblenden unter Einstellungen → Heute anpassen.
+
 ## 1.9.0 – 14.10.2026
 
 **Heute anpassen.** Unter Mehr → Einstellungen → „Heute anpassen“ lässt sich jede Karte der Startseite ein- und ausschalten (z. B. den Schnell-Eintrag) und per Ziehen sortieren. „Standard wiederherstellen“ setzt alles zurück.

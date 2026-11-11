@@ -17,13 +17,11 @@
   --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
 }
 
-/* Glas-Optik des Docks; --abdunkeln: wie stark Akzentfarben für Text im Light Mode abgedunkelt werden (lesbar()) */
+/* --leiste: Hintergrund der Leiste unten; --abdunkeln: wie stark Akzentfarben für Text im Light Mode abgedunkelt werden (lesbar()) */
 :root {
   --abdunkeln: 0%;
-  --glas: rgb(30 30 30 / 0.6);
-  --glas-rand: rgb(255 255 255 / 0.12);
-  --glas-schatten: 0 8px 32px rgb(0 0 0 / 0.45);
-  --glas-aktiv: rgb(255 255 255 / 0.14);
+  --leiste: rgb(18 18 18 / 0.82);
+  --leiste-rand: rgb(255 255 255 / 0.15);
   color-scheme: dark;
 }
 
@@ -41,10 +39,8 @@ html[data-theme='hell'] {
   --color-segment: #fff;
   --color-gelb: #d9a400;
   --abdunkeln: 18%;
-  --glas: rgb(255 255 255 / 0.7);
-  --glas-rand: rgb(0 0 0 / 0.08);
-  --glas-schatten: 0 8px 32px rgb(0 0 0 / 0.15);
-  --glas-aktiv: rgb(0 0 0 / 0.06);
+  --leiste: rgb(249 249 249 / 0.88);
+  --leiste-rand: rgb(0 0 0 / 0.18);
   color-scheme: light;
 }
 @media (prefers-color-scheme: light) {
@@ -60,10 +56,8 @@ html[data-theme='hell'] {
     --color-segment: #fff;
     --color-gelb: #d9a400;
     --abdunkeln: 18%;
-    --glas: rgb(255 255 255 / 0.7);
-    --glas-rand: rgb(0 0 0 / 0.08);
-    --glas-schatten: 0 8px 32px rgb(0 0 0 / 0.15);
-    --glas-aktiv: rgb(0 0 0 / 0.06);
+          --leiste: rgb(249 249 249 / 0.88);
+  --leiste-rand: rgb(0 0 0 / 0.18);
     color-scheme: light;
   }
 }

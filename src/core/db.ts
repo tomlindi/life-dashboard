@@ -390,6 +390,61 @@ export interface FokusEinheit {
   fachId?: string // gelernt für dieses Schulfach (Fokus-Seite: "Wofür?")
 }
 
+// ---------- Knie-Reha ----------
+
+/** Eine Übung vom Physio. "aktiv" = steht gerade im Tagesplan. */
+export interface RehaUebung {
+  id: string
+  name: string
+  vorgabe?: string // z. B. "3 × 15" oder "2 × 30 s"
+  aktiv: boolean
+  sortierung: number
+}
+
+/** Ein Tag in der Reha: abgehakte Übungen und Werte (alles optional). */
+export interface RehaTag {
+  datum: string // "JJJJ-MM-TT", eindeutig pro Tag
+  erledigt: string[] // IDs der Übungen, die an diesem Tag gemacht wurden
+  schmerz?: number // 0 (kein) bis 10 (stärkster)
+  schwellung?: number // 0 keine, 1 leicht, 2 mittel, 3 stark
+  beugung?: number // Grad
+  streckung?: number // Grad (0 = volle Streckung, Streckdefizit als positive Zahl)
+  notiz?: string
+}
+
+/** Ein Schritt im Comeback, z. B. "Joggen freigegeben". */
+export interface RehaMeilenstein {
+  id: string
+  titel: string
+  erreicht?: string // Tag, an dem er erreicht wurde
+  sortierung: number
+}
+
+// ---------- Studium ----------
+
+export type StudiumStatus = 'Idee' | 'Recherche' | 'Angefragt' | 'Beworben' | 'Gespräch' | 'Zusage' | 'Absage'
+
+/** Eine Hochschule oder eine Firma (für das Praxisstudium). */
+export interface StudiumOption {
+  id: string
+  art: 'hochschule' | 'firma'
+  name: string
+  ort?: string
+  status: StudiumStatus
+  favorit?: boolean
+  link?: string
+  notiz?: string
+  sortierung: number
+}
+
+/** Aufgabe oder Frist rund ums Studium. Mit Datum = Frist. */
+export interface StudiumAufgabe {
+  id: string
+  titel: string
+  datum?: string
+  erledigt: boolean
+}
+
 // ---------- Die Datenbank selbst ----------
 
 class LifeDB extends Dexie {
@@ -426,6 +481,11 @@ class LifeDB extends Dexie {
   fokus!: Table<FokusEinheit, string>
   notizOrdner!: Table<NotizOrdner, string>
   abschnitte!: Table<Abschnitt, string>
+  rehaUebungen!: Table<RehaUebung, string>
+  rehaTage!: Table<RehaTag, string>
+  rehaMeilensteine!: Table<RehaMeilenstein, string>
+  studiumOptionen!: Table<StudiumOption, string>
+  studiumAufgaben!: Table<StudiumAufgabe, string>
 
   constructor() {
     super('life-dashboard')
@@ -485,6 +545,14 @@ class LifeDB extends Dexie {
       notizen: 'id, datum, geaendert, ordnerId',
       notizOrdner: 'id, sortierung',
       abschnitte: 'id, ort',
+    })
+    // Version 8: Knie-Reha und Studium
+    this.version(8).stores({
+      rehaUebungen: 'id, sortierung',
+      rehaTage: 'datum',
+      rehaMeilensteine: 'id, sortierung',
+      studiumOptionen: 'id, art',
+      studiumAufgaben: 'id, datum',
     })
   }
 }

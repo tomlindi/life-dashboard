@@ -8,6 +8,7 @@ export const HEUTE_KARTEN = [
   { id: 'widgets', name: 'Kalender & Erinnerungen' },
   { id: 'health', name: 'Schritte, Schlaf, Wasser' },
   { id: 'klausur', name: 'Nächste Klausur', info: 'mit Lernzeit aus dem Fokus-Timer' },
+  { id: 'knie', name: 'Knie-Reha', info: 'Tag nach der OP und Übungen von heute' },
   { id: 'aufgaben', name: 'Aufgaben heute' },
   { id: 'hinweise', name: 'Hinweise', info: 'Geburtstage und Backup-Erinnerung' },
   { id: 'aktivitaet', name: 'Aktivität' },

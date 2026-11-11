@@ -126,7 +126,7 @@ export default function NotizenSeite() {
         </section>
       ))}
 
-      {/* Neue Notiz (im gewählten Ordner): schwebt rechts über dem Dock-Knopf */}
+      {/* Neue Notiz (im gewählten Ordner): schwebt rechts über der Leiste */}
       <button
         onClick={async () => oeffne(await neueNotiz(eigenerOrdner?.id))}
         className="tippbar fixed right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full shadow-lg"

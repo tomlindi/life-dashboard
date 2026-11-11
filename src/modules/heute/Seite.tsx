@@ -16,6 +16,7 @@ import { SyncRueckkehr, SyncSymbol } from '../kalender/SyncKnopf'
 import HealthKacheln from './HealthKacheln'
 import FaelligeAufgaben from './FaelligeAufgaben'
 import NaechsteKlausur from './NaechsteKlausur'
+import KnieKarte from '../knie/HeuteKarte'
 import FokusBanner from '../fokus/Banner'
 import HobbyBanner from '../hobbys/Banner'
 import { useHeuteKarten, type KartenId } from './karten'
@@ -37,6 +38,7 @@ const KARTEN: Record<KartenId, () => ReactNode> = {
   ),
   health: () => <HealthKacheln />,
   klausur: () => <NaechsteKlausur />,
+  knie: () => <KnieKarte />,
   aufgaben: () => <FaelligeAufgaben />,
   hinweise: () => (
     <>
